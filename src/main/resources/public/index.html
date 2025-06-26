@@ -1,25 +1,112 @@
-<!-- src/main/resources/public/index.html -->
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Bot Control Panel</title>
-</head>
-<body>
-<h1>Toggle Features</h1>
-<form action="/toggle-wywoz" method="post">
-    <label>
-        <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
-               id="wywozSmieciToggle">
-        Przelacznik "Wywoz Smieci"
-    </label>
-</form>
+    <head>
+        <meta charset="UTF-8">
+        <title>Bot Control Panel</title>
+    </head>
+    <body>
+        <h1>Toggle Features</h1>
 
-<script>
-    fetch('/wywoz-status')
-        .then(res => res.text())
-        .then(status => {
-            document.getElementById('wywozSmieciToggle').checked = (status === 'enabled');
-        });
-</script>
-</body>
+        <form action="/toggle-wywoz" method="post">
+            <label>
+                <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
+                       id="wywozSmieciToggle">
+                Toggle "Wywóz Śmieci"
+            </label>
+        </form>
+
+        <form action="/toggle-debug" method="post">
+            <label>
+                <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
+                       id="debugToggle">
+                Toggle "Debug"
+            </label>
+        </form>
+
+        <h2>Wywóz Śmieci Manager</h2>
+        <table border="1" id="bindingsTable">
+            <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Channel ID</th>
+                <th>Enabled</th>
+                <th>Remove</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h3>New Wywóz Śmieci</h3>
+        <form id="addBindingForm">
+            <input type="text" name="userId" placeholder="User ID" required>
+            <input type="text" name="channelId" placeholder="Channel ID" required>
+            <button type="submit">Add</button>
+        </form>
+
+        <script>
+            fetch('/wywoz-status')
+                .then(res => res.text())
+                .then(status => {
+                    document.getElementById('wywozSmieciToggle').checked = (status === 'enabled');
+                });
+            fetch('/debug-status')
+                .then(res => res.text())
+                .then(status => {
+                    document.getElementById('debugToggle').checked = (status === 'enabled');
+                });
+
+            function loadBindings() {
+                fetch('/bindings-detailed')
+                    .then(res => res.json())
+                    .then(bindings => {
+                        const tbody = document.getElementById('bindingsTable').querySelector('tbody');
+                        tbody.innerHTML = '';
+                        bindings.forEach(b => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${b.userName}</td>
+                                <td>${b.channelName}</td>
+                                <td>
+                                    <input type="checkbox" ${b.enabled ? 'checked' : ''} onchange="toggleBinding('${b.userId}', '${b.channelId}', this.checked)">
+                                </td>
+                                <td>
+                                    <button onclick="removeBinding('${b.userId}', '${b.channelId}')">Remove</button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    });
+            }
+            function toggleBinding(userId, channelId, enabled) {
+                console.log('Toggling:', userId, channelId, enabled);
+                fetch('/toggle-binding', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `userId=${userId}&channelId=${channelId}&enabled=${enabled}`
+                }).then(loadBindings);
+            }
+            function removeBinding(userId, channelId) {
+                fetch('/remove-binding', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `userId=${userId}&channelId=${channelId}`
+                }).then(loadBindings);
+            }
+            document.getElementById('addBindingForm').onsubmit = function(e) {
+                e.preventDefault();
+                const form = e.target;
+                const userId = form.userId.value;
+                const channelId = form.channelId.value;
+                fetch('/add-binding', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `userId=${userId}&channelId=${channelId}`
+                }).then(() => {
+                    form.reset();
+                    loadBindings();
+                });
+            };
+            loadBindings();
+        </script>
+    </body>
 </html>

@@ -35,9 +35,9 @@
     </plugins>
   </build>
   <properties>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>24</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>24</maven.compiler.target>
+    <maven.compiler.source>24</maven.compiler.source>
   </properties>
 </project>

@@ -12,7 +12,7 @@ public class DiscordBot {
         JDA jda = JDABuilder.createDefault("MTE0Njk1NTA2MjU0ODExOTU2Mw.GLhfzj._hnZysbjS-g-S1Qocph117_WcCgaKG9q5HdEao")
                 .addEventListeners(new VoiceJoinListener())
                 .build();
-
+        WywozBindingManager.loadBindings();
         BotHolder.setJDA(jda);
         Dashboard.start();
     }
@@ -29,16 +29,14 @@ public class DiscordBot {
                     System.out.println(user + " joined voice channel: " + channel);
                 }
                 if (BotSettings.isWywozSmieci()) {
-                    //607950635400429568 - sergiusz | 234344447863816192 - ryzo
-                    //671366439382417448 - kojec | 776175536959258654 - aaaaaaa
-                    if (channelId == 671366439382417448L && userId == 607950635400429568L) {
+                    if (WywozBindingManager.isBound(userId, channelId)) {
                         Member member = event.getGuild().getMemberById(userId);
                         Guild guild = event.getGuild();
                         if (member != null && guild != null) {
                             guild.kickVoiceMember(member).queue();
-                            System.out.println("Wywoz smieci");
+                            System.out.println("Wywoz smieci (" + user + " | " + channel + ")");
                         } else {
-                            System.out.println("Blad z wywozem smieci:  " + userId);
+                            System.out.println("Blad z wywozem smieci  (" + user + " | " + channel + ")");
                         }
                     }
                 }

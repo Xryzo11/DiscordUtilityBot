@@ -1,7 +1,7 @@
 package com.xryzo11.discordbot;
 
 public class BotSettings {
-    private static boolean wywozSmieci = false;
+    private static boolean wywozSmieci = true;
     private static boolean debug = false;
 
     public static boolean isWywozSmieci() {
