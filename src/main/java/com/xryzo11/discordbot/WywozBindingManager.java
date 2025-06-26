@@ -66,22 +66,24 @@ public class WywozBindingManager {
     }
 
     public static void setBindingEnabled(long userId, long channelId, boolean enabled) {
-        System.out.println("setBindingEnabled called: userId=" + userId + ", channelId=" + channelId + ", enabled=" + enabled);
-        System.out.println("Current bindings:");
-        for (Binding b : bindings) {
-            System.out.println("  userId=" + b.userId + ", channelId=" + b.channelId + ", enabled=" + b.enabled);
+        if (BotSettings.isDebug()) {
+            System.out.println("setBindingEnabled called: userId=" + userId + ", channelId=" + channelId + ", enabled=" + enabled);
+            System.out.println("Current bindings:");
+            for (Binding b : bindings) {
+                System.out.println("  userId=" + b.userId + ", channelId=" + b.channelId + ", enabled=" + b.enabled);
+            }
         }
         boolean found = false;
         for (Binding b : bindings) {
             if (b.userId == userId && b.channelId == channelId) {
                 b.enabled = enabled;
                 found = true;
-                System.out.println("Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
+                if (BotSettings.isDebug()) System.out.println("Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
                 break;
             }
         }
         if (!found) {
-            System.out.println("No matching binding found to update!");
+            if (BotSettings.isDebug()) System.out.println("No matching binding found to update!");
         }
         saveBindings();
     }

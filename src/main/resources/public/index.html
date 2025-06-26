@@ -64,8 +64,8 @@
                         bindings.forEach(b => {
                             const tr = document.createElement('tr');
                             tr.innerHTML = `
-                                <td>${b.userName}</td>
-                                <td>${b.channelName}</td>
+                                <td>${b.userName}<br>(${b.userId})</td>
+                                <td>${b.channelName}<br>(${b.channelId})</td>
                                 <td>
                                     <input type="checkbox" ${b.enabled ? 'checked' : ''} onchange="toggleBinding('${b.userId}', '${b.channelId}', this.checked)">
                                 </td>
