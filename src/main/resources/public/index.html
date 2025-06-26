@@ -1,0 +1,25 @@
+<!-- src/main/resources/public/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bot Control Panel</title>
+</head>
+<body>
+<h1>Toggle Features</h1>
+<form action="/toggle-wywoz" method="post">
+    <label>
+        <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
+               id="wywozSmieciToggle">
+        Przelacznik "Wywoz Smieci"
+    </label>
+</form>
+
+<script>
+    fetch('/wywoz-status')
+        .then(res => res.text())
+        .then(status => {
+            document.getElementById('wywozSmieciToggle').checked = (status === 'enabled');
+        });
+</script>
+</body>
+</html>
