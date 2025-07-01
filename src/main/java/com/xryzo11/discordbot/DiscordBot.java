@@ -1,25 +1,8 @@
 package com.xryzo11.discordbot;
 
-import com.sedmelluq.discord.lavaplayer.player.*;
-import com.sedmelluq.discord.lavaplayer.player.event.*;
-import com.sedmelluq.discord.lavaplayer.source.http.*;
-import com.sedmelluq.discord.lavaplayer.tools.*;
-import com.sedmelluq.discord.lavaplayer.track.*;
 import net.dv8tion.jda.api.*;
-import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.entities.channel.concrete.*;
-import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.managers.AudioManager;
-
-import java.io.File;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.*;
 
 public class DiscordBot {
     public static void main(String[] args) throws Exception {
