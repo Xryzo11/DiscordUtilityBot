@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -97,11 +98,10 @@ public class SlashCommands {
             event.deferReply().queue(hook -> {
                 CompletableFuture.runAsync(() -> {
                     try {
-                        hook.editOriginal("⏳ Processing YouTube URL...").queue();
+                        hook.editOriginal("⏳ Starting YouTube processing...").queue();
 
                         AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
-
-                        Thread.sleep(1000);
+                        hook.editOriginal("📥 Download complete, preparing audio...").queue();
 
                         File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".mp3");
                         if (!audioFile.exists() || !audioFile.canRead()) {
@@ -109,12 +109,27 @@ public class SlashCommands {
                             return;
                         }
 
+                        hook.editOriginal("🔄 Loading track into player...").queue();
+                        int retries = 0;
+                        while (retries < 10) {
+                            try (FileInputStream fis = new FileInputStream(audioFile)) {
+                                if (audioFile.length() > 0) break;
+                            } catch (Exception ignored) {}
+                            Thread.sleep(200);
+                            retries++;
+                        }
+
                         bot.playerManager.loadItem(trackInfo.uri, new AudioLoadResultHandler() {
                             @Override
                             public void trackLoaded(AudioTrack track) {
                                 track.setUserData(trackInfo.title);
                                 bot.trackQueue.offer(track);
-                                hook.editOriginal("✅ Added to queue: " + trackInfo.title).queue();
+
+                                String message = bot.player.getPlayingTrack() == null ?
+                                        "✅ Added and playing: " + trackInfo.title :
+                                        "✅ Added to queue: " + trackInfo.title;
+
+                                hook.editOriginal(message).queue();
 
                                 if (bot.player.getPlayingTrack() == null) {
                                     bot.playNextTrack();

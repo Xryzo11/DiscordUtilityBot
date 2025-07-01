@@ -1,6 +1,7 @@
 package com.xryzo11.discordbot;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
@@ -38,7 +39,8 @@ public class AudioProcessor {
                 String outputFile = AUDIO_DIR + videoId + ".mp3";
                 String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".mp3";
 
-                if (downloadedFiles.contains(videoId)) {
+                File file = new File(outputFile);
+                if (file.exists() && file.length() > 0) {
                     String title = getYoutubeTitle(youtubeUrl);
                     long duration = getYoutubeDuration(youtubeUrl);
                     return new AudioTrackInfo(
@@ -52,28 +54,16 @@ public class AudioProcessor {
                 }
 
                 if (activeDownloads.add(videoId)) {
-                    CompletableFuture.runAsync(() -> {
-                        try {
-                            downloadAndConvert(youtubeUrl, outputFile);
-                            downloadedFiles.add(videoId);
-                        } catch (Exception e) {
-                            System.err.println("Download failed for " + videoId + ": " + e.getMessage());
-                        } finally {
-                            activeDownloads.remove(videoId);
+                    downloadAndConvert(youtubeUrl, outputFile);
+                    downloadedFiles.add(videoId);
+                    activeDownloads.remove(videoId);
+                } else {
+                    long startTime = System.currentTimeMillis();
+                    while (activeDownloads.contains(videoId)) {
+                        if (System.currentTimeMillis() - startTime > 30000) {
+                            throw new TimeoutException("Download is taking too long");
                         }
-                    }, executor);
-                }
-
-                long startTime = System.currentTimeMillis();
-                while (activeDownloads.contains(videoId)) {
-                    if (System.currentTimeMillis() - startTime > 60000) {
-                        throw new TimeoutException("Download is taking too long");
-                    }
-                    Thread.sleep(500);
-
-                    File file = new File(outputFile);
-                    if (file.exists() && file.length() > 0) {
-                        break;
+                        Thread.sleep(100);
                     }
                 }
 
@@ -181,6 +171,7 @@ public class AudioProcessor {
     }
 
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
+        String tempFile = outputFile + ".part";
         Process download = new ProcessBuilder(
                 "/usr/local/bin/yt-dlp",
                 "-x",
@@ -192,7 +183,7 @@ public class AudioProcessor {
                 "--retries", "3",
                 "--fragment-retries", "3",
                 "--throttled-rate", "100M",
-                "-o", outputFile,
+                "-o", tempFile,
                 "--no-cache-dir",
                 "--format", "bestaudio",
                 youtubeUrl
@@ -206,6 +197,8 @@ public class AudioProcessor {
         if (download.exitValue() != 0) {
             throw new IOException("Download failed with code: " + download.exitValue());
         }
+
+        Files.move(Paths.get(tempFile), Paths.get(outputFile), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private static String extractVideoId(String url) {
@@ -219,26 +212,61 @@ public class AudioProcessor {
         executor.submit(() -> {
             try {
                 HttpServer server = HttpServer.create(new InetSocketAddress(HTTP_PORT), 0);
+                server.setExecutor(Executors.newCachedThreadPool());
+
                 server.createContext("/audio", exchange -> {
                     String filePath = AUDIO_DIR + exchange.getRequestURI().getPath().substring(7);
                     File file = new File(filePath);
 
-                    if (file.exists()) {
-                        exchange.sendResponseHeaders(200, file.length());
-                        Files.copy(file.toPath(), exchange.getResponseBody());
-                    } else {
-                        String response = "File not found";
-                        exchange.sendResponseHeaders(404, response.length());
-                        exchange.getResponseBody().write(response.getBytes());
+                    if (!file.exists()) {
+                        sendError(exchange, 404, "File not found");
+                        return;
                     }
-                    exchange.close();
+
+                    exchange.getResponseHeaders().set("Content-Type", "audio/mpeg");
+                    exchange.getResponseHeaders().set("Transfer-Encoding", "chunked");
+                    exchange.sendResponseHeaders(200, 0);
+
+                    try (OutputStream os = exchange.getResponseBody();
+                         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file), 8192)) {
+
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+
+                        while ((bytesRead = bis.read(buffer)) != -1) {
+                            try {
+                                os.write(buffer, 0, bytesRead);
+                                os.flush();
+                            } catch (IOException e) {
+                                if (BotSettings.isDebug()) {
+                                    System.out.println("Client disconnected: " + e.getMessage());
+                                }
+                                break;
+                            }
+                        }
+                    } catch (IOException e) {
+                        if (BotSettings.isDebug() &&
+                                !e.getMessage().contains("Broken pipe") &&
+                                !e.getMessage().contains("Connection reset")) {
+                            System.err.println("Error streaming file: " + e.getMessage());
+                        }
+                    } finally {
+                        exchange.close();
+                    }
                 });
+
                 server.start();
                 System.out.println("HTTP server running on port " + HTTP_PORT);
             } catch (IOException e) {
                 System.err.println("Failed to start HTTP server: " + e.getMessage());
             }
         });
+    }
+    private static void sendError(HttpExchange exchange, int code, String message) throws IOException {
+        exchange.sendResponseHeaders(code, message.length());
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(message.getBytes());
+        }
     }
 
     public static void startCleanupScheduler() {
