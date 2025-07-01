@@ -1,4 +1,5 @@
 package com.xryzo11.discordbot;
+
 import net.dv8tion.jda.api.JDA;
 
 public class BotHolder {

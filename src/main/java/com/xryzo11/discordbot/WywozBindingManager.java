@@ -78,7 +78,7 @@ public class WywozBindingManager {
             if (b.userId == userId && b.channelId == channelId) {
                 b.enabled = enabled;
                 found = true;
-                if (BotSettings.isDebug()) System.out.println("Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
+                System.out.println("Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
                 break;
             }
         }
