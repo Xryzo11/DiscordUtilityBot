@@ -193,7 +193,6 @@ public class AudioProcessor {
                 "--fragment-retries", "3",
                 "--throttled-rate", "100M",
                 "-o", outputFile,
-                "--no-progress",
                 "--no-cache-dir",
                 "--format", "bestaudio",
                 youtubeUrl
