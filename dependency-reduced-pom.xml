@@ -26,6 +26,10 @@
               <transformers>
                 <transformer>
                   <mainClass>com.xryzo11.discordbot.DiscordBot</mainClass>
+                  <manifestEntries>
+                    <Add-Opens>java.base/java.lang</Add-Opens>
+                    <Multi-Release>true</Multi-Release>
+                  </manifestEntries>
                 </transformer>
               </transformers>
             </configuration>
