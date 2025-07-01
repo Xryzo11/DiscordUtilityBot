@@ -7,8 +7,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 public class DiscordBot {
     public static void main(String[] args) throws Exception {
         MusicBot musicBot = new MusicBot();
-//        String token = System.getenv("DISCORD_BOT_TOKEN");
-        String token = "MTE0Njk1NTA2MjU0ODExOTU2Mw.GLhfzj._hnZysbjS-g-S1Qocph117_WcCgaKG9q5HdEao";
+        String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
                 .addEventListeners(new MusicBot.VoiceJoinListener())
                 .addEventListeners(new SlashCommands.SlashCommandInteractionEventListener(musicBot))
