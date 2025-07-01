@@ -1,0 +1,4 @@
+faster music processing
+auto resume music
+loop music
+separate listeners into their own classes
