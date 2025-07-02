@@ -1,3 +1,2 @@
-auto resume music
 loop music
 display download progress in console
