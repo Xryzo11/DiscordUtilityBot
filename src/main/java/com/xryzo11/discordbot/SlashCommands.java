@@ -62,6 +62,9 @@ public class SlashCommands {
                 case "skip":
                     handleSkipCommand(event);
                     break;
+                case "loop":
+                    handleLoopCommand(event);
+                    break;
             }
         }
 
@@ -197,6 +200,12 @@ public class SlashCommands {
             String title = bot.currentTrack.getInfo().title;
             bot.skipCurrentTrack();
             event.reply("⏭️ Skipped: " + title).queue();
+        }
+
+        private void handleLoopCommand(SlashCommandInteractionEvent event) {
+            bot.toggleLoop();
+            String status = bot.isLoopEnabled() ? "enabled" : "disabled";
+            event.reply("🔁 Queue loop " + status).queue();
         }
     }
 }

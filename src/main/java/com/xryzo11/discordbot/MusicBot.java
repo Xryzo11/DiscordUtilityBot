@@ -24,6 +24,7 @@ public class MusicBot {
     public static AudioPlayer player;
     public static final LinkedBlockingQueue<AudioTrack> trackQueue = new LinkedBlockingQueue<>();
     public AudioTrack currentTrack;
+    private boolean loopEnabled = false;
 
     public MusicBot() {
         playerManager = new DefaultAudioPlayerManager();
@@ -39,6 +40,9 @@ public class MusicBot {
             public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
                 currentTrack = null;
                 if (endReason.mayStartNext) {
+                    if (loopEnabled && track != null) {
+                        trackQueue.offer(track.makeClone());
+                    }
                     MusicBot.playNextTrack();
                 } else if (trackQueue.isEmpty()) {
                     new Timer().schedule(new TimerTask() {
@@ -191,5 +195,13 @@ public class MusicBot {
                 title,
                 youtubeUrl,
                 durationStr);
+    }
+
+    public boolean isLoopEnabled() {
+        return loopEnabled;
+    }
+
+    public void toggleLoop() {
+        loopEnabled = !loopEnabled;
     }
 }

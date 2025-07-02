@@ -22,7 +22,8 @@ public class DiscordBot {
                 Commands.slash("clear", "Clear the queue"),
                 Commands.slash("stop", "Stop playback and disconnect"),
                 Commands.slash("list", "List current queue"),
-                Commands.slash("skip", "Skip the current track")
+                Commands.slash("skip", "Skip the current track"),
+                Commands.slash("loop", "Toggle track looping")
         ).queue();
         WywozBindingManager.loadBindings();
         Dashboard.start();
