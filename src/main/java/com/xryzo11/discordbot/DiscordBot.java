@@ -14,21 +14,32 @@ public class DiscordBot {
                 .addEventListeners(new SlashCommands.SlashCommandInteractionEventListener(musicBot))
                 .build();
         BotHolder.setJDA(jda);
-        WywozBindingManager.loadBindings();
-        Dashboard.start();
+        jda.awaitReady();
+        jda.updateCommands().queue();
         for (Guild guild : jda.getGuilds()) {
             guild.updateCommands().addCommands(
-                    Commands.slash("join", "Join voice channel"),
+                    Commands.slash("join", "Join voice channel")
+                            .setGuildOnly(true),
                     Commands.slash("queue", "Queue YouTube audio")
-                            .addOption(OptionType.STRING, "url", "YouTube URL", true),
-                    Commands.slash("pause", "Pause current playback"),
-                    Commands.slash("resume", "Resume playback"),
-                    Commands.slash("clear", "Clear the queue"),
-                    Commands.slash("stop", "Stop playback and disconnect"),
-                    Commands.slash("list", "List current queue"),
-                    Commands.slash("skip", "Skip the current track"),
+                            .addOption(OptionType.STRING, "url", "YouTube URL", true)
+                            .setGuildOnly(true),
+                    Commands.slash("pause", "Pause current playback")
+                            .setGuildOnly(true),
+                    Commands.slash("resume", "Resume playback")
+                            .setGuildOnly(true),
+                    Commands.slash("clear", "Clear the queue")
+                            .setGuildOnly(true),
+                    Commands.slash("stop", "Stop playback and disconnect")
+                            .setGuildOnly(true),
+                    Commands.slash("list", "List current queue")
+                            .setGuildOnly(true),
+                    Commands.slash("skip", "Skip the current track")
+                            .setGuildOnly(true),
                     Commands.slash("loop", "Toggle track looping")
+                            .setGuildOnly(true)
             ).queue();
         }
+        WywozBindingManager.loadBindings();
+        Dashboard.start();
     }
 }
