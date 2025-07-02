@@ -1,2 +1,0 @@
-loop music
-display download progress in console
