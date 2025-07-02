@@ -172,7 +172,7 @@ public class AudioProcessor {
     }
 
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
-        Process download = new ProcessBuilder(
+        ProcessBuilder processBuilder = new ProcessBuilder(
                 "/usr/local/bin/yt-dlp",
                 "-x",
                 "--audio-format", "mp3",
@@ -184,11 +184,30 @@ public class AudioProcessor {
                 "--fragment-retries", "3",
                 "--throttled-rate", "100M",
                 "-o", outputFile,
+                "--newline",
                 "--no-progress",
                 "--no-cache-dir",
                 "--format", "bestaudio",
                 youtubeUrl
-        ).start();
+        );
+
+        Process download = processBuilder.start();
+
+        Thread progressReader = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("[download]") || line.contains("[ExtractAudio]")) {
+                        System.out.println(line);
+                    }
+                }
+            } catch (IOException e) {
+                if (BotSettings.isDebug()) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        progressReader.start();
 
         if (!download.waitFor(2, TimeUnit.MINUTES)) {
             download.destroyForcibly();
