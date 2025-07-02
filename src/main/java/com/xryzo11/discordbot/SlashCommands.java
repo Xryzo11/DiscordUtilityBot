@@ -77,6 +77,7 @@ public class SlashCommands {
             VoiceChannel voiceChannel = member.getVoiceState().getChannel().asVoiceChannel();
 
             ensureVoiceConnection(guild, voiceChannel);
+            bot.resumePlayer();
             event.reply("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
         }
 
