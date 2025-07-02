@@ -139,16 +139,24 @@ public class MusicBot {
     public String getQueueList() {
         StringBuilder builder = new StringBuilder();
 
+        builder.append("\uD83D\uDD01 Looping: ");
+        if (loopEnabled) {
+            builder.append("✅");
+        } else {
+            builder.append("❌");
+        }
+        builder.append("\n\n");
+
         if (currentTrack != null) {
-            builder.append("**Now Playing:**\n")
+            builder.append("▶️ **Now Playing:**\n")
                     .append(formatTrackInfo(currentTrack))
                     .append("\n\n");
         }
 
         if (trackQueue.isEmpty()) {
-            builder.append("Queue is empty");
+            builder.append("\uD83C\uDF10 Queue is empty");
         } else {
-            builder.append("**Queue:**\n");
+            builder.append("\uD83D\uDCCB **Queue:**\n");
             int index = 1;
             for (AudioTrack track : trackQueue) {
                 builder.append(index++)
