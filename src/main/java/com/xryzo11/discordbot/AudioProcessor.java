@@ -6,12 +6,10 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.*;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.regex.*;
-import java.util.stream.Collectors;
 
 public class AudioProcessor {
     public static final String AUDIO_DIR = "/tmp/discord_audio/";
@@ -175,6 +173,7 @@ public class AudioProcessor {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "/usr/local/bin/yt-dlp",
                 "-x",
+                "-k",
                 "--audio-format", "mp3",
                 "--audio-quality", "192K",
                 "--concurrent-fragments", "16",
@@ -194,19 +193,21 @@ public class AudioProcessor {
         processBuilder.redirectErrorStream(true);
         Process download = processBuilder.start();
 
-        Thread progressReader = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println("[yt-dlp] " + line.trim());
+        if (BotSettings.isDebug()) {
+            Thread progressReader = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("[yt-dlp] " + line.trim());
+                    }
+                } catch (IOException e) {
+                    if (BotSettings.isDebug()) {
+                        e.printStackTrace();
+                    }
                 }
-            } catch (IOException e) {
-                if (BotSettings.isDebug()) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        progressReader.start();
+            });
+            progressReader.start();
+        }
 
         if (!download.waitFor(2, TimeUnit.MINUTES)) {
             download.destroyForcibly();

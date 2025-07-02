@@ -104,7 +104,6 @@ public class SlashCommands {
                     try {
                         hook.editOriginal("⏳ Processing YouTube URL...").queue();
 
-                        // Update message before audio processing
                         hook.editOriginal("📥 Downloading audio...").queue();
                         AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
 
