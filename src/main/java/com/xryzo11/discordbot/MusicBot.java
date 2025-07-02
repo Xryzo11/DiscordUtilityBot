@@ -139,13 +139,15 @@ public class MusicBot {
     public String getQueueList() {
         StringBuilder builder = new StringBuilder();
 
-        builder.append("\uD83D\uDD01 Looping: ");
-        if (loopEnabled) {
-            builder.append("✅");
-        } else {
-            builder.append("❌");
+        if (!trackQueue.isEmpty()){
+            builder.append("\uD83D\uDD01 **Looping:** ");
+            if (loopEnabled) {
+                builder.append("✅");
+            } else {
+                builder.append("❌");
+            }
+            builder.append("\n\n");
         }
-        builder.append("\n\n");
 
         if (currentTrack != null) {
             builder.append("▶️ **Now Playing:**\n")
