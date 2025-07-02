@@ -185,8 +185,7 @@ public class AudioProcessor {
                 "--throttled-rate", "100M",
                 "-o", outputFile,
                 "--newline",
-                "--no-progress",
-                "--no-cache-dir",
+                "--progress",
                 "--format", "bestaudio",
                 youtubeUrl
         );
@@ -197,8 +196,9 @@ public class AudioProcessor {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getErrorStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.contains("[download]") || line.contains("[ExtractAudio]")) {
-                        System.out.println(line);
+                    if (line.contains("[download]") || line.contains("[ExtractAudio]") ||
+                            line.contains("[Merger]") || line.contains("[ffmpeg]")) {
+                        System.out.println(line.trim());
                     }
                 }
             } catch (IOException e) {
