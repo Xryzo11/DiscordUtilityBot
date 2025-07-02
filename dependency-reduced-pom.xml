@@ -3,14 +3,14 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.example</groupId>
   <artifactId>DiscordBot</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.1.1-SNAPSHOT</version>
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.11.0</version>
         <configuration>
-          <release>17</release>
+          <release>24</release>
         </configuration>
       </plugin>
       <plugin>
