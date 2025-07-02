@@ -172,12 +172,6 @@ public class AudioProcessor {
     }
 
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
-        File outputDir = new File(AUDIO_DIR);
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
-        }
-
-        String tempFile = outputFile + ".part";
         Process download = new ProcessBuilder(
                 "/usr/local/bin/yt-dlp",
                 "-x",
@@ -189,7 +183,8 @@ public class AudioProcessor {
                 "--retries", "3",
                 "--fragment-retries", "3",
                 "--throttled-rate", "100M",
-                "-o", tempFile,
+                "-o", outputFile,
+                "--no-progress",
                 "--no-cache-dir",
                 "--format", "bestaudio",
                 youtubeUrl
@@ -200,29 +195,8 @@ public class AudioProcessor {
             throw new IOException("Download timed out");
         }
 
-        try (BufferedReader errorReader = new BufferedReader(
-                new InputStreamReader(download.getErrorStream()))) {
-            String errorOutput = errorReader.lines().collect(Collectors.joining("\n"));
-            if (!errorOutput.isEmpty() && download.exitValue() != 0) {
-                throw new IOException("Download failed: " + errorOutput);
-            }
-        }
-
-        File tempFileObj = new File(tempFile);
-        if (!tempFileObj.exists() || tempFileObj.length() == 0) {
-            throw new IOException("Download failed - output file not created or empty");
-        }
-
-        int maxRetries = 3;
-        for (int i = 0; i < maxRetries; i++) {
-            try {
-                Files.move(Paths.get(tempFile), Paths.get(outputFile),
-                        StandardCopyOption.REPLACE_EXISTING);
-                break;
-            } catch (IOException e) {
-                if (i == maxRetries - 1) throw e;
-                Thread.sleep(100);
-            }
+        if (download.exitValue() != 0) {
+            throw new IOException("Download failed with code: " + download.exitValue());
         }
     }
 

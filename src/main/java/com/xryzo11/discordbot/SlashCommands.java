@@ -98,10 +98,13 @@ public class SlashCommands {
             event.deferReply().queue(hook -> {
                 CompletableFuture.runAsync(() -> {
                     try {
-                        hook.editOriginal("⏳ Starting YouTube processing...").queue();
+                        hook.editOriginal("⏳ Processing YouTube URL...").queue();
 
+                        // Update message before audio processing
+                        hook.editOriginal("📥 Downloading audio...").queue();
                         AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
-                        hook.editOriginal("📥 Download complete, preparing audio...").queue();
+
+                        hook.editOriginal("🔄 Download complete, preparing audio...").queue();
 
                         File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".mp3");
                         if (!audioFile.exists() || !audioFile.canRead()) {
@@ -109,7 +112,7 @@ public class SlashCommands {
                             return;
                         }
 
-                        hook.editOriginal("🔄 Loading track into player...").queue();
+                        hook.editOriginal("🎵 Loading track into player...").queue();
                         int retries = 0;
                         while (retries < 10) {
                             try (FileInputStream fis = new FileInputStream(audioFile)) {
