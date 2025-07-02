@@ -186,20 +186,19 @@ public class AudioProcessor {
                 "-o", outputFile,
                 "--newline",
                 "--progress",
+                "--no-colors",
                 "--format", "bestaudio",
                 youtubeUrl
         );
 
+        processBuilder.redirectErrorStream(true);
         Process download = processBuilder.start();
 
         Thread progressReader = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getErrorStream()))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.contains("[download]") || line.contains("[ExtractAudio]") ||
-                            line.contains("[Merger]") || line.contains("[ffmpeg]")) {
-                        System.out.println(line.trim());
-                    }
+                    System.out.println("[yt-dlp] " + line.trim());
                 }
             } catch (IOException e) {
                 if (BotSettings.isDebug()) {
