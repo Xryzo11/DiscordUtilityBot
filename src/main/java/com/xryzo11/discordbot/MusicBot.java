@@ -214,4 +214,8 @@ public class MusicBot {
     public void toggleLoop() {
         loopEnabled = !loopEnabled;
     }
+
+    public void disableLoop() {
+        loopEnabled = false;
+    }
 }

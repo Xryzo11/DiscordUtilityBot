@@ -81,6 +81,7 @@ public class SlashCommands {
 
             ensureVoiceConnection(guild, voiceChannel);
             bot.resumePlayer();
+            bot.disableLoop();
             event.reply("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
         }
 
