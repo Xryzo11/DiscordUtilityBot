@@ -2,3 +2,4 @@ Port config
 Fast forward/playhead position
 Restart bot in web panel
 Shuffle playlist
+Web panel login
