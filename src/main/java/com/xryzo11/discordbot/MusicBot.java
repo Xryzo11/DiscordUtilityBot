@@ -178,21 +178,19 @@ public class MusicBot {
 
     private String formatTrackInfo(AudioTrack track) {
         AudioTrackInfo info = track.getInfo();
-        long duration = track.getDuration();
+        long durationMs = track.getDuration();
 
         String uri = info.uri;
         String youtubeId = uri.substring(uri.lastIndexOf('/') + 1).replace(".mp3", "");
 
-        String durationStr = String.format("%d:%02d",
-                TimeUnit.MILLISECONDS.toMinutes(duration),
-                TimeUnit.MILLISECONDS.toSeconds(duration) % 60
-        );
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs);
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60;
+        String durationStr = String.format("%d:%02d", minutes, seconds);
 
         String youtubeUrl = "https://www.youtube.com/watch?v=" + youtubeId;
-
         String title = track.getUserData() != null ? track.getUserData().toString() : youtubeId;
 
-        return String.format("[%s](<%s>) `[%s]`",
+        return String.format("[%s](%s) `[%s]`",
                 title,
                 youtubeUrl,
                 durationStr);
