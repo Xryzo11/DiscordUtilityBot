@@ -188,7 +188,7 @@ public class MusicBot {
         String youtubeUrl = "https://www.youtube.com/watch?v=" + youtubeId;
         String title = track.getUserData() != null ? track.getUserData().toString() : youtubeId;
 
-        return String.format("%s <%s> `[%s]`",
+        return String.format("[%s](<%s>) `[%s]`",
                 title,
                 youtubeUrl,
                 durationStr);

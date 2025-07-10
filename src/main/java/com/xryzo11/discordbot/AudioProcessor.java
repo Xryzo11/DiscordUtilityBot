@@ -176,7 +176,7 @@ public class AudioProcessor {
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "yt-dlp",
-                "--format", "bestaudio[ext=webm]", // Only grab WebM audio
+                "--format", "bestaudio[ext=webm]",
                 "-o", outputFile,
                 "--newline",
                 "--progress",
