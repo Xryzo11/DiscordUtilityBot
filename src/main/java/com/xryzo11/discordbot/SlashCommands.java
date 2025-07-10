@@ -69,6 +69,9 @@ public class SlashCommands {
                 case "shuffle":
                     handleShuffleCommand(event);
                     break;
+                case "playhead":
+                    handlePlayheadCommand(event);
+                    break;
             }
         }
 
@@ -285,6 +288,10 @@ public class SlashCommands {
         private void handleShuffleCommand(SlashCommandInteractionEvent event) {
 //            bot.shuffleQueue();
 //            event.reply("🔀 Queue shuffled").queue();
+            event.reply(("Not implemented yet :upside_down:")).queue();
+        }
+
+        private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
             event.reply(("Not implemented yet :upside_down:")).queue();
         }
     }

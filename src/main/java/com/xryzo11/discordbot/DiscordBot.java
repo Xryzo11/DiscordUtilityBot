@@ -38,6 +38,9 @@ public class DiscordBot {
                     Commands.slash("loop", "Toggle track looping")
                             .setGuildOnly(true),
                     Commands.slash("shuffle", "Shuffle the queue")
+                            .setGuildOnly(true),
+                    Commands.slash("playhead", "Move playhead to a specific position")
+                            .addOption(OptionType.INTEGER, "position", "Position in seconds", true)
                             .setGuildOnly(true)
             ).queue();
         }
