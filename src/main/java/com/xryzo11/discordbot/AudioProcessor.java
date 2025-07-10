@@ -171,7 +171,7 @@ public class AudioProcessor {
 
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
         ProcessBuilder processBuilder = new ProcessBuilder(
-                "/usr/local/bin/yt-dlp",
+                "yt-dlp",
                 "-x",
                 "-k",
                 "--audio-format", "mp3",
@@ -186,6 +186,7 @@ public class AudioProcessor {
                 "--newline",
                 "--progress",
                 "--no-colors",
+                "--verbose",
                 "--format", "bestaudio",
                 youtubeUrl
         );
@@ -202,7 +203,7 @@ public class AudioProcessor {
                     }
                 } catch (IOException e) {
                     if (BotSettings.isDebug()) {
-                        e.printStackTrace();
+                        System.err.println("Error reading yt-dlp output: " + e.getMessage());
                     }
                 }
             });
