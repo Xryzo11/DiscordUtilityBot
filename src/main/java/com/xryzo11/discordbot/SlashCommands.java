@@ -101,6 +101,11 @@ public class SlashCommands {
                 return;
             }
 
+            if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
+                event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
+                return;
+            }
+
             event.deferReply().queue(hook -> {
                 CompletableFuture.runAsync(() -> {
                     try {
