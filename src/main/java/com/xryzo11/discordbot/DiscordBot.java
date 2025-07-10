@@ -36,6 +36,8 @@ public class DiscordBot {
                     Commands.slash("skip", "Skip the current track")
                             .setGuildOnly(true),
                     Commands.slash("loop", "Toggle track looping")
+                            .setGuildOnly(true),
+                    Commands.slash("shuffle", "Shuffle the queue")
                             .setGuildOnly(true)
             ).queue();
         }

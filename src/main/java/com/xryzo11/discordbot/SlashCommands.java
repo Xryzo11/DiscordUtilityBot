@@ -66,6 +66,9 @@ public class SlashCommands {
                 case "loop":
                     handleLoopCommand(event);
                     break;
+                case "shuffle":
+                    handleShuffleCommand(event);
+                    break;
             }
         }
 
@@ -277,6 +280,12 @@ public class SlashCommands {
             bot.toggleLoop();
             String status = bot.isLoopEnabled() ? "enabled" : "disabled";
             event.reply("🔁 Queue loop " + status).queue();
+        }
+
+        private void handleShuffleCommand(SlashCommandInteractionEvent event) {
+//            bot.shuffleQueue();
+//            event.reply("🔀 Queue shuffled").queue();
+            event.reply(("Not implemented yet :upside_down:")).queue();
         }
     }
 }
