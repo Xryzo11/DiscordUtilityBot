@@ -41,6 +41,9 @@ public class DiscordBot {
                             .setGuildOnly(true),
                     Commands.slash("playhead", "Move playhead to a specific position")
                             .addOption(OptionType.INTEGER, "position", "Position in seconds", true)
+                            .setGuildOnly(true),
+                    Commands.slash("add", "Add pre-downloaded track to the queue")
+                            .addOption(OptionType.STRING, "track", "Short track name", true)
                             .setGuildOnly(true)
             ).queue();
         }

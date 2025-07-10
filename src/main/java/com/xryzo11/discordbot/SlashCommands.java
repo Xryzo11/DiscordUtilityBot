@@ -72,6 +72,9 @@ public class SlashCommands {
                 case "playhead":
                     handlePlayheadCommand(event);
                     break;
+                case "add":
+                    handleAddCommand(event);
+                    break;
             }
         }
 
@@ -292,6 +295,14 @@ public class SlashCommands {
         }
 
         private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
+//            bot.movePlayhead();
+//            event.reply("⏩ Playhead moved").queue();
+            event.reply(("Not implemented yet :upside_down:")).queue();
+        }
+
+        private void handleAddCommand(SlashCommandInteractionEvent event) {
+//            bot.addExisting();
+//            event.reply("✅ Added existing track to queue").queue();
             event.reply(("Not implemented yet :upside_down:")).queue();
         }
     }
