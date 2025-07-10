@@ -44,15 +44,6 @@ public class MusicBot {
                         trackQueue.offer(track.makeClone());
                     }
                     MusicBot.playNextTrack();
-                } else if (trackQueue.isEmpty()) {
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            if (player.getPlayingTrack() == null) {
-                                MusicBot.disconnectFromAllVoiceChannels();
-                            }
-                        }
-                    }, 30000);
                 }
             }
 
