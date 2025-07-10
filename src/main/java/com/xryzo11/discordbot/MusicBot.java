@@ -181,7 +181,7 @@ public class MusicBot {
         long durationMs = track.getDuration();
 
         String uri = info.uri;
-        String youtubeId = uri.substring(uri.lastIndexOf('/') + 1).replace(".mp3", "");
+        String youtubeId = uri.substring(uri.lastIndexOf('/') + 1).replace(".webm", "");
 
         long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs);
         long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60;

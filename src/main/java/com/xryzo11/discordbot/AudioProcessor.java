@@ -28,8 +28,8 @@ public class AudioProcessor {
         File dir = new File(AUDIO_DIR);
         if (dir.exists()) {
             for (File file : dir.listFiles()) {
-                if (file.isFile() && file.getName().endsWith(".mp3")) {
-                    downloadedFiles.add(file.getName().replace(".mp3", ""));
+                if (file.isFile() && file.getName().endsWith(".webm")) {
+                    downloadedFiles.add(file.getName().replace(".webm", ""));
                 }
             }
         }
@@ -39,8 +39,8 @@ public class AudioProcessor {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 String videoId = extractVideoId(youtubeUrl);
-                String outputFile = AUDIO_DIR + videoId + ".mp3";
-                String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".mp3";
+                String outputFile = AUDIO_DIR + videoId + ".webm";
+                String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
 
                 File file = new File(outputFile);
                 if (file.exists() && file.length() > 0) {
@@ -113,7 +113,7 @@ public class AudioProcessor {
 
     private static String getTitleFromFile(String filePath) {
         String name = new File(filePath).getName();
-        return name.replace(".mp3", "").replaceAll("%20", " ");
+        return name.replace(".webm", "").replaceAll("%20", " ");
     }
 
     private static long getDuration(String filePath) {
@@ -176,22 +176,12 @@ public class AudioProcessor {
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "yt-dlp",
-                "-x",
-                "-k",
-                "--audio-format", "mp3",
-                "--audio-quality", "192K",
-                "--concurrent-fragments", "16",
-                "--buffer-size", "128K",
-                "--http-chunk-size", "10M",
-                "--retries", "3",
-                "--fragment-retries", "3",
-                "--throttled-rate", "100M",
+                "--format", "bestaudio[ext=webm]", // Only grab WebM audio
                 "-o", outputFile,
                 "--newline",
                 "--progress",
                 "--no-colors",
                 "--verbose",
-                "--format", "bestaudio",
                 youtubeUrl
         );
 
@@ -328,7 +318,7 @@ public class AudioProcessor {
                             String videoId = json.get("id").getAsString();
                             String title = json.get("title").getAsString();
                             long duration = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
-                            String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".mp3";
+                            String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
 
                             tracks.add(new AudioTrackInfo(
                                     title,

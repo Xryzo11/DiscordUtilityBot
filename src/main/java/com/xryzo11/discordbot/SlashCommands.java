@@ -184,7 +184,7 @@ public class SlashCommands {
                             hook.editOriginal("📥 Downloading audio...").queue();
 
                             AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
-                            File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".mp3");
+                            File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".webm");
 
                             if (!audioFile.exists() || !audioFile.canRead()) {
                                 hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
