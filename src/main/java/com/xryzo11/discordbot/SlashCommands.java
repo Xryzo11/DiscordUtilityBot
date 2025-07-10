@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -103,66 +104,131 @@ public class SlashCommands {
             event.deferReply().queue(hook -> {
                 CompletableFuture.runAsync(() -> {
                     try {
-                        hook.editOriginal("⏳ Processing YouTube URL...").queue();
+                        boolean isPlaylist = url.contains("playlist?list=") || url.contains("&list=");
 
-                        hook.editOriginal("📥 Downloading audio...").queue();
-                        AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
+                        if (isPlaylist) {
+                            hook.editOriginal("📋 Processing playlist...").queue();
+                            List<AudioTrackInfo> tracks = AudioProcessor.processYouTubePlaylist(url).get();
 
-                        hook.editOriginal("🔄 Download complete, preparing audio...").queue();
+                            if (tracks.isEmpty()) {
+                                hook.editOriginal("❌ No tracks found in playlist").queue();
+                                return;
+                            }
 
-                        File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".mp3");
-                        if (!audioFile.exists() || !audioFile.canRead()) {
-                            hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
-                            return;
-                        }
+                            hook.editOriginal("🔄 Adding " + tracks.size() + " tracks to queue...").queue();
+                            StringBuilder failedTracks = new StringBuilder();
+                            int addedTracks = 0;
 
-                        hook.editOriginal("🎵 Loading track into player...").queue();
-                        int retries = 0;
-                        while (retries < 10) {
-                            try (FileInputStream fis = new FileInputStream(audioFile)) {
-                                if (audioFile.length() > 0) break;
-                            } catch (Exception ignored) {}
-                            Thread.sleep(200);
-                            retries++;
-                        }
+                            for (AudioTrackInfo trackInfo : tracks) {
+                                try {
+                                    String videoUrl = "https://youtube.com/watch?v=" + trackInfo.identifier;
+                                    AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl).get();
 
-                        bot.playerManager.loadItem(trackInfo.uri, new AudioLoadResultHandler() {
-                            @Override
-                            public void trackLoaded(AudioTrack track) {
-                                track.setUserData(trackInfo.title);
-                                bot.trackQueue.offer(track);
+                                    bot.playerManager.loadItem(processedTrack.uri, new AudioLoadResultHandler() {
+                                        @Override
+                                        public void trackLoaded(AudioTrack track) {
+                                            track.setUserData(processedTrack.title);
+                                            bot.trackQueue.offer(track);
+                                            if (bot.player.getPlayingTrack() == null) {
+                                                bot.playNextTrack();
+                                            }
+                                        }
 
-                                String message = bot.player.getPlayingTrack() == null ?
-                                        "✅ Added and playing: " + trackInfo.title :
-                                        "✅ Added to queue: " + trackInfo.title;
+                                        @Override
+                                        public void playlistLoaded(AudioPlaylist playlist) {}
 
-                                hook.editOriginal(message).queue();
+                                        @Override
+                                        public void noMatches() {
+                                            if (BotSettings.isDebug()) {
+                                                System.out.println("No matches found for: " + trackInfo.title);
+                                            }
+                                        }
 
-                                if (bot.player.getPlayingTrack() == null) {
-                                    bot.playNextTrack();
+                                        @Override
+                                        public void loadFailed(FriendlyException exception) {
+                                            if (BotSettings.isDebug()) {
+                                                System.out.println("Failed to load: " + trackInfo.title);
+                                                exception.printStackTrace();
+                                            }
+                                        }
+                                    });
+                                    addedTracks++;
+
+                                    if (addedTracks % 5 == 0) {
+                                        hook.editOriginal("🔄 Added " + addedTracks + "/" + tracks.size() + " tracks...").queue();
+                                    }
+                                } catch (Exception e) {
+                                    failedTracks.append("\n- ").append(trackInfo.title);
+                                    if (BotSettings.isDebug()) {
+                                        e.printStackTrace();
+                                    }
                                 }
                             }
 
-                            @Override
-                            public void playlistLoaded(AudioPlaylist playlist) {
-                                AudioTrack firstTrack = playlist.getTracks().get(0);
-                                bot.trackQueue.offer(firstTrack);
-                                hook.editOriginal("✅ Added to queue: " + firstTrack.getInfo().title).queue();
+                            String response = "✅ Successfully added " + addedTracks + " tracks to queue";
+                            if (failedTracks.length() > 0) {
+                                response += "\n\n❌ Failed to add these tracks:" + failedTracks.toString();
+                            }
+                            hook.editOriginal(response).queue();
+
+                        } else {
+                            hook.editOriginal("⏳ Processing YouTube URL...").queue();
+                            hook.editOriginal("📥 Downloading audio...").queue();
+
+                            AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
+                            File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".mp3");
+
+                            if (!audioFile.exists() || !audioFile.canRead()) {
+                                hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
+                                return;
                             }
 
-                            @Override
-                            public void noMatches() {
-                                hook.editOriginal("❌ No matching audio found").queue();
+                            hook.editOriginal("🎵 Loading track into player...").queue();
+                            int retries = 0;
+                            while (retries < 10) {
+                                try (FileInputStream fis = new FileInputStream(audioFile)) {
+                                    if (audioFile.length() > 0) break;
+                                } catch (Exception ignored) {}
+                                Thread.sleep(200);
+                                retries++;
                             }
 
-                            @Override
-                            public void loadFailed(FriendlyException exception) {
-                                hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
-                            }
-                        });
+                            bot.playerManager.loadItem(trackInfo.uri, new AudioLoadResultHandler() {
+                                @Override
+                                public void trackLoaded(AudioTrack track) {
+                                    track.setUserData(trackInfo.title);
+                                    bot.trackQueue.offer(track);
+
+                                    String message = bot.player.getPlayingTrack() == null ?
+                                            "✅ Added and playing: " + trackInfo.title :
+                                            "✅ Added to queue: " + trackInfo.title;
+
+                                    hook.editOriginal(message).queue();
+
+                                    if (bot.player.getPlayingTrack() == null) {
+                                        bot.playNextTrack();
+                                    }
+                                }
+
+                                @Override
+                                public void playlistLoaded(AudioPlaylist playlist) {}
+
+                                @Override
+                                public void noMatches() {
+                                    hook.editOriginal("❌ No matching audio found").queue();
+                                }
+
+                                @Override
+                                public void loadFailed(FriendlyException exception) {
+                                    hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
+                                }
+                            });
+                        }
                     } catch (Exception e) {
                         hook.editOriginal("❌ Error processing track: " + e.getMessage()).queue();
-                        e.printStackTrace();
+                        if (BotSettings.isDebug()) {
+                            e.printStackTrace();
+                        }
                     }
                 });
             });

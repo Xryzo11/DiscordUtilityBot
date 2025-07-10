@@ -1,11 +1,15 @@
 package com.xryzo11.discordbot;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -301,5 +305,56 @@ public class AudioProcessor {
                 }
             }
         }, 1, 1, TimeUnit.HOURS);
+    }
+
+    public static CompletableFuture<List<AudioTrackInfo>> processYouTubePlaylist(String youtubeUrl) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                        "yt-dlp",
+                        "--flat-playlist",
+                        "--dump-json",
+                        youtubeUrl
+                );
+
+                Process process = processBuilder.start();
+                List<AudioTrackInfo> tracks = new ArrayList<>();
+
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        try {
+                            JsonObject json = new Gson().fromJson(line, JsonObject.class);
+                            String videoId = json.get("id").getAsString();
+                            String title = json.get("title").getAsString();
+                            long duration = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
+                            String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".mp3";
+
+                            tracks.add(new AudioTrackInfo(
+                                    title,
+                                    "YouTube",
+                                    duration,
+                                    videoId,
+                                    false,
+                                    httpUrl
+                            ));
+                        } catch (Exception e) {
+                            if (BotSettings.isDebug()) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+
+                if (!process.waitFor(30, TimeUnit.SECONDS)) {
+                    process.destroyForcibly();
+                    throw new TimeoutException("Playlist info extraction timed out");
+                }
+
+                return tracks;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to process playlist: " + e.getMessage(), e);
+            }
+        }, executor);
     }
 }
