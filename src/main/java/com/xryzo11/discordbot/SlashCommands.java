@@ -111,7 +111,7 @@ public class SlashCommands {
             }
 
             if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
-                event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
+                event.reply("❌ Radio or stream URLs are not supported").queue();
                 return;
             }
 
