@@ -277,7 +277,8 @@ public class SlashCommands {
                 return;
             }
 
-            String title = bot.currentTrack.getInfo().title;
+            AudioTrack track = bot.currentTrack;
+            String title = track.getUserData() != null ? track.getUserData().toString() : track.getInfo().identifier;
             bot.skipCurrentTrack();
             event.reply("⏭️ Skipped: " + title).queue();
         }
