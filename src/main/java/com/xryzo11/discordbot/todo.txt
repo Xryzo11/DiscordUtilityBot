@@ -1,2 +1,7 @@
-Rename functions
+Rename functions/alt naming config
 Port config
+Fast forward/playhead position
+Remove auto disconnect
+Block playlist//playlist queuing
+Restart bot in web panel
+Shuffle playlist
