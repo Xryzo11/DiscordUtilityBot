@@ -176,15 +176,13 @@ public class AudioProcessor {
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
         int maxRetries = 3;
         int retryCount = 0;
+        Exception lastException = null;
 
-        while (retryCount < maxRetries) {
+        do {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder(
                         "yt-dlp",
-                        "--format", "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio",
-                        "--extract-audio",
-                        "--audio-format", "webm",
-                        "--audio-quality", "0",
+                        "--format", "bestaudio[ext=webm]/bestaudio",
                         "-o", outputFile,
                         "--newline",
                         "--progress",
@@ -228,16 +226,15 @@ public class AudioProcessor {
                 throw new IOException("Download failed with code: " + download.exitValue() + "\nOutput: " + output);
 
             } catch (Exception e) {
-                retryCount++;
-                if (retryCount >= maxRetries) {
-                    throw new IOException("Download failed after " + maxRetries + " attempts: " + e.getMessage());
-                }
+                lastException = e;
                 if (BotSettings.isDebug()) {
-                    System.err.println("Download attempt " + retryCount + " failed: " + e.getMessage());
+                    System.err.println("Download attempt " + (retryCount + 1) + " failed: " + e.getMessage());
                 }
-                Thread.sleep(1000 * retryCount);
+                Thread.sleep(1000 * (retryCount + 1));
             }
-        }
+        } while (++retryCount < maxRetries);
+
+        throw new IOException("Download failed after " + maxRetries + " attempts", lastException);
     }
 
     private static String extractVideoId(String url) {
