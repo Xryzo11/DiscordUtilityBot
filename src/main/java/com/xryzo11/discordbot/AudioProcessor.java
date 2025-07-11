@@ -181,7 +181,10 @@ public class AudioProcessor {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder(
                         "yt-dlp",
-                        "--format", "bestaudio[ext=webm]",
+                        "--format", "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio",
+                        "--extract-audio",
+                        "--audio-format", "webm",
+                        "--audio-quality", "0",
                         "-o", outputFile,
                         "--newline",
                         "--progress",
@@ -189,7 +192,6 @@ public class AudioProcessor {
                         "--verbose",
                         "--force-ipv4",
                         "--no-check-certificate",
-                        "--extract-audio",
                         youtubeUrl
                 );
 
