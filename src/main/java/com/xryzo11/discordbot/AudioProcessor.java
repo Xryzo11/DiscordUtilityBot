@@ -174,43 +174,67 @@ public class AudioProcessor {
     }
 
     private static void downloadAndConvert(String youtubeUrl, String outputFile) throws Exception {
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "yt-dlp",
-                "--format", "bestaudio[ext=webm]",
-                "-o", outputFile,
-                "--newline",
-                "--progress",
-                "--no-colors",
-                "--verbose",
-                youtubeUrl
-        );
+        int maxRetries = 3;
+        int retryCount = 0;
 
-        processBuilder.redirectErrorStream(true);
-        Process download = processBuilder.start();
+        while (retryCount < maxRetries) {
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                        "yt-dlp",
+                        "--format", "bestaudio[ext=webm]",
+                        "-o", outputFile,
+                        "--newline",
+                        "--progress",
+                        "--no-colors",
+                        "--verbose",
+                        "--force-ipv4",
+                        "--no-check-certificate",
+                        "--extract-audio",
+                        youtubeUrl
+                );
 
-        if (BotSettings.isDebug()) {
-            Thread progressReader = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        System.out.println("[yt-dlp] " + line.trim());
+                processBuilder.redirectErrorStream(true);
+                Process download = processBuilder.start();
+
+                StringBuilder output = new StringBuilder();
+                Thread progressReader = new Thread(() -> {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(download.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            output.append(line).append("\n");
+                            if (BotSettings.isDebug()) {
+                                System.out.println("[yt-dlp] " + line.trim());
+                            }
+                        }
+                    } catch (IOException e) {
+                        if (BotSettings.isDebug()) {
+                            System.err.println("Error reading yt-dlp output: " + e.getMessage());
+                        }
                     }
-                } catch (IOException e) {
-                    if (BotSettings.isDebug()) {
-                        System.err.println("Error reading yt-dlp output: " + e.getMessage());
-                    }
+                });
+                progressReader.start();
+
+                if (!download.waitFor(2, TimeUnit.MINUTES)) {
+                    download.destroyForcibly();
+                    throw new IOException("Download timed out");
                 }
-            });
-            progressReader.start();
-        }
 
-        if (!download.waitFor(2, TimeUnit.MINUTES)) {
-            download.destroyForcibly();
-            throw new IOException("Download timed out");
-        }
+                if (download.exitValue() == 0) {
+                    return;
+                }
 
-        if (download.exitValue() != 0) {
-            throw new IOException("Download failed with code: " + download.exitValue());
+                throw new IOException("Download failed with code: " + download.exitValue() + "\nOutput: " + output);
+
+            } catch (Exception e) {
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    throw new IOException("Download failed after " + maxRetries + " attempts: " + e.getMessage());
+                }
+                if (BotSettings.isDebug()) {
+                    System.err.println("Download attempt " + retryCount + " failed: " + e.getMessage());
+                }
+                Thread.sleep(1000 * retryCount);
+            }
         }
     }
 
