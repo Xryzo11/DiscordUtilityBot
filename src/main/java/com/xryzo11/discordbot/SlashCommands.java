@@ -55,6 +55,8 @@ public class SlashCommands {
                     break;
                 case "stop":
                     bot.stopPlayer();
+                    bot.disableLoop();
+                    bot.clearQueue();
                     event.reply("⏹️ Playback stopped and disconnected").queue();
                     break;
                 case "list":
@@ -92,6 +94,7 @@ public class SlashCommands {
             ensureVoiceConnection(guild, voiceChannel);
             bot.resumePlayer();
             bot.disableLoop();
+            bot.clearQueue();
             event.reply("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
         }
 
