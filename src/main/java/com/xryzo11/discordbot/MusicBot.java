@@ -11,11 +11,11 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -177,9 +177,5 @@ public class MusicBot {
 
     public void disableLoop() {
         loopEnabled = false;
-    }
-
-    public void isBeingUsed() {
-
     }
 }
