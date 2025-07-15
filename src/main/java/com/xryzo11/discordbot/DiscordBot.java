@@ -10,7 +10,7 @@ public class DiscordBot {
         MusicBot musicBot = new MusicBot();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
-                .addEventListeners(new MusicBot.VoiceJoinListener())
+                .addEventListeners(new WywozBindingManager.VoiceJoinListener())
                 .addEventListeners(new SlashCommands.SlashCommandInteractionEventListener(musicBot))
                 .build();
         BotHolder.setJDA(jda);
