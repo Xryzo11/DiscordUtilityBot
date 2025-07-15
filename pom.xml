@@ -6,7 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>DiscordBot</artifactId>
-    <version>1.2.3-SNAPSHOT</version>
+    <version>1.2.4-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>24</maven.compiler.source>
@@ -54,6 +54,11 @@
             <artifactId>nv-websocket-client</artifactId>
             <version>2.14</version>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.36</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -84,6 +89,10 @@
                                     <manifestEntries>
                                         <Add-Opens>java.base/java.lang</Add-Opens>
                                         <Multi-Release>true</Multi-Release>
+                                        <Implementation-Title>${project.artifactId}</Implementation-Title>
+                                        <Implementation-Version>${project.version}</Implementation-Version>
+                                        <Implementation-Vendor>${project.groupId}</Implementation-Vendor>
+                                        <Implementation-Classifier>shaded</Implementation-Classifier>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
@@ -91,6 +100,25 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-start-script</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.xryzo11.discordbot.ScriptGenerator</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 

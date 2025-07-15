@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.example</groupId>
   <artifactId>DiscordBot</artifactId>
-  <version>1.2.3-SNAPSHOT</version>
+  <version>1.2.4-SNAPSHOT</version>
   <build>
     <plugins>
       <plugin>
@@ -29,9 +29,30 @@
                   <manifestEntries>
                     <Add-Opens>java.base/java.lang</Add-Opens>
                     <Multi-Release>true</Multi-Release>
+                    <Implementation-Title>${project.artifactId}</Implementation-Title>
+                    <Implementation-Version>${project.version}</Implementation-Version>
+                    <Implementation-Vendor>${project.groupId}</Implementation-Vendor>
+                    <Implementation-Classifier>shaded</Implementation-Classifier>
                   </manifestEntries>
                 </transformer>
               </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>generate-start-script</id>
+            <phase>package</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <mainClass>com.xryzo11.discordbot.ScriptGenerator</mainClass>
             </configuration>
           </execution>
         </executions>
