@@ -2,11 +2,42 @@ package com.xryzo11.discordbot;
 
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.managers.AudioManager;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class DiscordBot {
+    public static Package pkg = DiscordBot.class.getPackage();
+    public static String artifactId = pkg.getImplementationTitle();
+    public static String version = pkg.getImplementationVersion();
+    public static String fullVersion = artifactId + "-" + version + "-shaded.jar";
+
     public static void main(String[] args) throws Exception {
+        System.out.print("\n");
+        System.out.println("File: " + fullVersion);
+        System.out.println("Last restart: " + Calendar.getInstance().getTime());
+        System.out.print("\n");
+        ScriptGenerator.createNewScripts("");
+        AudioProcessor.cleanupAudioDirectory();
+        restart(() -> {
+            try {
+                tryRestart();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
         MusicBot musicBot = new MusicBot();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
@@ -49,5 +80,48 @@ public class DiscordBot {
         }
         WywozBindingManager.loadBindings();
         Dashboard.start();
+    }
+
+    public static void restart(Runnable task) {
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        Calendar now = Calendar.getInstance(), next = (Calendar) now.clone();
+        next.set(Calendar.HOUR_OF_DAY, 6);
+        next.set(Calendar.MINUTE, 0);
+        next.set(Calendar.SECOND, 0);
+        next.set(Calendar.MILLISECOND, 0);
+        if (next.before(now)) next.add(Calendar.DATE, 1);
+        long delay = next.getTimeInMillis() - now.getTimeInMillis();
+        long day = 24 * 60 * 60 * 1000;
+        scheduler.scheduleAtFixedRate(task, delay, day, TimeUnit.MILLISECONDS);
+    }
+
+    public static boolean isBeingUsed() {
+        JDA jda = BotHolder.getJDA();
+        if (jda != null) {
+            for (Guild guild : jda.getGuilds()) {
+                AudioManager audioManager = guild.getAudioManager();
+                GuildChannel channel = audioManager.getConnectedChannel();
+                if (channel instanceof VoiceChannel) {
+                    VoiceChannel connectedChannel = (VoiceChannel) channel;
+                    List<Member> members = connectedChannel.getMembers();
+                    long nonBotCount = members.stream()
+                            .filter(member -> !member.getUser().isBot())
+                            .count();
+                    if (nonBotCount > 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public static void tryRestart() throws IOException {
+        if (isBeingUsed()) {
+            System.out.println("Skipping restart");
+            return;
+        }
+        ProcessBuilder process = new ProcessBuilder("restart.sh");
+        process.start();
     }
 }
