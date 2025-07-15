@@ -305,12 +305,12 @@ public class AudioProcessor {
         }
     }
 
-    public static void startCleanupScheduler() {
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        scheduler.scheduleAtFixedRate(() -> {
-            cleanupAudioDirectory();
-        }, 1, 1, TimeUnit.HOURS);
-    }
+//    public static void startCleanupScheduler() {
+//        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+//        scheduler.scheduleAtFixedRate(() -> {
+//            cleanupAudioDirectory();
+//        }, 1, 1, TimeUnit.HOURS);
+//    }
 
     public static void cleanupAudioDirectory() {
         File[] files = getFilesFromAudioDirectory();
