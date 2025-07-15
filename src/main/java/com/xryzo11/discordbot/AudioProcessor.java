@@ -308,16 +308,34 @@ public class AudioProcessor {
     public static void startCleanupScheduler() {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(() -> {
-            File dir = new File(AUDIO_DIR);
-            File[] files = dir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (System.currentTimeMillis() - file.lastModified() > 24 * 60 * 60 * 1000) {
-                        file.delete();
-                    }
-                }
-            }
+            cleanupAudioDirectory();
         }, 1, 1, TimeUnit.HOURS);
+    }
+
+    public static void cleanupAudioDirectory() {
+        File[] files = getFilesFromAudioDirectory();
+        removeFiles(files);
+    }
+
+    public static File[] getFilesFromAudioDirectory() {
+        File dir = new File(AUDIO_DIR);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        File[] files = dir.listFiles();
+        return files;
+    }
+
+    public static void removeFiles(File[] files) {
+        if (files != null) {
+            for (File file : files) {
+                removeFile(file);
+            }
+        }
+    }
+
+    public static void removeFile(File file) {
+        file.delete();
     }
 
     public static CompletableFuture<List<AudioTrackInfo>> processYouTubePlaylist(String youtubeUrl) {
