@@ -2,6 +2,10 @@ package com.xryzo11.discordbot;
 
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -86,5 +90,32 @@ public class WywozBindingManager {
             if (BotSettings.isDebug()) System.out.println("No matching binding found to update!");
         }
         saveBindings();
+    }
+
+    public static class VoiceJoinListener extends ListenerAdapter {
+        @Override
+        public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
+            if (event.getChannelJoined() != null) {
+                String user = event.getMember().getEffectiveName();
+                String channel = event.getChannelJoined().getName();
+                long channelId = event.getChannelJoined().getIdLong();
+                long userId = event.getMember().getUser().getIdLong();
+                if (BotSettings.isDebug()) {
+                    System.out.println(user + " joined voice channel: " + channel);
+                }
+                if (BotSettings.isWywozSmieci()) {
+                    if (WywozBindingManager.isBound(userId, channelId)) {
+                        Member member = event.getGuild().getMemberById(userId);
+                        Guild guild = event.getGuild();
+                        if (member != null && guild != null) {
+                            guild.kickVoiceMember(member).queue();
+                            System.out.println("Wywoz smieci (" + user + " | " + channel + ")");
+                        } else {
+                            System.out.println("Blad z wywozem smieci  (" + user + " | " + channel + ")");
+                        }
+                    }
+                }
+            }
+        }
     }
 }
