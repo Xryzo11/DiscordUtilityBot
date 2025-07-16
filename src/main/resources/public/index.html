@@ -43,6 +43,11 @@
             <button type="submit">Add</button>
         </form>
 
+        <h3>Force restart bot</h3>
+        <form action="/force-restart" method="post">
+            <button type="submit">Restart Bot</button>
+        </form>
+
         <script>
             fetch('/wywoz-status')
                 .then(res => res.text())
