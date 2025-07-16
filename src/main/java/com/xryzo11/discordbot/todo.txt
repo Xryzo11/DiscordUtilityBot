@@ -5,3 +5,5 @@ Shuffle playlist
 Web panel login + password config
 Css
 Add pre-downloaded tracks
+Tracks getting removed during playback
+Better logging in console
