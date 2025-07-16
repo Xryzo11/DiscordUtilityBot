@@ -23,13 +23,14 @@ public class DiscordBot {
     public static String artifactId = pkg.getImplementationTitle();
     public static String version = pkg.getImplementationVersion();
     public static String fullVersion = artifactId + "-" + version + "-shaded.jar";
+    public static String workingDirectory = System.getProperty("user.dir");
 
     public static void main(String[] args) throws Exception {
         System.out.print("\n");
         System.out.println("File: " + fullVersion);
         System.out.println("Last restart: " + Calendar.getInstance().getTime());
         System.out.print("\n");
-        ScriptGenerator.createNewScripts("");
+        ScriptGenerator.createNewScripts(workingDirectory + File.separator);
         AudioProcessor.cleanupAudioDirectory();
         restart(() -> {
             try {
@@ -121,7 +122,12 @@ public class DiscordBot {
             System.out.println("Skipping restart");
             return;
         }
-        ProcessBuilder process = new ProcessBuilder("restart.sh");
+        ProcessBuilder process = new ProcessBuilder("./restart.sh");
+        process.start();
+    }
+
+    public static void forceRestart() throws IOException {
+        ProcessBuilder process = new ProcessBuilder("./restart.sh");
         process.start();
     }
 }
