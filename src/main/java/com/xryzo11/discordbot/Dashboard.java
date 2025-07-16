@@ -72,6 +72,22 @@ public class Dashboard {
             return "OK";
         });
 
+        post("/force-restart", (req, res) -> {
+            try {
+                res.redirect("/");
+                String processInfo = ProcessHandle.current().info().toString();
+                DiscordBot.forceRestart();
+                Thread.sleep(1000);
+                if (ProcessHandle.current().info().toString().equals(processInfo)) {
+                    res.status(500);
+                    return "Restart failed - process did not change";
+                }
+                return "Restart successful";
+            } catch (Exception e) {
+                res.status(500);
+                return "Error during restart: " + e.getMessage();
+            }
+        });
     }
 
     public static class BindingDetailed {
