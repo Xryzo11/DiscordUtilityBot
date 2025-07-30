@@ -1,4 +1,30 @@
 <!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/js-sha512@0.8.0/src/sha512.min.js"></script>
+<script>
+    fetch('/web-auth')
+        .then(res => res.json())
+        .then(data => {
+            if (data.enabled) {
+                let password = prompt('Enter WebAuth Password:');
+                const hashedInput = sha512(password);
+
+                if (hashedInput !== data.password) {
+                    alert('Incorrect password. Access denied.');
+                    window.location.href = 'index.html';
+                    window.stop();
+                    document.execCommand('Stop');
+                    document.write('<style type="text/undefined">')
+                } else {
+                    console.log('Access granted.');
+                }
+            } else {
+                console.log('WebAuth not enabled, proceeding.');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading web auth config:', err);
+        });
+</script>
 <html>
     <head>
         <meta charset="UTF-8">
@@ -51,21 +77,6 @@
         </form>
 
         <script>
-            fetch('/web-auth')
-                .then(res => res.json())
-                .then(data => {
-                    console.log('WebAuth Enabled:', data.enabled);
-                    console.log('WebAuth Password:', data.password);
-
-                    if (data.enabled) {
-                        const p = document.createElement('p');
-                        p.textContent = 'Web Auth is enabled.';
-                        document.body.appendChild(p);
-                    }
-                })
-                .catch(err => console.error('Error loading web auth config:', err));
-
-
             fetch('/wywoz-status')
                 .then(res => res.text())
                 .then(status => {
