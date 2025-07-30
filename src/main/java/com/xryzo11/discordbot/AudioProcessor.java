@@ -16,11 +16,10 @@ import java.util.concurrent.*;
 import java.util.regex.*;
 
 public class AudioProcessor {
-    public static final String AUDIO_DIR = "/tmp/discord_audio/";
-    private static final int HTTP_PORT = 21378;
+    public static final String AUDIO_DIR = Config.getAudioDirectory();
+    private static final int HTTP_PORT = Config.getAudioPort();
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final ConcurrentMap<String, CompletableFuture<AudioTrackInfo>> pendingDownloads = new ConcurrentHashMap<>();
-    private static final Map<String, AudioTrackInfo> trackCache = new ConcurrentHashMap<>();
     private static final Set<String> activeDownloads = ConcurrentHashMap.newKeySet();
     private static final Set<String> downloadedFiles = ConcurrentHashMap.newKeySet();
 
