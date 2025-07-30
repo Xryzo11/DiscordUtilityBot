@@ -1,11 +1,13 @@
 package com.xryzo11.discordbot;
 
 import java.io.*;
+import java.security.MessageDigest;
 import java.util.Properties;
 
 public class Config {
     private static final String CONFIG_FILE = "config.properties";
     private static Properties properties;
+    private static String webPassword = null;
 
     static {
         properties = new Properties();
@@ -51,6 +53,27 @@ public class Config {
         } catch (IOException e) {
             System.err.println("Failed to load config: " + e.getMessage());
         }
+
+        if (isWebAuthEnabled()) {
+            String password = properties.getProperty("web.auth.password");
+            if (password == null || password.equals("YOUR_PASSWORD_HERE")) {
+                throw new IllegalStateException("Web auth password not configured in config.properties");
+            }
+            webPassword = sha512(password);
+        }
+
+    }
+
+    public static String sha512(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+            byte[] hash = md.digest(input.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String getBotToken() {
@@ -70,7 +93,7 @@ public class Config {
         if (password == null || password.equals("YOUR_PASSWORD_HERE")) {
             throw new IllegalStateException("Web auth password not configured in config.properties");
         }
-        return password;
+        return webPassword;
     }
 
     public static int getWebPort() {

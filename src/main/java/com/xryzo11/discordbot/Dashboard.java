@@ -4,12 +4,26 @@ import static spark.Spark.*;
 import com.google.gson.Gson;
 import net.dv8tion.jda.api.JDA;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Dashboard {
     public static void start() {
+        Gson gson = new Gson();
+
         port(Config.getWebPort());
         staticFiles.location("/public");
+
+        get("/web-auth", (req, res) -> {
+            res.type("application/json");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("enabled", Config.isWebAuthEnabled());
+            data.put("password", Config.getWebAuthPassword());
+
+            return data;
+        }, gson::toJson);
 
         get("/wywoz-status", (req, res) -> BotSettings.isWywozSmieci() ? "enabled" : "disabled");
         post("/toggle-wywoz", (req, res) -> {

@@ -51,6 +51,21 @@
         </form>
 
         <script>
+            fetch('/web-auth')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('WebAuth Enabled:', data.enabled);
+                    console.log('WebAuth Password:', data.password);
+
+                    if (data.enabled) {
+                        const p = document.createElement('p');
+                        p.textContent = 'Web Auth is enabled.';
+                        document.body.appendChild(p);
+                    }
+                })
+                .catch(err => console.error('Error loading web auth config:', err));
+
+
             fetch('/wywoz-status')
                 .then(res => res.text())
                 .then(status => {
