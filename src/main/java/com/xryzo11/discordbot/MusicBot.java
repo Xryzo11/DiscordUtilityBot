@@ -11,6 +11,9 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -183,11 +186,9 @@ public class MusicBot {
     }
 
     public void shuffleQueue() {
-        LinkedBlockingQueue<AudioTrack> shuffledQueue = new LinkedBlockingQueue<>();
-        trackQueue.stream()
-                .sorted((a, b) -> (int) (Math.random() * 2 - 1))
-                .forEach(shuffledQueue::offer);
+        List<AudioTrack> trackList = new ArrayList<>(trackQueue);
+        Collections.shuffle(trackList);
         trackQueue.clear();
-        trackQueue.addAll(shuffledQueue);
+        trackQueue.addAll(trackList);
     }
 }
