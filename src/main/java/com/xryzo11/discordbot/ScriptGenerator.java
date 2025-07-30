@@ -12,11 +12,12 @@ public class ScriptGenerator {
         String artifactId = System.getProperty("artifactId");
         String version = System.getProperty("version");
         String jarName = artifactId + "-" + version + "-shaded.jar";
-        createStartScript(jarName, directory);
+        createStartScript(directory);
+        createStartParamsScript(jarName, directory);
         createRestartScript(jarName, directory);
     }
 
-    private static void createStartScript(String jarName, String directory) {
+    private static void createStartScript(String directory) {
         try {
             File startScript = new File(directory, "start.sh");
             startScript.delete();
@@ -28,11 +29,25 @@ public class ScriptGenerator {
                 fw.write("while (true); do\n");
                 fw.write("  clear\n");
                 if (Config.isYtDlpUpdateEnabled()) fw.write("  pip install -U yt-dlp\n");
-                fw.write("  java --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
+                fw.write("  sh start-params.sh\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");
             }
             startScript.setExecutable(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createStartParamsScript(String jarName, String directory) {
+        try {
+            File startParamsScript = new File(directory, "start-params.sh");
+            startParamsScript.delete();
+            try (FileWriter fw = new FileWriter(startParamsScript)) {
+                fw.write("#!/bin/bash\n");
+                fw.write("  java --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
+            }
+            startParamsScript.setExecutable(true);
         } catch (Exception e) {
             e.printStackTrace();
         }
