@@ -132,6 +132,11 @@ public class SlashCommands {
                                 return;
                             }
 
+                            if (tracks.size() > 250) {
+                                hook.editOriginal("❗ Playlist is too long! (Max 250 tracks)").queue();
+                                return;
+                            }
+
                             hook.editOriginal("🔄 Adding " + tracks.size() + " tracks to queue...").queue();
                             StringBuilder failedTracks = new StringBuilder();
                             int addedTracks = 0;
@@ -170,10 +175,7 @@ public class SlashCommands {
                                         }
                                     });
                                     addedTracks++;
-
-                                    if (addedTracks % 5 == 0) {
-                                        hook.editOriginal("🔄 Added " + addedTracks + "/" + tracks.size() + " tracks...").queue();
-                                    }
+                                    hook.editOriginal("🔄 Added " + addedTracks + "/" + tracks.size() + " tracks...").queue();
                                 } catch (Exception e) {
                                     failedTracks.append("\n- ").append(trackInfo.title);
                                     if (BotSettings.isDebug()) {

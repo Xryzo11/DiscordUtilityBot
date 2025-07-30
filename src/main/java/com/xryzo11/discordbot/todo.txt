@@ -2,6 +2,5 @@ Add pre-downloaded tracks
 Better logging in console
 Guild id config
 Total queue length
-Max playlist size
 Faster playlist download/download all at once
 Longer /list + pages
