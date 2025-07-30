@@ -3,6 +3,5 @@ Audio dir config
 Fast forward/playhead position
 Shuffle playlist
 Web panel login + password config
-Css
 Add pre-downloaded tracks
 Better logging in console
