@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 public class Dashboard {
     public static void start() {
-        port(21379);
+        port(Config.getWebPort());
         staticFiles.location("/public");
 
         get("/wywoz-status", (req, res) -> BotSettings.isWywozSmieci() ? "enabled" : "disabled");

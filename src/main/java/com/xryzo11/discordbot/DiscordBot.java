@@ -31,14 +31,16 @@ public class DiscordBot {
         System.out.println("Last restart: " + Calendar.getInstance().getTime());
         System.out.print("\n");
         ScriptGenerator.createNewScripts(workingDirectory + File.separator);
-        AudioProcessor.cleanupAudioDirectory();
-        restart(() -> {
-            try {
-                tryRestart();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        if (Config.isAudioCleanupEnabled()) AudioProcessor.cleanupAudioDirectory();
+        if (Config.isAutoRestartEnabled()) {
+            restart(() -> {
+                try {
+                    tryRestart();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
         MusicBot musicBot = new MusicBot();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
@@ -86,7 +88,7 @@ public class DiscordBot {
     public static void restart(Runnable task) {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         Calendar now = Calendar.getInstance(), next = (Calendar) now.clone();
-        next.set(Calendar.HOUR_OF_DAY, 6);
+        next.set(Calendar.HOUR_OF_DAY, Config.getAutoRestartHour());
         next.set(Calendar.MINUTE, 0);
         next.set(Calendar.SECOND, 0);
         next.set(Calendar.MILLISECOND, 0);

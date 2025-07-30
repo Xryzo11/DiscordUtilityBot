@@ -26,7 +26,7 @@ public class ScriptGenerator {
                 fw.write("source /etc/profile\n");
                 fw.write("while (true); do\n");
                 fw.write("  clear\n");
-                fw.write("  pip install -U yt-dlp");
+                if (Config.isYtDlpUpdateEnabled()) fw.write("  pip install -U yt-dlp\n");
                 fw.write("  java --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");

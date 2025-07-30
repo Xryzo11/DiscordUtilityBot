@@ -40,7 +40,7 @@ public class Config {
                 writer.write("# Enable automatic restarts (only when unused) [true/false]\n");
                 writer.write("auto.restart.enabled=true\n");
                 writer.write("# Automatic restart hour (24-hour format) [int]h\n");
-                writer.write("auto.restart.hour=5\n");
+                writer.write("auto.restart.hour=6\n");
             } catch (IOException e) {
                 System.err.println("Failed to create config file: " + e.getMessage());
             }
