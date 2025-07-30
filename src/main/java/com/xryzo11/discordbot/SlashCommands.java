@@ -293,9 +293,8 @@ public class SlashCommands {
         }
 
         private void handleShuffleCommand(SlashCommandInteractionEvent event) {
-//            bot.shuffleQueue();
-//            event.reply("🔀 Queue shuffled").queue();
-            event.reply(("Not implemented yet :upside_down:")).queue();
+            bot.shuffleQueue();
+            event.reply("🔀 Queue shuffled").queue();
         }
 
         private void handlePlayheadCommand(SlashCommandInteractionEvent event) {

@@ -181,4 +181,13 @@ public class MusicBot {
         }
         return 1;
     }
+
+    public void shuffleQueue() {
+        LinkedBlockingQueue<AudioTrack> shuffledQueue = new LinkedBlockingQueue<>();
+        trackQueue.stream()
+                .sorted((a, b) -> (int) (Math.random() * 2 - 1))
+                .forEach(shuffledQueue::offer);
+        trackQueue.clear();
+        trackQueue.addAll(shuffledQueue);
+    }
 }
