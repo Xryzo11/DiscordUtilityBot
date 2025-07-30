@@ -74,7 +74,9 @@ public class DiscordBot {
                     Commands.slash("shuffle", "Shuffle the queue")
                             .setGuildOnly(true),
                     Commands.slash("playhead", "Move playhead to a specific position")
-                            .addOption(OptionType.INTEGER, "position", "Position in seconds", true)
+                            .addOption(OptionType.INTEGER, "hour", "Hour timestamp", true)
+                            .addOption(OptionType.INTEGER, "minute", "Minute timestamp", true)
+                            .addOption(OptionType.INTEGER, "second", "Seconds timestamp", true)
                             .setGuildOnly(true),
                     Commands.slash("add", "Add pre-downloaded track to the queue")
                             .addOption(OptionType.STRING, "track", "Short track name", true)

@@ -1,4 +1,3 @@
-Fast forward/playhead position
 Shuffle playlist
 Add pre-downloaded tracks
 Better logging in console

@@ -173,4 +173,12 @@ public class MusicBot {
     public void disableLoop() {
         loopEnabled = false;
     }
+
+    public int movePlayhead(int position) {
+        if (player.getPlayingTrack() != null) {
+            player.getPlayingTrack().setPosition(position);
+            return 0;
+        }
+        return 1;
+    }
 }

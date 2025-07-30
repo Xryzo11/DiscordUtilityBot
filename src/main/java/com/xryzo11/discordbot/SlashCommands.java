@@ -299,9 +299,44 @@ public class SlashCommands {
         }
 
         private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
-//            bot.movePlayhead();
-//            event.reply("⏩ Playhead moved").queue();
-            event.reply(("Not implemented yet :upside_down:")).queue();
+            Guild guild = event.getGuild();
+            Member member = event.getMember();
+            int hour = event.getOption("hour").getAsInt();
+            int minute = event.getOption("minute").getAsInt();
+            int second = event.getOption("second").getAsInt();
+            int totalSeconds = hour * 3600 + minute * 60 + second;
+
+            if (member == null || !member.getVoiceState().inAudioChannel()) {
+                event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+                return;
+            }
+
+            if (!guild.getAudioManager().isConnected()) {
+                event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+                return;
+            }
+
+            if (bot.player.getPlayingTrack() == null) {
+                event.reply("❌ No track is currently playing").setEphemeral(true).queue();
+                return;
+            }
+
+            if (hour < 0 || minute < 0 || second < 0) {
+                event.reply("❌ Position must be a positive integer").setEphemeral(true).queue();
+                return;
+            }
+
+            if (totalSeconds > bot.player.getPlayingTrack().getDuration() / 1000) {
+                event.reply("❌ Position exceeds track duration").setEphemeral(true).queue();
+                return;
+            }
+
+            int exec = bot.movePlayhead(totalSeconds * 1000);
+            if (exec == 0) {
+                event.reply("⏩ Playhead moved").queue();
+                return;
+            }
+            event.reply("❌ Could not set playhead position!").setEphemeral(true).queue();
         }
 
         private void handleAddCommand(SlashCommandInteractionEvent event) {
