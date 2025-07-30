@@ -12,6 +12,12 @@ public class ScriptGenerator {
         String artifactId = System.getProperty("artifactId");
         String version = System.getProperty("version");
         String jarName = artifactId + "-" + version + "-shaded.jar";
+        if (jarName.equals("null-null-shaded.jar")) {
+            Package pkg = DiscordBot.class.getPackage();
+            artifactId = pkg.getImplementationTitle();
+            version = pkg.getImplementationVersion();
+            jarName = artifactId + "-" + version + "-shaded.jar";
+        }
         createStartScript(directory);
         createStartParamsScript(jarName, directory);
         createRestartScript(jarName, directory);
@@ -29,7 +35,7 @@ public class ScriptGenerator {
                 fw.write("while (true); do\n");
                 fw.write("  clear\n");
                 if (Config.isYtDlpUpdateEnabled()) fw.write("  pip install -U yt-dlp\n");
-                fw.write("  sh start-params.sh\n");
+                fw.write("  ./start-params.sh\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");
             }
@@ -45,7 +51,7 @@ public class ScriptGenerator {
             startParamsScript.delete();
             try (FileWriter fw = new FileWriter(startParamsScript)) {
                 fw.write("#!/bin/bash\n");
-                fw.write("  java --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
+                fw.write("exec java --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
             }
             startParamsScript.setExecutable(true);
         } catch (Exception e) {
