@@ -1,8 +1,8 @@
 package com.xryzo11.discordbot;
 
 public class BotSettings {
-    private static boolean wywozSmieci = true;
-    private static boolean debug = false;
+    private static boolean wywozSmieci = Config.isAutoKickEnabled();
+    private static boolean debug = Config.isDebugEnabled();
 
     public static boolean isWywozSmieci() {
         return wywozSmieci;
