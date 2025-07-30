@@ -1,7 +1,4 @@
-Port config
-Audio dir config
 Fast forward/playhead position
 Shuffle playlist
-Web panel login + password config
 Add pre-downloaded tracks
 Better logging in console
