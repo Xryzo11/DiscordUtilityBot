@@ -10,7 +10,6 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
