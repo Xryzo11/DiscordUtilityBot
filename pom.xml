@@ -114,10 +114,21 @@
                         </goals>
                         <configuration>
                             <mainClass>com.xryzo11.discordbot.ScriptGenerator</mainClass>
+                            <systemProperties>
+                                <property>
+                                    <key>artifactId</key>
+                                    <value>${project.artifactId}</value>
+                                </property>
+                                <property>
+                                    <key>version</key>
+                                    <value>${project.version}</value>
+                                </property>
+                            </systemProperties>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+
 
         </plugins>
     </build>

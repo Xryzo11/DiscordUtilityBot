@@ -9,8 +9,9 @@ public class ScriptGenerator {
     }
 
     public static void createNewScripts(String directory) {
-        String jarName = System.getProperty("artifactId", "DiscordBot") + "-" +
-        System.getProperty("version", "1.3-SNAPSHOT") + "-shaded.jar";
+        String artifactId = System.getProperty("artifactId");
+        String version = System.getProperty("version");
+        String jarName = artifactId + "-" + version + "-shaded.jar";
         createStartScript(jarName, directory);
         createRestartScript(jarName, directory);
     }
