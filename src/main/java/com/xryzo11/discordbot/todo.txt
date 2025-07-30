@@ -3,4 +3,3 @@ Shuffle playlist
 Add pre-downloaded tracks
 Better logging in console
 Guild id config
-Bot info in panel

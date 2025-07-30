@@ -87,6 +87,12 @@
             <button type="submit">Restart Bot</button>
         </form>
 
+        <h3>Bot Information</h3>
+        <form>
+            <p><b>File name:</b> <span id="fileName"></span></p>
+            <p><b>Last restart:</b> <span id="lastRestart"></span></p>
+        </form>
+
         <script>
             fetch('/wywoz-status')
                 .then(res => res.text())
@@ -151,6 +157,17 @@
                 });
             };
             loadBindings();
+
+            fetch('/get-info')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('fileName').innerHTML= data.fullVersion;
+                    document.getElementById('lastRestart').innerHTML = data.lastRestart;
+                })
+                .catch(err => {
+                    document.getElementById('fileName').innerHTML= "Error loading info - " + err.message;
+                    document.getElementById('lastRestart').innerHTML = "Error loading info - " + err.message;
+                });
         </script>
     </body>
 </html>

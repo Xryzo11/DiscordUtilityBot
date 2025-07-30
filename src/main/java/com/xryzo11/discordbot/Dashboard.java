@@ -25,6 +25,16 @@ public class Dashboard {
             return data;
         }, gson::toJson);
 
+        get("/get-info", (req, res) -> {
+            res.type("application/json");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("fullVersion", DiscordBot.fullVersion);
+            data.put("lastRestart", DiscordBot.lastRestart);
+
+            return data;
+        }, gson::toJson);
+
         get("/wywoz-status", (req, res) -> BotSettings.isWywozSmieci() ? "enabled" : "disabled");
         post("/toggle-wywoz", (req, res) -> {
             boolean state = Boolean.parseBoolean(req.queryParams("status"));

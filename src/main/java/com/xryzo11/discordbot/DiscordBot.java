@@ -23,12 +23,13 @@ public class DiscordBot {
     public static String artifactId = pkg.getImplementationTitle();
     public static String version = pkg.getImplementationVersion();
     public static String fullVersion = artifactId + "-" + version + "-shaded.jar";
+    public static String lastRestart = Calendar.getInstance().getTime().toString();
     public static String workingDirectory = System.getProperty("user.dir");
 
     public static void main(String[] args) throws Exception {
         System.out.print("\n");
         System.out.println("File: " + fullVersion);
-        System.out.println("Last restart: " + Calendar.getInstance().getTime());
+        System.out.println("Last restart: " + lastRestart);
         System.out.print("\n");
         ScriptGenerator.createNewScripts(workingDirectory + File.separator);
         if (Config.isAudioCleanupEnabled()) AudioProcessor.cleanupAudioDirectory();
