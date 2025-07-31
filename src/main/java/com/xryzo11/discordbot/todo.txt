@@ -5,3 +5,4 @@ Total queue length
 Faster playlist download/download all at once
 Longer /list + pages
 Shuffle check if queue is empty
+Current song progress
