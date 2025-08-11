@@ -80,6 +80,14 @@ public class DiscordBot {
                             .setGuildOnly(true),
                     Commands.slash("add", "Add pre-downloaded track to the queue")
                             .addOption(OptionType.STRING, "track", "Short track name", true)
+                            .setGuildOnly(true),
+                    Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
+                            .addOption(OptionType.USER, "user", "User to challenge", true)
+                            .setGuildOnly(true),
+                    Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
+                            .addOption(OptionType.STRING, "choice", "rock / paper / scissors", true)
+                            .setGuildOnly(true),
+                    Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game")
                             .setGuildOnly(true)
             ).queue();
         }

@@ -77,6 +77,15 @@ public class SlashCommands {
                 case "add":
                     handleAddCommand(event);
                     break;
+                case "rps-challenge":
+                    handleRpsChallengeCommand(event);
+                    break;
+                case "rps-choose":
+                    handleRpsChooseCommand(event);
+                    break;
+                case "rps-cancel":
+                    handleRpsCancelCommand(event);
+                    break;
             }
         }
 
@@ -345,5 +354,53 @@ public class SlashCommands {
 //            event.reply("✅ Added existing track to queue").queue();
             event.reply(("Not implemented yet :upside_down:")).queue();
         }
+
+       private void handleRpsChallengeCommand(SlashCommandInteractionEvent event) {
+         if (RockPaperScissors.isActive) {
+                event.reply("❌ A Rock-Paper-Scissors game is already in progress").queue();
+                return;
+         }
+         event.reply("🔄 Setting up game...").setEphemeral(true).queue();
+         RockPaperScissors.challenge(event.getMember(), event.getOption("user").getAsMember(), event.getChannel());
+       }
+
+       private void handleRpsChooseCommand(SlashCommandInteractionEvent event) {
+           if (!RockPaperScissors.isActive) {
+               event.reply("❌ No active Rock-Paper-Scissors game").setEphemeral(true).queue();
+               return;
+           }
+           if (RockPaperScissors.player1 != event.getMember() && RockPaperScissors.player2 != event.getMember()) {
+               event.reply("❌ You are not part of the current game").setEphemeral(true).queue();
+               return;
+           }
+           if (event.getChannel() != RockPaperScissors.channel) {
+               event.reply("❌ You can only make choices in the channel you were challenged in").setEphemeral(true).queue();
+               return;
+           }
+           String choice = event.getOption("choice").getAsString().toLowerCase();
+           if (!choice.equals("rock") && !choice.equals("paper") && !choice.equals("scissors")) {
+               event.reply("❌ Invalid choice! Use rock, paper, or scissors").setEphemeral(true).queue();
+               return;
+           }
+           event.reply("✅ You chose: " + choice).setEphemeral(true).queue();
+           RockPaperScissors.makeChoice(event.getMember(), choice);
+       }
+
+       private void handleRpsCancelCommand(SlashCommandInteractionEvent event) {
+           if (!RockPaperScissors.isActive) {
+               event.reply("❌ No active Rock-Paper-Scissors game").setEphemeral(true).queue();
+               return;
+           }
+           if (RockPaperScissors.player1 != event.getMember() && RockPaperScissors.player2 != event.getMember()) {
+               event.reply("❌ You are not part of the current game").setEphemeral(true).queue();
+               return;
+           }
+           if (event.getChannel() != RockPaperScissors.channel) {
+               event.reply("❌ You can only cancel in the channel you were challenged in").setEphemeral(true).queue();
+               return;
+           }
+           event.reply("Cancelling game...").setEphemeral(true).queue();
+           RockPaperScissors.cancelGame();
+       }
     }
 }
