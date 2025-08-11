@@ -27,11 +27,11 @@ public class Config {
                 writer.write("# Http audio player port [int]\n");
                 writer.write("audio.port=21378\n");
                 writer.write("# Audio directory [string]\n");
-                writer.write("audio.directory=/tmp/discord_audio\n");
+                writer.write("audio.directory=/tmp/discord_audio/\n");
                 writer.write("# Enable pre-loaded tracks [true/false]\n");
                 writer.write("audio.preloaded=true\n");
                 writer.write("# Pre-loaded directory [string]\n");
-                writer.write("audio.preloaded.directory=/tmp/discord_audio_preloaded\n");
+                writer.write("audio.preloaded.directory=/tmp/discord_audio_preloaded/\n");
                 writer.write("# Enable auto-kick automatically [true/false]\n");
                 writer.write("auto.kick.enabled=true\n");
                 writer.write("# Enable debug automatically [true/false]\n");
@@ -106,9 +106,12 @@ public class Config {
     }
 
     public static String getAudioDirectory() {
-        String dir = properties.getProperty("audio.directory", "/tmp/discord_audio");
-        if (dir.isEmpty()) {
+        String dir = properties.getProperty("audio.directory", "/tmp/discord_audio/");
+        if (dir == null || dir.trim().isEmpty()) {
             throw new IllegalStateException("Audio directory not configured in config.properties");
+        }
+        if (!dir.endsWith(File.separator)) {
+            dir += File.separator;
         }
         return dir;
     }
@@ -118,12 +121,16 @@ public class Config {
     }
 
     public static String getPreloadedDirectory() {
-        String dir = properties.getProperty("audio.preloaded.directory", "/tmp/discord_audio_preloaded");
-        if (dir.isEmpty()) {
+        String dir = properties.getProperty("audio.preloaded.directory", "/tmp/discord_audio_preloaded/");
+        if (dir == null || dir.trim().isEmpty()) {
             throw new IllegalStateException("Pre-loaded directory not configured in config.properties");
+        }
+        if (!dir.endsWith(File.separator)) {
+            dir += File.separator;
         }
         return dir;
     }
+
 
     public static boolean isAutoKickEnabled() {
         return Boolean.parseBoolean(properties.getProperty("auto.kick.enabled", "true"));
