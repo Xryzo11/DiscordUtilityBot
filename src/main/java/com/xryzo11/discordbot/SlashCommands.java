@@ -201,10 +201,18 @@ public class SlashCommands {
 
                         } else {
                             hook.editOriginal("⏳ Processing YouTube URL...").queue();
-                            hook.editOriginal("📥 Downloading audio...").queue();
+
+                            String videoId = AudioProcessor.extractVideoId(url);
+                            File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
+                            File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".info.json");
+
+                            if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
+                                hook.editOriginal("🔍 Fetching metadata...").queue();
+                            } else {
+                                hook.editOriginal("📥 Downloading audio...").queue();
+                            }
 
                             AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
-                            File audioFile = new File(AudioProcessor.AUDIO_DIR + trackInfo.identifier + ".webm");
 
                             if (!audioFile.exists() || !audioFile.canRead()) {
                                 hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
@@ -212,6 +220,7 @@ public class SlashCommands {
                             }
 
                             hook.editOriginal("🎵 Loading track into player...").queue();
+
                             int retries = 0;
                             while (retries < 10) {
                                 try (FileInputStream fis = new FileInputStream(audioFile)) {
