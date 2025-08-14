@@ -39,25 +39,19 @@ public class AudioProcessor {
                 String videoId = extractVideoId(youtubeUrl);
                 String outputFile = AUDIO_DIR + videoId + ".webm";
                 String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
+                File audioFile = new File(outputFile);
+                File infoFile = new File(AUDIO_DIR + videoId + ".info.json");
 
-                File file = new File(outputFile);
-                if (file.exists() && file.length() > 0) {
-                    String title = getYoutubeTitle(youtubeUrl);
-                    long duration = getYoutubeDuration(youtubeUrl);
-                    return new AudioTrackInfo(
-                            title,
-                            "YouTube",
-                            duration,
-                            videoId,
-                            false,
-                            httpUrl
-                    );
+                if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
+                    return loadMetadataFromJson(videoId, httpUrl);
                 }
 
                 if (activeDownloads.add(videoId)) {
-                    downloadAndConvert(youtubeUrl, outputFile);
-                    downloadedFiles.add(videoId);
-                    activeDownloads.remove(videoId);
+                    try {
+                        return downloadAndConvertWithMetadata(youtubeUrl, outputFile);
+                    } finally {
+                        activeDownloads.remove(videoId);
+                    }
                 } else {
                     long startTime = System.currentTimeMillis();
                     while (activeDownloads.contains(videoId)) {
@@ -66,24 +60,18 @@ public class AudioProcessor {
                         }
                         Thread.sleep(100);
                     }
+                    if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
+                        return loadMetadataFromJson(videoId, httpUrl);
+                    } else {
+                        throw new IOException("Audio file not available after waiting");
+                    }
                 }
-
-                String title = getYoutubeTitle(youtubeUrl);
-                long duration = getYoutubeDuration(youtubeUrl);
-
-                return new AudioTrackInfo(
-                        title,
-                        "YouTube",
-                        duration,
-                        videoId,
-                        false,
-                        httpUrl
-                );
             } catch (Exception e) {
                 throw new RuntimeException("Failed to process audio: " + e.getMessage(), e);
             }
         }, executor);
     }
+
 
     private static AudioTrackInfo createTrackInfo(String filePath, String videoId, String httpUrl) {
         try {
@@ -235,7 +223,56 @@ public class AudioProcessor {
         throw new IOException("Download failed after " + maxRetries + " attempts", lastException);
     }
 
-    private static String extractVideoId(String url) {
+    private static AudioTrackInfo downloadAndConvertWithMetadata(String youtubeUrl, String outputFile) throws Exception {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "yt-dlp",
+                "--format", "bestaudio[ext=webm]/bestaudio",
+                "-o", outputFile,
+                "--write-info-json",
+                "--print-json",
+                "--newline",
+                "--no-colors",
+                "--verbose",
+                "--force-ipv4",
+                "--no-check-certificate",
+                youtubeUrl
+        );
+
+        processBuilder.redirectErrorStream(true);
+        Process process = processBuilder.start();
+
+        StringBuilder jsonOutput = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().startsWith("{") && line.contains("\"title\"")) {
+                    jsonOutput.append(line).append("\n");
+                }
+                if (BotSettings.isDebug()) {
+                    System.out.println("[yt-dlp] " + line);
+                }
+            }
+        }
+
+        if (!process.waitFor(2, TimeUnit.MINUTES)) {
+            process.destroyForcibly();
+            throw new IOException("Download timed out");
+        }
+        if (process.exitValue() != 0) {
+            throw new IOException("yt-dlp failed with exit code " + process.exitValue());
+        }
+
+        JsonObject json = new Gson().fromJson(jsonOutput.toString(), JsonObject.class);
+        String title = json.get("title").getAsString();
+        long durationMs = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
+        String videoId = json.get("id").getAsString();
+        String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
+
+        return new AudioTrackInfo(title, "YouTube", durationMs, videoId, false, httpUrl);
+    }
+
+
+    public static String extractVideoId(String url) {
         String pattern = "(?<=watch\\?v=|/videos/|embed\\/|youtu.be\\/|\\/v\\/|\\/e\\/|watch\\?v%3D|watch\\?feature=player_embedded&v=|%2Fvideos%2F|embed%\u200C\u200B2F|youtu.be%2F|\\/v%2F)[^#\\&\\?\\n]*";
         Pattern compiledPattern = Pattern.compile(pattern);
         Matcher matcher = compiledPattern.matcher(url);
@@ -386,4 +423,20 @@ public class AudioProcessor {
             }
         }, executor);
     }
+
+    private static AudioTrackInfo loadMetadataFromJson(String videoId, String httpUrl) {
+        File jsonFile = new File(AUDIO_DIR + videoId + ".info.json");
+        if (jsonFile.exists()) {
+            try (Reader r = new FileReader(jsonFile)) {
+                JsonObject json = new Gson().fromJson(r, JsonObject.class);
+                String title = json.get("title").getAsString();
+                long durationMs = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
+                return new AudioTrackInfo(title, "YouTube", durationMs, videoId, false, httpUrl);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return new AudioTrackInfo("Unknown", "YouTube", 0, videoId, false, httpUrl);
+    }
+
 }
