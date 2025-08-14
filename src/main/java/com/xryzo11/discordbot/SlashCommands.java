@@ -38,6 +38,7 @@ public class SlashCommands {
                 case "join":
                     handleJoinCommand(event);
                     break;
+                case "play":
                 case "queue":
                     handleQueueCommand(event);
                     break;
