@@ -32,6 +32,8 @@ public class Config {
                 writer.write("audio.preloaded=true\n");
                 writer.write("# Pre-loaded directory [string]\n");
                 writer.write("audio.preloaded.directory=/tmp/discord_audio_preloaded/\n");
+                writer.write("# Block ASMR content [true/false]\n");
+                writer.write("audio.block.asmr=false\n");
                 writer.write("# Enable auto-kick automatically [true/false]\n");
                 writer.write("auto.kick.enabled=true\n");
                 writer.write("# Enable debug automatically [true/false]\n");
@@ -131,6 +133,9 @@ public class Config {
         return dir;
     }
 
+    public static boolean isAsmrBlockEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("audio.block.asmr", "false"));
+    }
 
     public static boolean isAutoKickEnabled() {
         return Boolean.parseBoolean(properties.getProperty("auto.kick.enabled", "true"));

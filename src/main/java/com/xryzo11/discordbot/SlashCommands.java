@@ -222,7 +222,7 @@ public class SlashCommands {
 
                             if (Config.isAsmrBlockEnabled()) {
                                 if (trackInfo.title.contains("ASMR") || trackInfo.title.contains("F4A") || trackInfo.title.contains("F4M") || trackInfo.title.contains("F4F") || trackInfo.title.contains("M4A") || trackInfo.title.contains("M4M") || trackInfo.title.contains("M4F")) {
-                                    hook.editOriginal("❌ ASMR videos are blocked.").queue();
+                                    hook.editOriginal("❌ ASMR content is blocked.").queue();
                                     return;
                                 }
                             }
