@@ -54,11 +54,14 @@ public class DiscordBot {
             guild.updateCommands().addCommands(
                     Commands.slash("join", "Join voice channel")
                             .setGuildOnly(true),
-                    Commands.slash("play", "Queue YouTube audio")
+                    Commands.slash("play", "Queue YouTube audio by url")
                             .addOption(OptionType.STRING, "url", "YouTube URL", true)
                             .setGuildOnly(true),
-                    Commands.slash("queue", "Queue YouTube audio")
+                    Commands.slash("queue", "Queue YouTube audio by url")
                             .addOption(OptionType.STRING, "url", "YouTube URL", true)
+                            .setGuildOnly(true),
+                    Commands.slash("search", "Queue YouTube audio by title")
+                            .addOption(OptionType.STRING, "title", "Search query", true)
                             .setGuildOnly(true),
                     Commands.slash("pause", "Pause current playback")
                             .setGuildOnly(true),
