@@ -225,35 +225,34 @@ public class AudioProcessor {
 
     private static AudioTrackInfo downloadAndConvertWithMetadata(String youtubeUrl, String outputFile, boolean isUrl) throws Exception {
         ProcessBuilder processBuilder;
+        List<String> command = new ArrayList<>();
+        command.add("yt-dlp");
+        command.add("--format");
+        command.add("bestaudio[ext=webm]/bestaudio");
         if (isUrl) {
-            processBuilder = new ProcessBuilder(
-                    "yt-dlp",
-                    "--format", "bestaudio[ext=webm]/bestaudio",
-                    "-o", outputFile,
-                    "--write-info-json",
-                    "--print-json",
-                    "--newline",
-                    "--no-colors",
-                    "--verbose",
-                    "--force-ipv4",
-                    "--no-check-certificate",
-                    youtubeUrl
-            );
+            command.add("-o");
+            command.add(outputFile);
         } else {
-            processBuilder = new ProcessBuilder(
-                    "yt-dlp",
-                    "--format", "bestaudio[ext=webm]/bestaudio",
-                    "-o", AUDIO_DIR + "%(id)s.%(ext)s",
-                    "--write-info-json",
-                    "--print-json",
-                    "--newline",
-                    "--no-colors",
-                    "--verbose",
-                    "--force-ipv4",
-                    "--no-check-certificate",
-                    "ytsearch1:" + youtubeUrl
-            );
+            command.add("-o");
+            command.add(AUDIO_DIR + "%(id)s.%(ext)s");
         }
+        command.add("--write-info-json");
+        command.add("--print-json");
+        command.add("--newline");
+        command.add("--no-colors");
+        command.add("--verbose");
+        command.add("--force-ipv4");
+        command.add("--no-check-certificate");
+        if (Config.isYtCookiesEnabled()) {
+            command.add("--cookies-from-browser");
+            command.add(Config.getYtCookiesBrowser());
+        }
+        if (isUrl) {
+            command.add(youtubeUrl);
+        } else {
+            command.add("ytsearch1:" + youtubeUrl);
+        }
+        processBuilder = new ProcessBuilder(command);
 
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();
