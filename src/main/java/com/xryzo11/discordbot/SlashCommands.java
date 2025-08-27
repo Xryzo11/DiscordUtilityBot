@@ -35,7 +35,7 @@ public class SlashCommands {
                     handleQueueCommand(event);
                     break;
                 case "search":
-                    event.reply("Not implemented yet :upside_down:").queue();
+                    handleSearchCommand(event);
                     break;
                 case "pause":
                     bot.pausePlayer();
@@ -125,6 +125,24 @@ public class SlashCommands {
             }
 
             bot.queue(event, url, guild, member);
+        }
+
+        private void handleSearchCommand(SlashCommandInteractionEvent event) {
+            String query = event.getOption("query").getAsString();
+            Guild guild = event.getGuild();
+            Member member = event.getMember();
+
+            if (member == null || !member.getVoiceState().inAudioChannel()) {
+                event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+                return;
+            }
+
+            if (!guild.getAudioManager().isConnected()) {
+                event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+                return;
+            }
+
+            bot.search(event, query, guild, member);
         }
 
         private void handleListCommand(SlashCommandInteractionEvent event) {

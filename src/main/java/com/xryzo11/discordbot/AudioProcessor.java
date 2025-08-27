@@ -33,7 +33,7 @@ public class AudioProcessor {
         }
     }
 
-    public static CompletableFuture<AudioTrackInfo> processYouTubeAudio(String youtubeUrl) {
+    public static CompletableFuture<AudioTrackInfo> processYouTubeAudio(String youtubeUrl, boolean isUrl) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 String videoId = extractVideoId(youtubeUrl);
@@ -48,7 +48,7 @@ public class AudioProcessor {
 
                 if (activeDownloads.add(videoId)) {
                     try {
-                        return downloadAndConvertWithMetadata(youtubeUrl, outputFile);
+                        return downloadAndConvertWithMetadata(youtubeUrl, outputFile, isUrl);
                     } finally {
                         activeDownloads.remove(videoId);
                     }
@@ -223,20 +223,37 @@ public class AudioProcessor {
         throw new IOException("Download failed after " + maxRetries + " attempts", lastException);
     }
 
-    private static AudioTrackInfo downloadAndConvertWithMetadata(String youtubeUrl, String outputFile) throws Exception {
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "yt-dlp",
-                "--format", "bestaudio[ext=webm]/bestaudio",
-                "-o", outputFile,
-                "--write-info-json",
-                "--print-json",
-                "--newline",
-                "--no-colors",
-                "--verbose",
-                "--force-ipv4",
-                "--no-check-certificate",
-                youtubeUrl
-        );
+    private static AudioTrackInfo downloadAndConvertWithMetadata(String youtubeUrl, String outputFile, boolean isUrl) throws Exception {
+        ProcessBuilder processBuilder;
+        if (isUrl) {
+            processBuilder = new ProcessBuilder(
+                    "yt-dlp",
+                    "--format", "bestaudio[ext=webm]/bestaudio",
+                    "-o", outputFile,
+                    "--write-info-json",
+                    "--print-json",
+                    "--newline",
+                    "--no-colors",
+                    "--verbose",
+                    "--force-ipv4",
+                    "--no-check-certificate",
+                    youtubeUrl
+            );
+        } else {
+            processBuilder = new ProcessBuilder(
+                    "yt-dlp",
+                    "--format", "bestaudio[ext=webm]/bestaudio",
+                    "-o", AUDIO_DIR + "%(id)s.%(ext)s",
+                    "--write-info-json",
+                    "--print-json",
+                    "--newline",
+                    "--no-colors",
+                    "--verbose",
+                    "--force-ipv4",
+                    "--no-check-certificate",
+                    "ytsearch1:" + youtubeUrl
+            );
+        }
 
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();
@@ -270,7 +287,6 @@ public class AudioProcessor {
 
         return new AudioTrackInfo(title, "YouTube", durationMs, videoId, false, httpUrl);
     }
-
 
     public static String extractVideoId(String url) {
         String pattern = "(?<=watch\\?v=|/videos/|embed\\/|youtu.be\\/|\\/v\\/|\\/e\\/|watch\\?v%3D|watch\\?feature=player_embedded&v=|%2Fvideos%2F|embed%\u200C\u200B2F|youtu.be%2F|\\/v%2F)[^#\\&\\?\\n]*";

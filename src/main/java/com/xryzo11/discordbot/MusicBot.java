@@ -1,5 +1,6 @@
 package com.xryzo11.discordbot;
 
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
@@ -16,8 +17,10 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -227,7 +230,7 @@ public class MusicBot {
                         for (AudioTrackInfo trackInfo : tracks) {
                             try {
                                 String videoUrl = "https://youtube.com/watch?v=" + trackInfo.identifier;
-                                AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl).get();
+                                AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
 
                                 playerManager.loadItem(processedTrack.uri, new AudioLoadResultHandler() {
                                     @Override
@@ -286,7 +289,7 @@ public class MusicBot {
                             hook.editOriginal("📥 Downloading audio...").queue();
                         }
 
-                        AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url).get();
+                        AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url, true).get();
 
                         if (!audioFile.exists() || !audioFile.canRead()) {
                             hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
@@ -342,6 +345,110 @@ public class MusicBot {
                             }
                         });
                     }
+                } catch (Exception e) {
+                    hook.editOriginal("❌ Error processing track: " + e.getMessage()).queue();
+                    if (BotSettings.isDebug()) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        });
+    }
+
+    public void search(SlashCommandInteractionEvent event, String query, Guild guild, Member member) {
+        event.deferReply().queue(hook -> {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    String videoId = null;
+                    hook.editOriginal("⏳ Processing YouTube search...").queue();
+
+                    ProcessBuilder processBuilder = new ProcessBuilder(
+                            "yt-dlp",
+                            "--skip-download",
+                            "--print", "id",
+                            "ytsearch1:" + query
+                    );
+
+                    Process process = processBuilder.start();
+
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                        videoId = reader.readLine();
+                        System.out.println("Video ID: " + videoId);
+                    }
+                    int exitCode = process.waitFor();
+                    if (exitCode != 0) {
+                        System.err.println("yt-dlp exited with code " + exitCode);
+                    }
+
+                    if (videoId == null || videoId.isEmpty()) {
+                        hook.editOriginal("❌ No results found for query: " + query).queue();
+                        return;
+                    }
+
+                    File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
+                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".info.json");
+
+                    if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
+                        hook.editOriginal("🔍 Fetching metadata...").queue();
+                    } else {
+                        hook.editOriginal("📥 Downloading audio...").queue();
+                    }
+
+                    AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(query, false).get();
+
+                    if (!audioFile.exists() || !audioFile.canRead()) {
+                        hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
+                        return;
+                    }
+
+                    if (Config.isAsmrBlockEnabled()) {
+                        if (trackInfo.title.contains("ASMR") || trackInfo.title.contains("F4A") || trackInfo.title.contains("F4M") || trackInfo.title.contains("F4F") || trackInfo.title.contains("M4A") || trackInfo.title.contains("M4M") || trackInfo.title.contains("M4F")) {
+                            hook.editOriginal("❌ ASMR content is blocked.").queue();
+                            return;
+                        }
+                    }
+
+                    hook.editOriginal("🎵 Loading track into player...").queue();
+
+                    int retries = 0;
+                    while (retries < 10) {
+                        try (FileInputStream fis = new FileInputStream(audioFile)) {
+                            if (audioFile.length() > 0) break;
+                        } catch (Exception ignored) {}
+                        Thread.sleep(200);
+                        retries++;
+                    }
+
+                    playerManager.loadItem(trackInfo.uri, new AudioLoadResultHandler() {
+                        @Override
+                        public void trackLoaded(AudioTrack track) {
+                            track.setUserData(trackInfo.title);
+                            trackQueue.offer(track);
+
+                            String message = player.getPlayingTrack() == null ?
+                                    "✅ Added and playing: " + trackInfo.title :
+                                    "✅ Added to queue: " + trackInfo.title;
+
+                            hook.editOriginal(message).queue();
+
+                            if (player.getPlayingTrack() == null) {
+                                playNextTrack();
+                            }
+                        }
+
+                        @Override
+                        public void playlistLoaded(AudioPlaylist playlist) {}
+
+                        @Override
+                        public void noMatches() {
+                            hook.editOriginal("❌ No matching audio found").queue();
+                        }
+
+                        @Override
+                        public void loadFailed(FriendlyException exception) {
+                            hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
+                        }
+                    });
                 } catch (Exception e) {
                     hook.editOriginal("❌ Error processing track: " + e.getMessage()).queue();
                     if (BotSettings.isDebug()) {

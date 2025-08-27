@@ -61,7 +61,7 @@ public class DiscordBot {
                             .addOption(OptionType.STRING, "url", "YouTube URL", true)
                             .setGuildOnly(true),
                     Commands.slash("search", "Queue YouTube audio by title")
-                            .addOption(OptionType.STRING, "title", "Search query", true)
+                            .addOption(OptionType.STRING, "query", "Search query", true)
                             .setGuildOnly(true),
                     Commands.slash("pause", "Pause current playback")
                             .setGuildOnly(true),
