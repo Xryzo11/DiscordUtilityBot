@@ -94,6 +94,18 @@ public class SlashCommands {
                 return;
             }
 
+            if (guild.getAudioManager().isConnected()) {
+                event.reply("❌ Bot is already in a voice channel!").setEphemeral(true).queue();
+                return;
+            }
+
+            boolean isConnectedAnywhere = BotHolder.getJDA().getGuilds().stream()
+                    .anyMatch(g -> g.getAudioManager().isConnected());
+            if (isConnectedAnywhere) {
+                event.reply("❌ Bot is already in a voice channel in another server!").setEphemeral(true).queue();
+                return;
+            }
+            
             VoiceChannel voiceChannel = member.getVoiceState().getChannel().asVoiceChannel();
 
             ensureVoiceConnection(guild, voiceChannel);
