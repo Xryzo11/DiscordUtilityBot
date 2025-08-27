@@ -8,4 +8,3 @@ Shuffle check if queue is empty
 Current song progress
 Music bot keyword blocking
 Toggle keyword blocking from web panel
-Download by title
