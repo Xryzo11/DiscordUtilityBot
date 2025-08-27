@@ -224,67 +224,83 @@ public class AudioProcessor {
     }
 
     private static AudioTrackInfo downloadAndConvertWithMetadata(String youtubeUrl, String outputFile, boolean isUrl) throws Exception {
-        ProcessBuilder processBuilder;
-        List<String> command = new ArrayList<>();
-        command.add("yt-dlp");
-        command.add("--format");
-        command.add("bestaudio[ext=webm]/bestaudio");
-        if (isUrl) {
-            command.add("-o");
-            command.add(outputFile);
-        } else {
-            command.add("-o");
-            command.add(AUDIO_DIR + "%(id)s.%(ext)s");
-        }
-        command.add("--write-info-json");
-        command.add("--print-json");
-        command.add("--newline");
-        command.add("--no-colors");
-        command.add("--verbose");
-        command.add("--force-ipv4");
-        command.add("--no-check-certificate");
-        if (Config.isYtCookiesEnabled()) {
-            command.add("--cookies-from-browser");
-            command.add(Config.getYtCookiesBrowser());
-        }
-        if (isUrl) {
-            command.add(youtubeUrl);
-        } else {
-            command.add("ytsearch1:" + youtubeUrl);
-        }
-        processBuilder = new ProcessBuilder(command);
+        int maxRetries = 3;
+        int retryCount = 0;
+        Exception lastException = null;
 
-        processBuilder.redirectErrorStream(true);
-        Process process = processBuilder.start();
-
-        StringBuilder jsonOutput = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.trim().startsWith("{") && line.contains("\"title\"")) {
-                    jsonOutput.append(line).append("\n");
+        do {
+            try {
+                List<String> command = new ArrayList<>();
+                command.add("yt-dlp");
+                command.add("--format");
+                command.add("bestaudio[ext=webm]/bestaudio");
+                if (isUrl) {
+                    command.add("-o");
+                    command.add(outputFile);
+                } else {
+                    command.add("-o");
+                    command.add(AUDIO_DIR + "%(id)s.%(ext)s");
                 }
+                command.add("--write-info-json");
+                command.add("--print-json");
+                command.add("--newline");
+                command.add("--no-colors");
+                command.add("--verbose");
+                command.add("--force-ipv4");
+                command.add("--no-check-certificate");
+                if (Config.isYtCookiesEnabled()) {
+                    command.add("--cookies-from-browser");
+                    command.add(Config.getYtCookiesBrowser());
+                }
+                if (isUrl) {
+                    command.add(youtubeUrl);
+                } else {
+                    command.add("ytsearch1:" + youtubeUrl);
+                }
+                ProcessBuilder processBuilder = new ProcessBuilder(command);
+
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
+
+                StringBuilder jsonOutput = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.trim().startsWith("{") && line.contains("\"title\"")) {
+                            jsonOutput.append(line).append("\n");
+                        }
+                        if (BotSettings.isDebug()) {
+                            System.out.println("[yt-dlp] " + line);
+                        }
+                    }
+                }
+
+                if (!process.waitFor(2, TimeUnit.MINUTES)) {
+                    process.destroyForcibly();
+                    throw new IOException("Download timed out");
+                }
+                if (process.exitValue() != 0) {
+                    throw new IOException("yt-dlp failed with exit code " + process.exitValue());
+                }
+
+                JsonObject json = new Gson().fromJson(jsonOutput.toString(), JsonObject.class);
+                String title = json.get("title").getAsString();
+                long durationMs = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
+                String videoId = json.get("id").getAsString();
+                String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
+
+                return new AudioTrackInfo(title, "YouTube", durationMs, videoId, false, httpUrl);
+
+            } catch (Exception e) {
+                lastException = e;
                 if (BotSettings.isDebug()) {
-                    System.out.println("[yt-dlp] " + line);
+                    System.err.println("Download attempt " + (retryCount + 1) + " failed: " + e.getMessage());
                 }
+                Thread.sleep(1000 * (retryCount + 1));
             }
-        }
+        } while (++retryCount < maxRetries);
 
-        if (!process.waitFor(2, TimeUnit.MINUTES)) {
-            process.destroyForcibly();
-            throw new IOException("Download timed out");
-        }
-        if (process.exitValue() != 0) {
-            throw new IOException("yt-dlp failed with exit code " + process.exitValue());
-        }
-
-        JsonObject json = new Gson().fromJson(jsonOutput.toString(), JsonObject.class);
-        String title = json.get("title").getAsString();
-        long durationMs = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
-        String videoId = json.get("id").getAsString();
-        String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
-
-        return new AudioTrackInfo(title, "YouTube", durationMs, videoId, false, httpUrl);
+        throw new IOException("Download failed after " + maxRetries + " attempts", lastException);
     }
 
     public static String extractVideoId(String url) {
