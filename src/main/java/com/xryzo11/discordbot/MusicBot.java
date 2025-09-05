@@ -282,7 +282,11 @@ public class MusicBot {
                 } else {
                     hook.editOriginal("⏳ Processing YouTube URL...").queue();
 
-                    String videoId = AudioProcessor.extractVideoId(url);
+                    String videoUrl = url;
+                    if (videoUrl.contains("/shorts/")) {
+                        videoUrl = videoUrl.replace("/shorts/", "/watch?v=");
+                    }
+                    String videoId = AudioProcessor.extractVideoId(videoUrl);
                     File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
                     File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".info.json");
 
@@ -292,7 +296,7 @@ public class MusicBot {
                         hook.editOriginal("📥 Downloading audio...").queue();
                     }
 
-                    AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(url, true).get();
+                    AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
 
                     if (!audioFile.exists() || !audioFile.canRead()) {
                         hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
