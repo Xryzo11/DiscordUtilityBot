@@ -46,10 +46,12 @@ public class SlashCommands {
                     event.reply("▶️ Playback resumed").queue();
                     break;
                 case "clear":
+                    MusicBot.isCancelled = true;
                     bot.clearQueue();
                     event.reply("🧹 Queue cleared").queue();
                     break;
                 case "stop":
+                    MusicBot.isCancelled = true;
                     bot.stopPlayer();
                     bot.disableLoop();
                     bot.clearQueue();
@@ -86,6 +88,7 @@ public class SlashCommands {
         }
 
         private void handleJoinCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             Guild guild = event.getGuild();
             Member member = event.getMember();
 
@@ -117,6 +120,7 @@ public class SlashCommands {
         }
 
         private void handleQueueCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             String url = event.getOption("url").getAsString();
             Guild guild = event.getGuild();
             Member member = event.getMember();
@@ -140,6 +144,7 @@ public class SlashCommands {
         }
 
         private void handleSearchCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             String query = event.getOption("query").getAsString();
             Guild guild = event.getGuild();
             Member member = event.getMember();
@@ -158,6 +163,7 @@ public class SlashCommands {
         }
 
         private void handleListCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             String queueList = bot.getQueueList();
             event.reply(queueList).queue();
         }
@@ -181,6 +187,7 @@ public class SlashCommands {
         }
 
         private void handleSkipCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             if (bot.player.getPlayingTrack() == null) {
                 event.reply("❌ No track is currently playing").setEphemeral(true).queue();
                 return;
@@ -193,17 +200,20 @@ public class SlashCommands {
         }
 
         private void handleLoopCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             bot.toggleLoop();
             String status = bot.isLoopEnabled() ? "enabled" : "disabled";
             event.reply("🔁 Queue loop " + status).queue();
         }
 
         private void handleShuffleCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             bot.shuffleQueue();
             event.reply("🔀 Queue shuffled").queue();
         }
 
         private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
             Guild guild = event.getGuild();
             Member member = event.getMember();
             int hour = event.getOption("hour").getAsInt();
@@ -245,6 +255,7 @@ public class SlashCommands {
         }
 
         private void handleAddCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
 //            bot.addExisting();
 //            event.reply("✅ Added existing track to queue").queue();
             event.reply(("Not implemented yet :upside_down:")).queue();

@@ -24,9 +24,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MusicBot {
     public final AudioPlayerManager playerManager;
@@ -34,6 +33,8 @@ public class MusicBot {
     public static final LinkedBlockingQueue<AudioTrack> trackQueue = new LinkedBlockingQueue<>();
     public AudioTrack currentTrack;
     private boolean loopEnabled = false;
+    private final ExecutorService executor = Executors.newFixedThreadPool(10);
+    public static boolean isCancelled = false;
 
     public MusicBot() {
         playerManager = new DefaultAudioPlayerManager();
@@ -204,81 +205,78 @@ public class MusicBot {
     }
 
     public void queue(SlashCommandInteractionEvent event, String url, Guild guild, Member member) {
-        event.deferReply().queue(hook -> queue(hook, url, guild, member));
+        event.deferReply().queue(hook -> queue(hook, url, guild, member, event));
     }
 
-    public void queue(InteractionHook hook, String url, Guild guild, Member member) {
+    public void queue(InteractionHook hook, String url, Guild guild, Member member, SlashCommandInteractionEvent event) {
         CompletableFuture.runAsync(() -> {
             try {
                 boolean isPlaylist = url.contains("playlist?list=") || url.contains("&list=");
 
                 if (isPlaylist) {
                     hook.editOriginal("📋 Processing playlist...").queue();
-                    List<AudioTrackInfo> tracks = AudioProcessor.processYouTubePlaylist(url).get();
+                    AudioProcessor.processYouTubePlaylist(url).thenAccept(videoUrls -> {
+                        final int totalTracks = videoUrls.size();
+                        final int[] addedCount = {0};
+                        final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
 
-                    if (tracks.isEmpty()) {
-                        hook.editOriginal("❌ No tracks found in playlist").queue();
-                        return;
-                    }
-
-                    if (tracks.size() > 250) {
-                        hook.editOriginal("❗ Playlist is too long! (Max 250 tracks)").queue();
-                        return;
-                    }
-
-                    hook.editOriginal("🔄 Adding " + tracks.size() + " tracks to queue...").queue();
-                    StringBuilder failedTracks = new StringBuilder();
-                    int addedTracks = 0;
-
-                    for (AudioTrackInfo trackInfo : tracks) {
-                        try {
-                            String videoUrl = "https://youtube.com/watch?v=" + trackInfo.identifier;
-                            AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
-
-                            playerManager.loadItem(processedTrack.uri, new AudioLoadResultHandler() {
-                                @Override
-                                public void trackLoaded(AudioTrack track) {
-                                    track.setUserData(processedTrack.title);
-                                    trackQueue.offer(track);
-                                    if (player.getPlayingTrack() == null) {
-                                        playNextTrack();
-                                    }
-                                }
-
-                                @Override
-                                public void playlistLoaded(AudioPlaylist playlist) {}
-
-                                @Override
-                                public void noMatches() {
-                                    if (BotSettings.isDebug()) {
-                                        System.out.println("No matches found for: " + trackInfo.title);
-                                    }
-                                }
-
-                                @Override
-                                public void loadFailed(FriendlyException exception) {
-                                    if (BotSettings.isDebug()) {
-                                        System.out.println("Failed to load: " + trackInfo.title);
-                                        exception.printStackTrace();
-                                    }
-                                }
-                            });
-                            addedTracks++;
-                            hook.editOriginal("🔄 Added " + addedTracks + "/" + tracks.size() + " tracks...").queue();
-                        } catch (Exception e) {
-                            failedTracks.append("\n- ").append(trackInfo.title);
-                            if (BotSettings.isDebug()) {
-                                e.printStackTrace();
-                            }
+                        if (totalTracks == 0) {
+                            hook.editOriginal("❌ No tracks found in playlist").queue();
+                            return;
                         }
-                    }
 
-                    String response = "✅ Successfully added " + addedTracks + " tracks to queue";
-                    if (failedTracks.length() > 0) {
-                        response += "\n\n❌ Failed to add these tracks:" + failedTracks.toString();
-                    }
-                    hook.editOriginal(response).queue();
+                        if (totalTracks > 250) {
+                            hook.editOriginal("❗ Playlist is too long! (Max 250 tracks)").queue();
+                            return;
+                        }
 
+                        AtomicBoolean wasCancelled = new AtomicBoolean(false);
+
+                        for (int i = 0; i < totalTracks; i++) {
+                            if (isCancelled) {
+                                wasCancelled.set(true);
+                                futures.forEach(f -> f.cancel(true));
+                                futures.clear();
+                                hook.editOriginal("❗ Playlist processing cancelled").queue();
+                                break;
+                            }
+
+                            String videoUrl = videoUrls.get(i);
+                            CompletableFuture<?> future = CompletableFuture.runAsync(() -> {
+                                try {
+                                    if (!isCancelled) {
+                                        AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
+                                        if (!isCancelled) {
+                                            loadTrack(processedTrack, hook, addedCount, totalTracks);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    if (!isCancelled) {
+                                        synchronized (addedCount) {
+                                            addedCount[0]++;
+                                            hook.editOriginal(String.format("❌ Failed to process track: %s\n%d/%d",
+                                                    e.getMessage(), addedCount[0], totalTracks)).queue();
+                                        }
+                                    }
+                                }
+                            }, executor);
+
+                            futures.add(future);
+                        }
+
+                        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                                .thenRun(() -> {
+                                    if (wasCancelled.get()) {
+                                        hook.editOriginal("❗ Playlist processing cancelled").queue();
+                                    } else if (!isCancelled) {
+                                        hook.editOriginal("✅ Playlist processing complete").queue();
+                                    }
+                                });
+
+                    }).exceptionally(e -> {
+                        hook.editOriginal("❌ Failed to process playlist: " + e.getMessage()).queue();
+                        return null;
+                    });
                 } else {
                     hook.editOriginal("⏳ Processing YouTube URL...").queue();
 
@@ -358,7 +356,7 @@ public class MusicBot {
                     e.printStackTrace();
                 }
             }
-        });
+        }, executor);
     }
 
     public void search(SlashCommandInteractionEvent event, String query, Guild guild, Member member) {
@@ -389,13 +387,69 @@ public class MusicBot {
                     }
 
                     String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                    queue(hook, videoUrl, guild, member);
+                    queue(event, videoUrl, guild, member);
 
                 } catch (Exception e) {
                     e.printStackTrace();
                     hook.editOriginal("❌ An error occurred while searching").queue();
                 }
             });
+        });
+    }
+
+    private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, int[] addedCount, int totalTracks) {
+        if (isCancelled) {
+            hook.editOriginal("❗ Playlist processing cancelled").queue();
+            return;
+        }
+
+        playerManager.loadItem(processedTrack.uri, new AudioLoadResultHandler() {
+            @Override
+            public void trackLoaded(AudioTrack track) {
+                track.setUserData(processedTrack.title);
+                if (isCancelled) {
+                    hook.editOriginal("❗ Playlist processing cancelled").queue();
+                    return;
+                }
+                trackQueue.offer(track);
+                synchronized (addedCount) {
+                    addedCount[0]++;
+                    hook.editOriginal(String.format("✅ Queued: %s\n%d/%d",
+                            processedTrack.title, addedCount[0], totalTracks)).queue();
+                }
+                if (player.getPlayingTrack() == null) {
+                    playNextTrack();
+                }
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {}
+
+            @Override
+            public void noMatches() {
+                if (isCancelled) {
+                    hook.editOriginal("❗ Playlist processing cancelled").queue();
+                    return;
+                }
+                synchronized (addedCount) {
+                    addedCount[0]++;
+                    hook.editOriginal(String.format("❌ No matches found\n%d/%d",
+                            addedCount[0], totalTracks)).queue();
+                }
+            }
+
+            @Override
+            public void loadFailed(FriendlyException exception) {
+                if (isCancelled) {
+                    hook.editOriginal("❗ Playlist processing cancelled").queue();
+                    return;
+                }
+                synchronized (addedCount) {
+                    addedCount[0]++;
+                    hook.editOriginal(String.format("❌ Failed to load track\n%d/%d",
+                            addedCount[0], totalTracks)).queue();
+                }
+            }
         });
     }
 }

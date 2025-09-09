@@ -246,7 +246,7 @@ public class AudioProcessor {
         file.delete();
     }
 
-    public static CompletableFuture<List<AudioTrackInfo>> processYouTubePlaylist(String youtubeUrl) {
+    public static CompletableFuture<List<String>> processYouTubePlaylist(String youtubeUrl) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder(
@@ -257,7 +257,7 @@ public class AudioProcessor {
                 );
 
                 Process process = processBuilder.start();
-                List<AudioTrackInfo> tracks = new ArrayList<>();
+                List<String> videoUrls = new ArrayList<>();
 
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String line;
@@ -265,18 +265,9 @@ public class AudioProcessor {
                         try {
                             JsonObject json = new Gson().fromJson(line, JsonObject.class);
                             String videoId = json.get("id").getAsString();
-                            String title = json.get("title").getAsString();
-                            long duration = json.has("duration") ? json.get("duration").getAsLong() * 1000 : 0;
-                            String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
+                            String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
 
-                            tracks.add(new AudioTrackInfo(
-                                    title,
-                                    "YouTube",
-                                    duration,
-                                    videoId,
-                                    false,
-                                    httpUrl
-                            ));
+                            videoUrls.add(videoUrl);
                         } catch (Exception e) {
                             if (BotSettings.isDebug()) {
                                 e.printStackTrace();
@@ -290,7 +281,7 @@ public class AudioProcessor {
                     throw new TimeoutException("Playlist info extraction timed out");
                 }
 
-                return tracks;
+                return videoUrls;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to process playlist: " + e.getMessage(), e);
             }
