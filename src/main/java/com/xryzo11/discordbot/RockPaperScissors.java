@@ -64,16 +64,16 @@ public class RockPaperScissors {
         }
         switch (p2choice) {
             case "rock":
-                p1choice = "\uD83E\uDEA8";
+                p2choice = "\uD83E\uDEA8";
                 break;
             case "paper":
-                p1choice = "\uD83D\uDCC4";
+                p2choice = "\uD83D\uDCC4";
                 break;
             case "scissors":
-                p1choice = "✂️";
+                p2choice = "✂️";
                 break;
             default:
-                channel.sendMessage(player1.getAsMention() + ", your choice is invalid!").queue();
+                channel.sendMessage(player2.getAsMention() + ", your choice is invalid!").queue();
                 return;
         }
         if (p1choice.equals(p2choice)) {
