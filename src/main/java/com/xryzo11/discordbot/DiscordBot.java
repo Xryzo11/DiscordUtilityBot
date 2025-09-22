@@ -52,49 +52,32 @@ public class DiscordBot {
         jda.updateCommands().queue();
         for (Guild guild : jda.getGuilds()) {
             guild.updateCommands().addCommands(
-                    Commands.slash("join", "Join voice channel")
-                            .setGuildOnly(true),
+                    Commands.slash("join", "Join voice channel"),
                     Commands.slash("play", "Queue YouTube audio by url")
-                            .addOption(OptionType.STRING, "url", "YouTube URL", true)
-                            .setGuildOnly(true),
+                            .addOption(OptionType.STRING, "url", "YouTube URL", true),
                     Commands.slash("queue", "Queue YouTube audio by url")
-                            .addOption(OptionType.STRING, "url", "YouTube URL", true)
-                            .setGuildOnly(true),
+                            .addOption(OptionType.STRING, "url", "YouTube URL", true),
                     Commands.slash("search", "Queue YouTube audio by title")
-                            .addOption(OptionType.STRING, "query", "Search query", true)
-                            .setGuildOnly(true),
-                    Commands.slash("pause", "Pause current playback")
-                            .setGuildOnly(true),
-                    Commands.slash("resume", "Resume playback")
-                            .setGuildOnly(true),
-                    Commands.slash("clear", "Clear the queue")
-                            .setGuildOnly(true),
-                    Commands.slash("stop", "Stop playback and disconnect")
-                            .setGuildOnly(true),
-                    Commands.slash("list", "List current queue")
-                            .setGuildOnly(true),
-                    Commands.slash("skip", "Skip the current track")
-                            .setGuildOnly(true),
-                    Commands.slash("loop", "Toggle track looping")
-                            .setGuildOnly(true),
-                    Commands.slash("shuffle", "Shuffle the queue")
-                            .setGuildOnly(true),
+                            .addOption(OptionType.STRING, "query", "Search query", true),
+                    Commands.slash("pause", "Pause current playback"),
+                    Commands.slash("resume", "Resume playback"),
+                    Commands.slash("clear", "Clear the queue"),
+                    Commands.slash("stop", "Stop playback and disconnect"),
+                    Commands.slash("list", "List current queue"),
+                    Commands.slash("skip", "Skip the current track"),
+                    Commands.slash("loop", "Toggle track looping"),
+                    Commands.slash("shuffle", "Shuffle the queue"),
                     Commands.slash("playhead", "Move playhead to a specific position")
                             .addOption(OptionType.INTEGER, "hour", "Hour timestamp", true)
                             .addOption(OptionType.INTEGER, "minute", "Minute timestamp", true)
-                            .addOption(OptionType.INTEGER, "second", "Seconds timestamp", true)
-                            .setGuildOnly(true),
+                            .addOption(OptionType.INTEGER, "second", "Seconds timestamp", true),
                     Commands.slash("add", "Add pre-downloaded track to the queue")
-                            .addOption(OptionType.STRING, "track", "Short track name", true)
-                            .setGuildOnly(true),
+                            .addOption(OptionType.STRING, "track", "Short track name", true),
                     Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
-                            .addOption(OptionType.USER, "user", "User to challenge", true)
-                            .setGuildOnly(true),
+                            .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
-                            .addOption(OptionType.STRING, "choice", "rock / paper / scissors", true)
-                            .setGuildOnly(true),
+                            .addOption(OptionType.STRING, "choice", "rock / paper / scissors", true),
                     Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game")
-                            .setGuildOnly(true)
             ).queue();
         }
         WywozBindingManager.loadBindings();
