@@ -23,6 +23,8 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>shaded</shadedClassifierName>
               <transformers>
                 <transformer>
                   <mainClass>com.xryzo11.discordbot.DiscordBot</mainClass>
@@ -47,7 +49,7 @@
         <executions>
           <execution>
             <id>generate-start-script</id>
-            <phase>package</phase>
+            <phase>verify</phase>
             <goals>
               <goal>java</goal>
             </goals>
