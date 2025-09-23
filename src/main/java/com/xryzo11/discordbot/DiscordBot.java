@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
@@ -50,6 +51,10 @@ public class DiscordBot {
         BotHolder.setJDA(jda);
         jda.awaitReady();
         jda.updateCommands().queue();
+        OptionData rpsChoices = new OptionData(OptionType.STRING, "choice", "rock / paper / scissors", true)
+                .addChoice("rock", "rock")
+                .addChoice("paper", "paper")
+                .addChoice("scissors", "scissors");
         for (Guild guild : jda.getGuilds()) {
             guild.updateCommands().addCommands(
                     Commands.slash("join", "Join voice channel"),
@@ -76,7 +81,7 @@ public class DiscordBot {
                     Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
                             .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
-                            .addOption(OptionType.STRING, "choice", "rock / paper / scissors", true),
+                            .addOptions(rpsChoices),
                     Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game")
             ).queue();
         }
