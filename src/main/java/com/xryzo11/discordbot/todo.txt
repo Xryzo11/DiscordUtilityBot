@@ -1,4 +1,3 @@
-Add pre-downloaded tracks
 Better logging in console
 Guild id config
 Total queue length
@@ -8,3 +7,5 @@ Shuffle check if queue is empty
 Current song progress
 Music bot keyword blocking
 Toggle keyword blocking from web panel
+Bot activity status
+Auto update config
