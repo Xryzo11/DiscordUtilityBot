@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
 
+import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -71,6 +72,9 @@ public class SlashCommands {
                     break;
                 case "playhead":
                     handlePlayheadCommand(event);
+                    break;
+                case "preload":
+                    handlePreloadCommand(event);
                     break;
                 case "add":
                     handleAddCommand(event);
@@ -254,11 +258,61 @@ public class SlashCommands {
             event.reply("❌ Could not set playhead position!").setEphemeral(true).queue();
         }
 
+        private void handlePreloadCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
+
+            if (!Config.isPreloadedEnabled()) {
+                event.reply("❌ Pre-loaded tracks are not enabled").setEphemeral(true).queue();
+                return;
+            }
+
+            String url = event.getOption("url").getAsString();
+            String name = event.getOption("name").getAsString();
+
+            if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
+                event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
+                return;
+            }
+
+            if (url.contains("playlist") || url.contains("list=")) {
+                event.reply("❌ Playlists are not supported, please provide a single track URL").setEphemeral(true).queue();
+                return;
+            }
+
+            if (name.length() > 20) {
+                event.reply("❌ Name must be 20 characters or fewer").setEphemeral(true).queue();
+                return;
+            }
+
+            if (name.contains(" ")) {
+                event.reply("❌ Name cannot contain spaces").setEphemeral(true).queue();
+                return;
+            }
+
+            for (File file : new File(Config.getPreloadedDirectory()).listFiles()) {
+                String fileName = file.getName();
+                int dotIndex = fileName.lastIndexOf('.');
+                String baseName = (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
+                int idIndex = baseName.indexOf(" [(");
+                String shortName = (idIndex > 0) ? baseName.substring(0, idIndex) : baseName;
+                if (shortName.equalsIgnoreCase(name)) {
+                    event.reply("❌ A pre-loaded track with that name already exists").setEphemeral(true).queue();
+                    return;
+                }
+            }
+
+            bot.preload(event);
+        }
+
         private void handleAddCommand(SlashCommandInteractionEvent event) {
             MusicBot.isCancelled = false;
-//            bot.addExisting();
-//            event.reply("✅ Added existing track to queue").queue();
-            event.reply(("Not implemented yet :upside_down:")).queue();
+
+            if (!Config.isPreloadedEnabled()) {
+                event.reply("❌ Pre-loaded tracks are not enabled").setEphemeral(true).queue();
+                return;
+            }
+
+            bot.addPreloaded(event);
         }
 
        private void handleRpsChallengeCommand(SlashCommandInteractionEvent event) {

@@ -32,11 +32,13 @@ public class Config {
                 writer.write("audio.preloaded=true\n");
                 writer.write("# Pre-loaded directory [string]\n");
                 writer.write("audio.preloaded.directory=/tmp/discord_audio_preloaded/\n");
+                writer.write("# Copy tracks from preloaded dir to audio dir on startup [true/false]\n");
+                writer.write("audio.preloaded.copy=true\n");
                 writer.write("# Block ASMR content [true/false]\n");
                 writer.write("audio.block.asmr=false\n");
-                writer.write("# Use browser cookies for age restricted content on YouTube [true/false]\n");
+                writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
                 writer.write("audio.yt.cookies=false\n");
-                writer.write("# Which browser to use for cookies (brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale)\n");
+                writer.write("# Which browser to use for cookies [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
                 writer.write("audio.yt.cookies.browser=chrome\n");
                 writer.write("# Enable auto-kick automatically [true/false]\n");
                 writer.write("auto.kick.enabled=true\n");
@@ -135,6 +137,10 @@ public class Config {
             dir += File.separator;
         }
         return dir;
+    }
+
+    public static boolean isPreloadedCopyEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("audio.preloaded.copy", "true"));
     }
 
     public static boolean isAsmrBlockEnabled() {

@@ -1,5 +1,7 @@
 package com.xryzo11.discordbot;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
@@ -17,10 +19,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +36,15 @@ public class MusicBot {
     public static boolean isCancelled = false;
 
     public MusicBot() {
+        File audioDir = new File(Config.getAudioDirectory());
+        File preloadedDir = new File(Config.getPreloadedDirectory());
+        if (!audioDir.exists()) {
+            audioDir.mkdirs();
+        }
+        if (!preloadedDir.exists()) {
+            preloadedDir.mkdirs();
+        }
+
         playerManager = new DefaultAudioPlayerManager();
         playerManager.registerSourceManager(new HttpAudioSourceManager());
         player = playerManager.createPlayer();
@@ -44,6 +52,33 @@ public class MusicBot {
 
         AudioProcessor.startHttpServer();
         AudioProcessor.cleanupAudioDirectory();
+
+        if (Config.isPreloadedCopyEnabled()) {
+            for (File file : preloadedDir.listFiles()) {
+                if (file.isFile() && file.getName().endsWith(".webm")) {
+                    String fileName = file.getName();
+                    String videoId = fileName.substring(fileName.indexOf("[(") + 2, fileName.indexOf(")].webm"));
+                    File targetFile = new File(audioDir, videoId + ".webm");
+                    if (!targetFile.exists()) {
+                        try {
+                            java.nio.file.Files.copy(
+                                    file.toPath(),
+                                    targetFile.toPath()
+                            );
+                            File jsonSource = new File(file.getParent(), fileName.replace(".webm", ".info.json"));
+                            File jsonTarget = new File(audioDir, videoId + ".info.json");
+                            if (jsonSource.exists() && !jsonTarget.exists()) {
+                                java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
+                            }
+                        } catch (IOException e) {
+                            System.out.println("[MusicBot] Failed to copy preloaded track: " + e.getMessage());
+                        }
+                    } else {
+                        System.out.println("[MusicBot] File already exists, skipping copy: " + targetFile.getName());
+                    }
+                }
+            }
+        }
 
         player.addListener(new AudioEventAdapter() {
             @Override
@@ -395,6 +430,98 @@ public class MusicBot {
                 }
             });
         });
+    }
+
+    public void preload(SlashCommandInteractionEvent event) {
+        event.deferReply().queue();
+
+        String url = event.getOption("url").getAsString();
+        String videoId = AudioProcessor.extractVideoId(url);
+        String name = event.getOption("name").getAsString();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                List<String> command = new ArrayList<>();
+                command.add("yt-dlp");
+                command.add("--format");
+                command.add("bestaudio[ext=webm]/bestaudio");
+                command.add("-o");
+                command.add(Config.getPreloadedDirectory() + name + " [(" + videoId + ")]" + ".%(ext)s");
+                command.add("--write-info-json");
+                command.add("--force-ipv4");
+                command.add("--no-check-certificate");
+                if (Config.isYtCookiesEnabled()) {
+                    command.add("--cookies-from-browser");
+                    command.add(Config.getYtCookiesBrowser());
+                }
+                command.add(url);
+
+                ProcessBuilder processBuilder = new ProcessBuilder(command);
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
+
+                if (!process.waitFor(2, TimeUnit.MINUTES)) {
+                    process.destroyForcibly();
+                    event.getHook().sendMessage("❌ Download timed out").queue();
+                    return;
+                }
+
+                if (process.exitValue() != 0) {
+                    event.getHook().sendMessage("❌ Failed to download track").queue();
+                    return;
+                }
+
+                event.getHook().sendMessage("✅ Track pre-loaded as: " + name).queue();
+
+            } catch (Exception e) {
+                event.getHook().sendMessage("❌ Error: " + e.getMessage()).queue();
+            }
+        });
+    }
+
+    public void addPreloaded(SlashCommandInteractionEvent event) {
+        event.deferReply().queue();
+        event.getHook().editOriginal("⏳ Adding preloaded track...").queue();
+
+        String name = event.getOption("track").getAsString();
+        File dir = new File(Config.getPreloadedDirectory());
+        File[] matchingFiles = dir.listFiles((d, f) -> f.startsWith(name + " [(") && f.endsWith(")].webm"));
+
+        if (matchingFiles == null || matchingFiles.length == 0) {
+            event.getHook().editOriginal("❌ No preloaded track found with that name").queue();
+            return;
+        }
+
+        File audioFile = matchingFiles[0];
+        String fileName = audioFile.getName();
+        String videoId = fileName.substring(fileName.indexOf("[(") + 2, fileName.indexOf(")].webm"));
+        String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
+
+        try {
+            File targetDir = new File(Config.getAudioDirectory());
+            if (!targetDir.exists()) {
+                targetDir.mkdirs();
+            }
+            File targetFile = new File(targetDir, videoId + ".webm");
+            if (!targetFile.exists()) {
+                java.nio.file.Files.copy(
+                        audioFile.toPath(),
+                        targetFile.toPath()
+                );
+                File jsonSource = new File(audioFile.getParent(), name + " [(" + videoId + ")].info.json");
+                File jsonTarget = new File(targetDir, videoId + ".info.json");
+                if (jsonSource.exists() && !jsonTarget.exists()) {
+                    java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
+                }
+            } else {
+                System.out.println("[addPreloaded] File already exists, skipping copy: " + targetFile.getName());
+            }
+        } catch (IOException e) {
+            event.getHook().editOriginal("⚠️ Failed to copy preloaded track: " + e.getMessage()).queue();
+            return;
+        }
+
+        queue(event.getHook(), videoUrl, event.getGuild(), event.getMember(), event);
     }
 
     private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, int[] addedCount, int totalTracks) {

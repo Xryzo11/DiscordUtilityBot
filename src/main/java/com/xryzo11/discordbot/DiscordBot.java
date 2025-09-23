@@ -47,6 +47,7 @@ public class DiscordBot {
         JDA jda = JDABuilder.createDefault(token)
                 .addEventListeners(new WywozBindingManager.VoiceJoinListener())
                 .addEventListeners(new SlashCommands.SlashCommandInteractionEventListener(musicBot))
+                .addEventListeners(new AutoCompleteListener())
                 .build();
         BotHolder.setJDA(jda);
         jda.awaitReady();
@@ -55,6 +56,9 @@ public class DiscordBot {
                 .addChoice("rock", "rock")
                 .addChoice("paper", "paper")
                 .addChoice("scissors", "scissors");
+        File preloadedDir = new File(Config.getPreloadedDirectory());
+        OptionData preloadedTracks = new OptionData(OptionType.STRING, "track", "Pre-downloaded track name", true)
+                .setAutoComplete(true);
         for (Guild guild : jda.getGuilds()) {
             guild.updateCommands().addCommands(
                     Commands.slash("join", "Join voice channel"),
@@ -76,8 +80,11 @@ public class DiscordBot {
                             .addOption(OptionType.INTEGER, "hour", "Hour timestamp", true)
                             .addOption(OptionType.INTEGER, "minute", "Minute timestamp", true)
                             .addOption(OptionType.INTEGER, "second", "Seconds timestamp", true),
+                    Commands.slash("preload", "Pre-download a track for later use")
+                            .addOption(OptionType.STRING, "url", "YouTube URL", true)
+                            .addOption(OptionType.STRING, "name", "Short track name", true),
                     Commands.slash("add", "Add pre-downloaded track to the queue")
-                            .addOption(OptionType.STRING, "track", "Short track name", true),
+                            .addOptions(preloadedTracks),
                     Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
                             .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
