@@ -312,6 +312,19 @@ public class SlashCommands {
                 return;
             }
 
+            Member member = event.getMember();
+            Guild guild = event.getGuild();
+
+            if (member == null || !member.getVoiceState().inAudioChannel()) {
+                event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+                return;
+            }
+
+            if (!guild.getAudioManager().isConnected()) {
+                event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+                return;
+            }
+
             bot.addPreloaded(event);
         }
 
