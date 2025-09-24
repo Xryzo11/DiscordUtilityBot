@@ -422,7 +422,7 @@ public class MusicBot {
                     }
 
                     String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                    queue(event, videoUrl, guild, member);
+                    queue(event.getHook(), videoUrl, guild, member, event);
 
                 } catch (Exception e) {
                     e.printStackTrace();

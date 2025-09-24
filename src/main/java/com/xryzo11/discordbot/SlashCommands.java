@@ -279,6 +279,11 @@ public class SlashCommands {
                 return;
             }
 
+            if (!url.contains("youtube") && !url.contains("youtu.be")) {
+                event.reply("❌ Only YouTube URLs are supported for pre-loading").setEphemeral(true).queue();
+                return;
+            }
+
             if (name.length() > 20) {
                 event.reply("❌ Name must be 20 characters or fewer").setEphemeral(true).queue();
                 return;
