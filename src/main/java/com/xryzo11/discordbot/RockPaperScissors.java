@@ -25,24 +25,29 @@ public class RockPaperScissors {
         RockPaperScissors.channel = channel;
         isActive = true;
         channel.sendMessage(String.format(player1.getAsMention() + "has challenged" + player2.getAsMention() + "to a game of Rock-Paper-Scissors! Make your choice with **/rps-choose** within 2 minutes.")).queue();
+        System.out.println("[rps] Game started between " + player1.getEffectiveName() + " and " + player2.getEffectiveName());
         timeOut = scheduler.schedule(() -> {
             if (!isActive) return;
             nullify();
             channel.sendMessage(String.format("The challenge between" + player1.getAsMention() + "and" + player2.getAsMention() + "timed out.")).queue();
+            System.out.println("[rps] Game between " + player1.getEffectiveName() + " and " + player2.getEffectiveName() + " timed out.");
         }, 2, TimeUnit.MINUTES);
     }
 
     public static void makeChoice(Member player, String choice) {
         if (player == player1) {
             p1choice = choice.toLowerCase();
+            System.out.println("[rps] " + player1.getEffectiveName() + " has made their choice: " + p1choice);
         } else if (player == player2) {
             p2choice = choice.toLowerCase();
+            System.out.println("[rps] " + player2.getEffectiveName() + " has made their choice: " + p2choice);
         }
         attemptResolve();
     }
 
     private static void attemptResolve() {
         if (p1choice != null && p2choice != null) {
+            System.out.println("[rps] Both players have made their choices. Resolving...");
             resolve();
         }
     }
@@ -90,6 +95,7 @@ public class RockPaperScissors {
 
     public static void cancelGame() {
         channel.sendMessage("Rock Paper Scissors game between " + player1.getAsMention() + " and " + player2.getAsMention() + " has been cancelled!").queue();
+        System.out.println("[rps] Game between " + player1.getEffectiveName() + " and " + player2.getEffectiveName() + " has been cancelled.");
         nullify();
     }
 
