@@ -421,6 +421,11 @@ public class MusicBot {
                         return;
                     }
 
+                    if (videoId == null || videoId.isEmpty() || videoId.contains("ERROR") || videoId.trim().isEmpty()) {
+                        hook.editOriginal("❌ No results found").queue();
+                        return;
+                    }
+
                     String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
                     queue(event.getHook(), videoUrl, guild, member, event);
 
