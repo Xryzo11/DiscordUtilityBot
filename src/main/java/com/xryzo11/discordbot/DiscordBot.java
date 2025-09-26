@@ -31,6 +31,10 @@ public class DiscordBot {
         System.out.println("File: " + fullVersion);
         System.out.println("Last restart: " + lastRestart);
         System.out.print("\n");
+        if (Config.isConfigUpdateEnabled()) {
+            Config.updateConfig();
+            System.out.println("\n");
+        }
         ScriptGenerator.createNewScripts(workingDirectory + File.separator);
         if (Config.isAudioCleanupEnabled()) AudioProcessor.cleanupAudioDirectory();
         if (Config.isAutoRestartEnabled()) {
@@ -56,7 +60,6 @@ public class DiscordBot {
                 .addChoice("rock", "rock")
                 .addChoice("paper", "paper")
                 .addChoice("scissors", "scissors");
-        File preloadedDir = new File(Config.getPreloadedDirectory());
         OptionData preloadedTracks = new OptionData(OptionType.STRING, "track", "Pre-downloaded track name", true)
                 .setAutoComplete(true);
         for (Guild guild : jda.getGuilds()) {
