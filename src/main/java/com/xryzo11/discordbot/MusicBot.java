@@ -411,7 +411,7 @@ public class MusicBot {
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                         videoId = reader.readLine();
                         if (BotSettings.isDebug()) {
-                            System.out.println("Video ID: " + videoId);
+                            System.out.println("[search] Video ID: " + videoId);
                         }
                     }
 

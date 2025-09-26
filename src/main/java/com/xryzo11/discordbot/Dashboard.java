@@ -40,7 +40,7 @@ public class Dashboard {
             boolean state = Boolean.parseBoolean(req.queryParams("status"));
             BotSettings.setWywozSmieci(state);
             res.redirect("/");
-            System.out.println("Wywoz smieci toggled to: " + (state ? "ON" : "OFF"));
+            System.out.println("[dashboard] Wywoz smieci toggled to: " + (state ? "ON" : "OFF"));
             return "Wywoz smieci toggled to: " + (state ? "ON" : "OFF");
         });
 
@@ -49,7 +49,7 @@ public class Dashboard {
             boolean state = Boolean.parseBoolean(req.queryParams("status"));
             BotSettings.setDebug(state);
             res.redirect("/");
-            System.out.println("Debug mode toggled to: " + (state ? "ON" : "OFF"));
+            System.out.println("[dashboard] Debug mode toggled to: " + (state ? "ON" : "OFF"));
             return "Debug mode toggled to: " + (state ? "ON" : "OFF");
         });
 

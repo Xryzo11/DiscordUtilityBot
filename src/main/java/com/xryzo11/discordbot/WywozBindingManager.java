@@ -71,10 +71,10 @@ public class WywozBindingManager {
 
     public static void setBindingEnabled(long userId, long channelId, boolean enabled) {
         if (BotSettings.isDebug()) {
-            System.out.println("setBindingEnabled called: userId=" + userId + ", channelId=" + channelId + ", enabled=" + enabled);
-            System.out.println("Current bindings:");
+            System.out.println("[wywozBindingManager] setBindingEnabled called: userId=" + userId + ", channelId=" + channelId + ", enabled=" + enabled);
+            System.out.println("[wywozBindingManager] Current bindings:");
             for (Binding b : bindings) {
-                System.out.println("  userId=" + b.userId + ", channelId=" + b.channelId + ", enabled=" + b.enabled);
+                System.out.println("[wywozBindingManager]  userId=" + b.userId + ", channelId=" + b.channelId + ", enabled=" + b.enabled);
             }
         }
         boolean found = false;
@@ -82,12 +82,12 @@ public class WywozBindingManager {
             if (b.userId == userId && b.channelId == channelId) {
                 b.enabled = enabled;
                 found = true;
-                System.out.println("Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
+                System.out.println("[wywozBindingManager] Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
                 break;
             }
         }
         if (!found) {
-            if (BotSettings.isDebug()) System.out.println("No matching binding found to update!");
+            if (BotSettings.isDebug()) System.out.println("[wywozBindingManager] No matching binding found to update!");
         }
         saveBindings();
     }
@@ -101,7 +101,7 @@ public class WywozBindingManager {
                 long channelId = event.getChannelJoined().getIdLong();
                 long userId = event.getMember().getUser().getIdLong();
                 if (BotSettings.isDebug()) {
-                    System.out.println(user + " joined voice channel: " + channel);
+                    System.out.println("[wywozBindingManager]" + user + " joined voice channel: " + channel);
                 }
                 if (BotSettings.isWywozSmieci()) {
                     if (WywozBindingManager.isBound(userId, channelId)) {
@@ -109,9 +109,9 @@ public class WywozBindingManager {
                         Guild guild = event.getGuild();
                         if (member != null && guild != null) {
                             guild.kickVoiceMember(member).queue();
-                            System.out.println("Wywoz smieci (" + user + " | " + channel + ")");
+                            System.out.println("[wywozBindingManager] Wywoz smieci (" + user + " | " + channel + ")");
                         } else {
-                            System.out.println("Blad z wywozem smieci  (" + user + " | " + channel + ")");
+                            System.out.println("[wywozBindingManager] Blad z wywozem smieci  (" + user + " | " + channel + ")");
                         }
                     }
                 }
