@@ -230,7 +230,7 @@ public class Config {
             try (FileWriter writer = new FileWriter(configFile)) {
                 writer.write("# Discord Bot Configuration [token]\n");
                 writer.write("bot.token=" + token + "\n");
-                System.out.println("[config] Bot token saved as: " + token);
+                System.out.println("[config] Bot token saved as (first 15 chars): " + token.substring(0,15));
 
                 writer.write("# Web panel requires authentication [true/false]\n");
                 writer.write("web.auth.enabled=" + webAuth + "\n");
