@@ -207,7 +207,7 @@ public class Config {
     public static void updateConfig() {
         String token = getBotToken();
         boolean webAuth = isWebAuthEnabled();
-        String password = getWebAuthPassword();
+        String password = properties.getProperty("web.auth.password");
         int webPort = getWebPort();
         int audioPort = getAudioPort();
         String audioDir = getAudioDirectory();
@@ -238,7 +238,7 @@ public class Config {
 
                 writer.write("# Web panel password [string]\n");
                 writer.write("web.auth.password=" + password + "\n");
-                System.out.println("[config] Web auth password saved as: (sha512) " + sha512(password));
+                System.out.println("[config] Web auth password saved as: (sha512) " + webPassword);
 
                 writer.write("# Http web panel port [int]\n");
                 writer.write("web.port=" + webPort + "\n");
