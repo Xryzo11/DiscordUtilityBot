@@ -6,4 +6,3 @@ Current song progress
 Music bot keyword blocking
 Toggle keyword blocking from web panel
 Bot activity status
-Auto update config

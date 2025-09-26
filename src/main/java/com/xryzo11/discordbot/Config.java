@@ -207,7 +207,7 @@ public class Config {
     public static void updateConfig() {
         String token = getBotToken();
         boolean webAuth = isWebAuthEnabled();
-        String password = properties.getProperty("web.auth.password");
+        String password = getWebAuthPassword();
         int webPort = getWebPort();
         int audioPort = getAudioPort();
         String audioDir = getAudioDirectory();
