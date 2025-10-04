@@ -6,3 +6,4 @@ Current song progress
 Music bot keyword blocking (modify existing asmr blocking)
 Toggle keyword blocking from web panel
 Bot activity status
+Dequeue command
