@@ -52,6 +52,7 @@ public class DiscordBot {
                 .addEventListeners(new WywozBindingManager.VoiceJoinListener())
                 .addEventListeners(new SlashCommands.SlashCommandInteractionEventListener(musicBot))
                 .addEventListeners(new AutoCompleteListener())
+                .addEventListeners(new ReactionListener())
                 .build();
         BotHolder.setJDA(jda);
         jda.awaitReady();
@@ -69,6 +70,8 @@ public class DiscordBot {
                             .addOption(OptionType.STRING, "url", "YouTube URL", true),
                     Commands.slash("queue", "Queue YouTube audio by url")
                             .addOption(OptionType.STRING, "url", "YouTube URL", true),
+                    Commands.slash("dequeue", "Remove a track from the queue")
+                            .addOption(OptionType.INTEGER, "position", "Track position in the queue", true),
                     Commands.slash("search", "Queue YouTube audio by title")
                             .addOption(OptionType.STRING, "query", "Search query", true),
                     Commands.slash("pause", "Pause current playback"),
