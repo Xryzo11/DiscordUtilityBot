@@ -1,7 +1,5 @@
 package com.xryzo11.discordbot;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
@@ -16,12 +14,14 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,6 +34,7 @@ public class MusicBot {
     private boolean loopEnabled = false;
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
     public static boolean isCancelled = false;
+    public AtomicBoolean dequeueTimedOut = new AtomicBoolean(false);
 
     public MusicBot() {
         File audioDir = new File(Config.getAudioDirectory());
@@ -614,5 +615,66 @@ public class MusicBot {
                 }
             }
         });
+    }
+
+    public void dequeueTrack(SlashCommandInteractionEvent event, int position) {
+        event.deferReply().queue();
+        event.getHook().editOriginal("⏳ Finding track in queue...").queue();
+        if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Attempting to dequeue track at position: " + position);
+
+        AudioTrack toRemove = null;
+        Iterator<AudioTrack> queueIterator = trackQueue.iterator();
+        for (int i = 1; queueIterator.hasNext(); i++) {
+            AudioTrack track = queueIterator.next();
+            if (i == position) {
+                toRemove = track;
+                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Found track to remove: " + track.getInfo().title);
+                break;
+            }
+        }
+
+        if (toRemove != null) {
+            dequeueTimedOut = new AtomicBoolean(false);
+            if (ReactionListener.awaitingConfirmation) {
+                event.getHook().editOriginal("❗ Another operation is already pending confirmation. Please wait.").queue();
+                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Another operation is already pending.");
+                return;
+            }
+            event.getHook().editOriginal("⚠️ Found track: " + formatTrackInfo(toRemove) + "\nReact with :white_check_mark: within 60 seconds to confirm removal.").queue(message -> {
+                message.addReaction(Emoji.fromUnicode("✅")).queue();
+            });
+            ReactionListener.awaitingConfirmation = true;
+            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+            ScheduledFuture<?> dequeueTimeOut = scheduler.schedule(() -> {
+                dequeueTimedOut.set(true);
+                ReactionListener.awaitingConfirmation = false;
+                ReactionListener.confirmed = false;
+                event.getHook().editOriginal("❗ Dequeue timed out. Track was not removed.").queue();
+                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Dequeue timed out.");
+            }, 1, TimeUnit.MINUTES);
+            while (!ReactionListener.confirmed && !dequeueTimedOut.get()) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Interrupted while waiting for confirmation: " + e.getMessage());
+                }
+            }
+            scheduler.shutdownNow();
+            ReactionListener.awaitingConfirmation = false;
+            if (dequeueTimedOut.get()) {
+                return;
+            }
+            if (!trackQueue.contains(toRemove)) {
+                event.getHook().editOriginal("❗ Track was already removed from the queue.").queue();
+                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Track was already removed from the queue.");
+                return;
+            }
+            event.getHook().editOriginal("✅ Removed track from queue: " + formatTrackInfo(toRemove)).queue();
+            if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Successfully removed track: " + formatTrackInfo(toRemove));
+            trackQueue.remove(toRemove);
+        } else {
+            event.getHook().editOriginal("❌ Invalid position").queue();
+            if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Invalid position: " + position);
+        }
     }
 }
