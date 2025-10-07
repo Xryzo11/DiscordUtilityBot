@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MusicBot {
     public final AudioPlayerManager playerManager;
@@ -416,16 +418,48 @@ public class MusicBot {
                     hook.editOriginal("⏳ Processing YouTube search...").queue();
                     if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
 
-                    ProcessBuilder processBuilder = new ProcessBuilder(
-                            "yt-dlp",
-                            "--get-id",
-                            "ytsearch1:" + query
-                    );
+//                    ProcessBuilder processBuilder = new ProcessBuilder(
+//                            "yt-dlp",
+//                            "--get-id",
+//                            "ytsearch1:" + query
+//                    );
+//                    Process process = processBuilder.start();
+
+                    List<String> command = new ArrayList<>();
+                    command.add("yt-dlp");
+                    command.add("--get-id");
+                    command.add("ytsearch1:" + query);
+                    if (Config.isYtCookiesEnabled()) {
+                        command.add("--cookies-from-browser");
+                        command.add(Config.getYtCookiesBrowser());
+                    }
+
+                    ProcessBuilder processBuilder = new ProcessBuilder(command);
+                    processBuilder.redirectErrorStream(true);
                     Process process = processBuilder.start();
 
-                    String videoId;
+                    String videoId = null;
+                    Pattern errorPattern = Pattern.compile("ERROR: \\[youtube\\] ([^:]+):");
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                        videoId = reader.readLine();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            if (BotSettings.isDebug()) System.out.println("[yt-dlp] " + line);
+
+                            if (line.contains("Deprecated Feature") || line.contains("WARNING")) {
+                                continue;
+                            }
+
+                            Matcher matcher = errorPattern.matcher(line);
+                            if (matcher.find()) {
+                                videoId = matcher.group(1);
+                                break;
+                            }
+
+                            if (line.matches("^[a-zA-Z0-9_-]{11}$")) {
+                                videoId = line.trim();
+                                break;
+                            }
+                        }
                         if (BotSettings.isDebug()) System.out.println("[search] Video ID: " + videoId);
                     }
 
