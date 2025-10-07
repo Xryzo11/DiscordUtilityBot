@@ -35,6 +35,9 @@ public class SlashCommands {
                 case "queue":
                     handleQueueCommand(event);
                     break;
+                case "dequeue":
+                    handleDequeueCommand(event);
+                    break;
                 case "search":
                     handleSearchCommand(event);
                     break;
@@ -145,6 +148,36 @@ public class SlashCommands {
             }
 
             bot.queue(event, url, guild, member);
+        }
+
+        private void handleDequeueCommand(SlashCommandInteractionEvent event) {
+            MusicBot.isCancelled = false;
+            int position = event.getOption("position").getAsInt();
+            int queueSize = MusicBot.trackQueue.size();
+            Guild guild = event.getGuild();
+            Member member = event.getMember();
+
+            if (member == null || !member.getVoiceState().inAudioChannel()) {
+                event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+                return;
+            }
+
+            if (!guild.getAudioManager().isConnected()) {
+                event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+                return;
+            }
+
+            if (position < 1) {
+                event.reply("❌ Position must be a positive integer").setEphemeral(true).queue();
+                return;
+            }
+
+            if (position > queueSize) {
+                event.reply("❌ Position exceeds queue size").setEphemeral(true).queue();
+                return;
+            }
+
+            bot.dequeueTrack(event, position);
         }
 
         private void handleSearchCommand(SlashCommandInteractionEvent event) {
