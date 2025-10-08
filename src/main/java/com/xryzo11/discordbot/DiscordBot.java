@@ -95,7 +95,8 @@ public class DiscordBot {
                             .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
                             .addOptions(rpsChoices),
-                    Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game")
+                    Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game"),
+                    Commands.slash("restore", "Restore roles from the old server")
             ).queue();
         }
         WywozBindingManager.loadBindings();
