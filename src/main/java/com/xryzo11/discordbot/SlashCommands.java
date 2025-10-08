@@ -3,6 +3,7 @@ package com.xryzo11.discordbot;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -90,6 +91,9 @@ public class SlashCommands {
                     break;
                 case "rps-cancel":
                     handleRpsCancelCommand(event);
+                    break;
+                case "restore":
+                    RoleRestorer.restoreRole(event);
                     break;
             }
         }
