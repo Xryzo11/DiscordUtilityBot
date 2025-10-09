@@ -4,6 +4,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 // temporary class for migrating to a new server by restoring roles based on old server roles
@@ -29,6 +31,40 @@ public class RoleRestorer {
     static Role kartapedalaNew = jda.getRoleById(1424775800896360494L);
     static Role gejeNew = jda.getRoleById(1424775800896360493L);
 
+
+    public static void restoreRole(GuildMemberJoinEvent event) {
+        Member member = event.getMember();
+        Member memberOld = guildOld.retrieveMemberById(member.getId()).complete();
+        if (memberOld == null) {
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
+            return;
+        }
+        if (memberOld.getRoles().contains(kozakOld)) {
+            guildNew.addRoleToMember(member, lamusyNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+        } else if (memberOld.getRoles().contains(dalnOld)) {
+            guildNew.addRoleToMember(member, lamusyNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+        } else if (memberOld.getRoles().contains(lamusyOld)) {
+            guildNew.addRoleToMember(member, lamusyNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+        } else if (memberOld.getRoles().contains(noobgiOld)) {
+            guildNew.addRoleToMember(member, noobgiNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Noobgi");
+        } else if (memberOld.getRoles().contains(kurwyOld)) {
+            guildNew.addRoleToMember(member, kurwyNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Kurwy");
+        } else if (memberOld.getRoles().contains(smolppOld)) {
+            guildNew.addRoleToMember(member, smolppNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Smolpp");
+        } else if (memberOld.getRoles().contains(kartapedalaOld)) {
+            guildNew.addRoleToMember(member, kartapedalaNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Karta Pedala");
+        } else if (memberOld.getRoles().contains(gejeOld)) {
+            guildNew.addRoleToMember(member, gejeNew).queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
+        }
+    }
 
     public static void restoreRole(SlashCommandInteractionEvent event) {
         event.deferReply(true).queue();
