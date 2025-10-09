@@ -1,5 +1,6 @@
 package com.xryzo11.discordbot;
 
+import com.xryzo11.discordbot.listeners.*;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -25,6 +26,7 @@ public class DiscordBot {
     public static String fullVersion = artifactId + "-" + version + "-shaded.jar";
     public static String lastRestart = Calendar.getInstance().getTime().toString();
     public static String workingDirectory = System.getProperty("user.dir");
+    public static MusicBot musicBot;
 
     public static void main(String[] args) throws Exception {
         System.out.print("\n");
@@ -46,11 +48,11 @@ public class DiscordBot {
                 }
             });
         }
-        MusicBot musicBot = new MusicBot();
+        musicBot = new MusicBot();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
-                .addEventListeners(new WywozBindingManager.VoiceJoinListener())
-                .addEventListeners(new SlashCommands.SlashCommandInteractionEventListener(musicBot))
+                .addEventListeners(new VoiceJoinListener())
+                .addEventListeners(new SlashCommandInteractionEventListener())
                 .addEventListeners(new AutoCompleteListener())
                 .addEventListeners(new ReactionListener())
                 .build();

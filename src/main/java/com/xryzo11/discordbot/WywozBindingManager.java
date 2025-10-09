@@ -91,31 +91,4 @@ public class WywozBindingManager {
         }
         saveBindings();
     }
-
-    public static class VoiceJoinListener extends ListenerAdapter {
-        @Override
-        public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
-            if (event.getChannelJoined() != null) {
-                String user = event.getMember().getEffectiveName();
-                String channel = event.getChannelJoined().getName();
-                long channelId = event.getChannelJoined().getIdLong();
-                long userId = event.getMember().getUser().getIdLong();
-                if (BotSettings.isDebug()) {
-                    System.out.println("[wywozBindingManager]" + user + " joined voice channel: " + channel);
-                }
-                if (BotSettings.isWywozSmieci()) {
-                    if (WywozBindingManager.isBound(userId, channelId)) {
-                        Member member = event.getGuild().getMemberById(userId);
-                        Guild guild = event.getGuild();
-                        if (member != null && guild != null) {
-                            guild.kickVoiceMember(member).queue();
-                            System.out.println("[wywozBindingManager] Wywoz smieci (" + user + " | " + channel + ")");
-                        } else {
-                            System.out.println("[wywozBindingManager] Blad z wywozem smieci  (" + user + " | " + channel + ")");
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
