@@ -55,6 +55,7 @@ public class DiscordBot {
                 .addEventListeners(new SlashCommandListener())
                 .addEventListeners(new AutoCompleteListener())
                 .addEventListeners(new ReactionListener())
+                .addEventListeners(new GuildJoinListener())
                 .build();
         BotHolder.setJDA(jda);
         jda.awaitReady();
