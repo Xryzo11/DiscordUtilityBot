@@ -52,7 +52,7 @@ public class DiscordBot {
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
                 .addEventListeners(new VoiceJoinListener())
-                .addEventListeners(new SlashCommandInteractionEventListener())
+                .addEventListeners(new SlashCommandListener())
                 .addEventListeners(new AutoCompleteListener())
                 .addEventListeners(new ReactionListener())
                 .build();

@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SlashCommandInteractionEventListener extends ListenerAdapter {
+public class SlashCommandListener extends ListenerAdapter {
     private final ExecutorService commandExecutor = Executors.newCachedThreadPool();
     SlashCommands slashCommands = new SlashCommands();
 
