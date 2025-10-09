@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.managers.AudioManager;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,6 +52,7 @@ public class DiscordBot {
         musicBot = new MusicBot();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
+                .enableIntents(GatewayIntent.GUILD_MEMBERS)
                 .addEventListeners(new VoiceJoinListener())
                 .addEventListeners(new SlashCommandListener())
                 .addEventListeners(new AutoCompleteListener())
