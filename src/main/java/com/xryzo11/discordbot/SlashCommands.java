@@ -189,6 +189,11 @@ public class SlashCommands {
             return;
         }
 
+        if (query.contains("youtube.com") || query.contains("youtu.be") || query.contains("youtube.pl")) {
+            event.reply("❌ Please use /play or /queue for direct URLs").setEphemeral(true).queue();
+            return;
+        }
+
         bot.search(event, query, guild, member);
     }
 
