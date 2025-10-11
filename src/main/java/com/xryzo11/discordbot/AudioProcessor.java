@@ -92,7 +92,8 @@ public class AudioProcessor {
                 }
                 command.add("--write-info-json");
                 command.add("--print-json");
-                command.add("--newline");
+                command.add("--quiet");
+                command.add("--no-warnings");
                 command.add("--force-ipv4");
                 command.add("--no-check-certificate");
                 if (Config.isYtCookiesEnabled()) {
