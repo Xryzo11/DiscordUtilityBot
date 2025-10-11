@@ -117,9 +117,9 @@ public class AudioProcessor {
                         if (line.trim().startsWith("{") && line.contains("\"title\"")) {
                             jsonOutput.append(line).append("\n");
                         }
-                        if (BotSettings.isDebug()) {
-                            System.out.println("[yt-dlp] " + line);
-                        }
+//                        if (BotSettings.isDebug()) {
+//                            System.out.println("[yt-dlp] " + line);
+//                        }
                     }
                 }
 
