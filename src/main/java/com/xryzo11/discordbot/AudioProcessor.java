@@ -91,7 +91,6 @@ public class AudioProcessor {
                     command.add(AUDIO_DIR + "%(id)s.%(ext)s");
                 }
                 command.add("--write-info-json");
-                command.add("--print-json");
                 command.add("--quiet");
                 command.add("--no-warnings");
                 command.add("--force-ipv4");
