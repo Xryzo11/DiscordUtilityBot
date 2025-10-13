@@ -135,8 +135,13 @@ public class SlashCommands {
             return;
         }
 
+        if (!url.contains("youtube.com") || !url.contains("youtu.be") || !url.contains("youtube.pl")) {
+            event.reply("❌ URL must contain a youtube link!").setEphemeral(true).queue();
+            return;
+        }
+
         if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
-            event.reply("❌ Radio or stream URLs are not supported").queue();
+            event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
             return;
         }
 
