@@ -135,7 +135,7 @@ public class SlashCommands {
             return;
         }
 
-        if (!url.contains("youtube.com") || !url.contains("youtu.be") || !url.contains("youtube.pl")) {
+        if (!url.contains("youtube.com") && !url.contains("youtu.be") && !url.contains("youtube.pl")) {
             event.reply("❌ URL must contain a youtube link!").setEphemeral(true).queue();
             return;
         }
