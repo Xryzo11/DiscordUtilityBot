@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.example</groupId>
   <artifactId>DiscordBot</artifactId>
-  <version>1.5.5-SNAPSHOT</version>
+  <version>1.5.6-SNAPSHOT</version>
   <build>
     <plugins>
       <plugin>
@@ -54,7 +54,7 @@
               <goal>java</goal>
             </goals>
             <configuration>
-              <mainClass>com.xryzo11.discordbot.ScriptGenerator</mainClass>
+              <mainClass>com.xryzo11.discordbot.core.ScriptGenerator</mainClass>
               <systemProperties>
                 <property>
                   <key>artifactId</key>
