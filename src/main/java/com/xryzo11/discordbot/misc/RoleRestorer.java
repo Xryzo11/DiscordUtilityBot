@@ -1,11 +1,12 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.misc;
 
+import com.xryzo11.discordbot.core.BotHolder;
+import com.xryzo11.discordbot.core.Config;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 // temporary class for migrating to a new server by restoring roles based on old server roles

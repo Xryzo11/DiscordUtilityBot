@@ -1,6 +1,13 @@
 package com.xryzo11.discordbot;
 
+import com.xryzo11.discordbot.core.BotHolder;
+import com.xryzo11.discordbot.core.Config;
+import com.xryzo11.discordbot.core.Dashboard;
+import com.xryzo11.discordbot.core.ScriptGenerator;
 import com.xryzo11.discordbot.listeners.*;
+import com.xryzo11.discordbot.misc.WywozBindingManager;
+import com.xryzo11.discordbot.musicBot.AudioProcessor;
+import com.xryzo11.discordbot.musicBot.MusicBot;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;

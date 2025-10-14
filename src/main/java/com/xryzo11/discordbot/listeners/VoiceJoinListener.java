@@ -1,7 +1,7 @@
 package com.xryzo11.discordbot.listeners;
 
-import com.xryzo11.discordbot.WywozBindingManager;
-import com.xryzo11.discordbot.BotSettings;
+import com.xryzo11.discordbot.misc.WywozBindingManager;
+import com.xryzo11.discordbot.core.BotSettings;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;

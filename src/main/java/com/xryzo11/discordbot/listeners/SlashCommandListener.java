@@ -1,6 +1,6 @@
 package com.xryzo11.discordbot.listeners;
 
-import com.xryzo11.discordbot.SlashCommands;
+import com.xryzo11.discordbot.core.SlashCommands;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 

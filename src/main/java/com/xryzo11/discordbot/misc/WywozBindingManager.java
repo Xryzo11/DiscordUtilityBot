@@ -1,11 +1,8 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.misc;
 
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import com.xryzo11.discordbot.core.BotSettings;
 
 import java.io.*;
 import java.lang.reflect.Type;

@@ -1,10 +1,12 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.musicBot;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.xryzo11.discordbot.core.BotSettings;
+import com.xryzo11.discordbot.core.Config;
 
 import java.io.*;
 import java.net.*;

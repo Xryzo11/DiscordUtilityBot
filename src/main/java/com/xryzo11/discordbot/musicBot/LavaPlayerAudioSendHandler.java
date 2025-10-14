@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.musicBot;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;

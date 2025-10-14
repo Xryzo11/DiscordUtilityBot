@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.core;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;

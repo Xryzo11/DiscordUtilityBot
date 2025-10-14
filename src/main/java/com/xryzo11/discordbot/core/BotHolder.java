@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.core;
 
 import net.dv8tion.jda.api.JDA;
 

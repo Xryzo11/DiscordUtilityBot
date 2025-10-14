@@ -1,7 +1,9 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.core;
 
 import static spark.Spark.*;
 import com.google.gson.Gson;
+import com.xryzo11.discordbot.DiscordBot;
+import com.xryzo11.discordbot.misc.WywozBindingManager;
 import net.dv8tion.jda.api.JDA;
 
 import java.util.HashMap;

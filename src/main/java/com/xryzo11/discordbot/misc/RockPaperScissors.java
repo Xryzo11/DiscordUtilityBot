@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.misc;
 
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;

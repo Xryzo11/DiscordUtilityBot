@@ -1,17 +1,18 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.core;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.xryzo11.discordbot.DiscordBot;
+import com.xryzo11.discordbot.misc.RockPaperScissors;
+import com.xryzo11.discordbot.misc.RoleRestorer;
+import com.xryzo11.discordbot.musicBot.LavaPlayerAudioSendHandler;
+import com.xryzo11.discordbot.musicBot.MusicBot;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class SlashCommands {
     public final MusicBot bot = DiscordBot.musicBot;

@@ -1,4 +1,6 @@
-package com.xryzo11.discordbot;
+package com.xryzo11.discordbot.core;
+
+import com.xryzo11.discordbot.DiscordBot;
 
 import java.io.File;
 import java.io.FileWriter;
