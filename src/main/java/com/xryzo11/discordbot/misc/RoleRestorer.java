@@ -40,6 +40,10 @@ public class RoleRestorer {
             if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
             return;
         }
+        if (!member.getRoles().isEmpty()) {
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " already has a role in the new server. Skipping role assignment.");
+            return;
+        }
         if (memberOld.getRoles().contains(kozakOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
             if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
@@ -64,6 +68,8 @@ public class RoleRestorer {
         } else if (memberOld.getRoles().contains(gejeOld)) {
             guildNew.addRoleToMember(member, gejeNew).queue();
             if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
+        } else {
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " has no matching roles to assign.");
         }
     }
 
@@ -74,6 +80,11 @@ public class RoleRestorer {
         if (memberOld == null) {
             event.getHook().editOriginal("You are not found in the old server. Cannot restore roles.").queue();
             if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
+            return;
+        }
+        if (!member.getRoles().isEmpty()) {
+            event.getHook().editOriginal("You already have a role in the new server. Skipping role assignment.").queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " already has a role in the new server. Skipping role assignment.");
             return;
         }
         if (memberOld.getRoles().contains(kozakOld)) {
@@ -108,6 +119,9 @@ public class RoleRestorer {
             guildNew.addRoleToMember(member, gejeNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Geje").queue();
             if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
+        } else {
+            event.getHook().editOriginal("You have no matching roles to assign.").queue();
+            if (Config.isDebugEnabled()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " has no matching roles to assign.");
         }
     }
 }
