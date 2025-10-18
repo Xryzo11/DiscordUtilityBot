@@ -152,6 +152,24 @@ public class MusicBot {
         }
     }
 
+    private String formatTime(long millis) {
+        int hours = (int) TimeUnit.MILLISECONDS.toHours(millis);
+        int minutes = (int) (TimeUnit.MILLISECONDS.toMinutes(millis) % 60);
+        int seconds = (int) (TimeUnit.MILLISECONDS.toSeconds(millis) % 60);
+
+        return hours > 0
+                ? String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                : String.format("%02d:%02d", minutes, seconds);
+    }
+
+    private String totalQueueDuration() {
+        long totalDuration = 0;
+        for (AudioTrack track : trackQueue) {
+            totalDuration += track.getDuration();
+        }
+        return formatTime(totalDuration);
+    }
+
     public String getQueueList() {
         StringBuilder builder = new StringBuilder();
 
@@ -166,6 +184,11 @@ public class MusicBot {
         if (currentTrack != null) {
             builder.append("▶️ **Now Playing:**\n")
                     .append(formatTrackInfo(currentTrack))
+                    .append(" [")
+                    .append(formatTime(currentTrack.getPosition()))
+                    .append(" / ")
+                    .append(formatTime(currentTrack.getDuration()))
+                    .append("]")
                     .append("\n\n");
         }
 
@@ -173,6 +196,11 @@ public class MusicBot {
             builder.append("\uD83C\uDF10 Queue is empty");
         } else {
             builder.append("\uD83D\uDCCB **Queue:**\n");
+            builder.append("Length: ")
+                    .append(trackQueue.size())
+                    .append(" tracks | Total Duration: ")
+                    .append(totalQueueDuration())
+                    .append("\n\n");
             int index = 1;
             for (AudioTrack track : trackQueue) {
                 builder.append(index++)
