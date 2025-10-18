@@ -270,8 +270,15 @@ public class SlashCommands {
     }
 
     private void handleShuffleCommand(SlashCommandInteractionEvent event) {
-        safeDefer(event);
         MusicBot.isCancelled = false;
+
+        if (MusicBot.trackQueue.size() <= 0) {
+            event.reply("❌ Queue is empty.").setEphemeral(true).queue();
+            return;
+        }
+
+        safeDefer(event);
+
         bot.shuffleQueue();
         event.getHook().editOriginal("🔀 Queue shuffled").queue();
     }
