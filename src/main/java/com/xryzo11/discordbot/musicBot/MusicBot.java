@@ -345,7 +345,7 @@ public class MusicBot {
                                         hook.editOriginal("❗ Playlist processing cancelled").queue();
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing cancelled");
                                     } else if (!isCancelled) {
-                                        hook.editOriginal("✅ Playlist processing complete").queue();
+                                        hook.editOriginal("✅ Playlist processing complete").queueAfter(5, TimeUnit.SECONDS);
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing complete");
                                     }
                                 });
