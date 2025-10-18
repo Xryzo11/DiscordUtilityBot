@@ -666,7 +666,7 @@ public class MusicBot {
             AudioTrack track = queueIterator.next();
             if (i == position) {
                 toRemove = track;
-                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Found track to remove: " + track.getInfo().title);
+                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Found track to remove: " + formatTrackInfo(toRemove));
                 break;
             }
         }
