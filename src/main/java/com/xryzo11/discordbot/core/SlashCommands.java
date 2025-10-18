@@ -17,6 +17,18 @@ import java.io.File;
 public class SlashCommands {
     public final MusicBot bot = DiscordBot.musicBot;
 
+    public static void safeDefer(SlashCommandInteractionEvent event) {
+        if (!event.isAcknowledged()) {
+            event.deferReply().queue();
+        }
+    }
+
+    public static void safeDefer(SlashCommandInteractionEvent event, boolean isEphemeral) {
+        if (!event.isAcknowledged()) {
+            event.deferReply().setEphemeral(true).queue();
+        }
+    }
+
     public void handleCommand(SlashCommandInteractionEvent event) {
         switch(event.getName()) {
             case "join":
@@ -33,24 +45,28 @@ public class SlashCommands {
                 handleSearchCommand(event);
                 break;
             case "pause":
+                safeDefer(event);
                 bot.pausePlayer();
-                event.reply("⏸️ Playback paused").queue();
+                event.getHook().editOriginal("⏸️ Playback paused").queue();
                 break;
             case "resume":
+                safeDefer(event);
                 bot.resumePlayer();
-                event.reply("▶️ Playback resumed").queue();
+                event.getHook().editOriginal("▶️ Playback resumed").queue();
                 break;
             case "clear":
+                safeDefer(event);
                 MusicBot.isCancelled = true;
                 bot.clearQueue();
-                event.reply("🧹 Queue cleared").queue();
+                event.getHook().editOriginal("🧹 Queue cleared").queue();
                 break;
             case "stop":
+                safeDefer(event);
                 MusicBot.isCancelled = true;
                 bot.stopPlayer();
                 bot.disableLoop();
                 bot.clearQueue();
-                event.reply("⏹️ Playback stopped and disconnected").queue();
+                event.getHook().editOriginal("⏹️ Playback stopped and disconnected").queue();
                 break;
             case "list":
                 handleListCommand(event);
@@ -110,6 +126,8 @@ public class SlashCommands {
             return;
         }
 
+        safeDefer(event);
+
         VoiceChannel voiceChannel = member.getVoiceState().getChannel().asVoiceChannel();
 
         ensureVoiceConnection(guild, voiceChannel);
@@ -117,7 +135,7 @@ public class SlashCommands {
         bot.clearQueue();
         bot.stopPlayer();
         bot.resumePlayer();
-        event.reply("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
+        event.getHook().editOriginal("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
     }
 
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
@@ -204,9 +222,10 @@ public class SlashCommands {
     }
 
     private void handleListCommand(SlashCommandInteractionEvent event) {
+        safeDefer(event);
         MusicBot.isCancelled = false;
         String queueList = bot.getQueueList();
-        event.reply(queueList).queue();
+        event.getHook().editOriginal(queueList).queue();
     }
 
     private void ensureVoiceConnection(Guild guild, VoiceChannel channel) {
@@ -234,23 +253,27 @@ public class SlashCommands {
             return;
         }
 
+        safeDefer(event);
+
         AudioTrack track = bot.currentTrack;
         String title = track.getUserData() != null ? track.getUserData().toString() : track.getInfo().identifier;
         bot.skipCurrentTrack();
-        event.reply("⏭️ Skipped: " + title).queue();
+        event.getHook().editOriginal("⏭️ Skipped: " + title).queue();
     }
 
     private void handleLoopCommand(SlashCommandInteractionEvent event) {
+        safeDefer(event);
         MusicBot.isCancelled = false;
         bot.toggleLoop();
         String status = bot.isLoopEnabled() ? "enabled" : "disabled";
-        event.reply("🔁 Queue loop " + status).queue();
+        event.getHook().editOriginal("🔁 Queue loop " + status).queue();
     }
 
     private void handleShuffleCommand(SlashCommandInteractionEvent event) {
+        safeDefer(event);
         MusicBot.isCancelled = false;
         bot.shuffleQueue();
-        event.reply("🔀 Queue shuffled").queue();
+        event.getHook().editOriginal("🔀 Queue shuffled").queue();
     }
 
     private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
@@ -376,6 +399,7 @@ public class SlashCommands {
             return;
      }
      event.reply("🔄 Setting up game...").setEphemeral(true).queue();
+     safeDefer(event);
      RockPaperScissors.challenge(event.getMember(), event.getOption("user").getAsMember(), event.getChannel());
    }
 
@@ -398,6 +422,7 @@ public class SlashCommands {
            return;
        }
        event.reply("✅ You chose: " + choice).setEphemeral(true).queue();
+       safeDefer(event);
        RockPaperScissors.makeChoice(event.getMember(), choice);
    }
 
@@ -415,6 +440,7 @@ public class SlashCommands {
            return;
        }
        event.reply("Cancelling game...").setEphemeral(true).queue();
+       safeDefer(event);
        RockPaperScissors.cancelGame();
    }
 }
