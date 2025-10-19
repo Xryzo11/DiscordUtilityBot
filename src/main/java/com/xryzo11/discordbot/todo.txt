@@ -2,6 +2,5 @@ Guild id config
 Longer /list + pages
 Music bot keyword blocking (modify existing asmr blocking)
 Toggle keyword blocking from web panel
-Bot activity status
 Auto temp roles with web panel control
 Role requirements (music bot, preloading, etc)
