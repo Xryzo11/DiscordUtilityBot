@@ -227,7 +227,7 @@ public class MusicBot {
         }
     }
 
-    private String formatTrackInfo(AudioTrack track) {
+    public static String formatTrackInfo(AudioTrack track) {
         AudioTrackInfo info = track.getInfo();
         long durationMs = track.getDuration();
 
