@@ -1,9 +1,6 @@
 package com.xryzo11.discordbot;
 
-import com.xryzo11.discordbot.core.BotHolder;
-import com.xryzo11.discordbot.core.Config;
-import com.xryzo11.discordbot.core.Dashboard;
-import com.xryzo11.discordbot.core.ScriptGenerator;
+import com.xryzo11.discordbot.core.*;
 import com.xryzo11.discordbot.listeners.*;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.musicBot.AudioProcessor;
@@ -66,6 +63,7 @@ public class DiscordBot {
                 .addEventListeners(new ReactionListener())
                 .addEventListeners(new GuildJoinListener())
                 .build();
+        jda.addEventListener(new PresenceManager(jda));
         BotHolder.setJDA(jda);
         jda.awaitReady();
         jda.updateCommands().queue();
