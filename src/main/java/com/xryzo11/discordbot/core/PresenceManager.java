@@ -70,7 +70,7 @@ public class PresenceManager extends ListenerAdapter {
         setStatus("online");
     }
 
-    private void updatePresence() {
+    public void updatePresence() {
         if (bot.currentTrack != null) {
             String formattedInfo = MusicBot.formatTrackInfo(bot.currentTrack);
             String[] parts = formattedInfo.split("\\]\\(<");
