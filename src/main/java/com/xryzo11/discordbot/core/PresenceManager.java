@@ -22,7 +22,7 @@ public class PresenceManager extends ListenerAdapter {
     public PresenceManager(JDA jda) {
         this.jda = jda;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(this::updatePresence, 0, 15, TimeUnit.SECONDS);
+//        scheduler.scheduleAtFixedRate(this::updatePresence, 0, 15, TimeUnit.SECONDS);
         this.bot = DiscordBot.musicBot;
     }
 
@@ -33,10 +33,12 @@ public class PresenceManager extends ListenerAdapter {
 
     public void setPresence(String message, String type) {
         String newPresence = type + ":" + message;
-        if (!newPresence.equals(lastPresenceMessage)) {
-            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
-            lastPresenceMessage = newPresence;
-        }
+//        if (!newPresence.equals(lastPresenceMessage)) {
+//            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
+//            lastPresenceMessage = newPresence;
+//        }
+        if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
+        lastPresenceMessage = newPresence;
         switch (type) {
             case "playing" -> jda.getPresence().setActivity(Activity.playing(message));
             case "listening" -> jda.getPresence().setActivity(Activity.listening(message));
@@ -48,10 +50,12 @@ public class PresenceManager extends ListenerAdapter {
 
     public void setStatus(String status) {
         String newStatus = status.toLowerCase();
-        if (!newStatus.equals(lastStatus)) {
-            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
-            lastStatus = newStatus;
-        }
+//        if (!newStatus.equals(lastStatus)) {
+//            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
+//            lastStatus = newStatus;
+//        }
+        if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
+        lastStatus = newStatus;
         switch (status.toLowerCase()) {
             case "online" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
             case "idle" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.IDLE);
