@@ -190,8 +190,8 @@ public class AudioProcessor {
                                 os.write(buffer, 0, bytesRead);
                                 os.flush();
                             } catch (IOException e) {
-                                if (BotSettings.isDebug()) {
-                                    System.out.println("[startHttpServer] Client disconnected: " + e.getMessage());
+                                if (BotSettings.isDebug() && !e.getMessage().contains("Broken pipe")) {
+                                    System.out.println("[AudioProcessor-http] Client disconnected: " + e.getMessage());
                                 }
                                 break;
                             }
@@ -200,7 +200,7 @@ public class AudioProcessor {
                         if (BotSettings.isDebug() &&
                                 !e.getMessage().contains("Broken pipe") &&
                                 !e.getMessage().contains("Connection reset")) {
-                            System.err.println("Error streaming file: " + e.getMessage());
+                            System.err.println("[AudioProcessor-http] Error streaming file: " + e.getMessage());
                         }
                     } finally {
                         exchange.close();
@@ -208,9 +208,9 @@ public class AudioProcessor {
                 });
 
                 server.start();
-                System.out.println("[startHttpServer] HTTP server running on port " + HTTP_PORT);
+                System.out.println("[AudioProcessor-http] HTTP server running on port " + HTTP_PORT);
             } catch (IOException e) {
-                System.err.println("[startHttpServer] Failed to start HTTP server: " + e.getMessage());
+                System.err.println("[AudioProcessor-http] Failed to start HTTP server: " + e.getMessage());
             }
         });
     }
