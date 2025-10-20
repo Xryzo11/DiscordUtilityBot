@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +23,7 @@ public class PresenceManager extends ListenerAdapter {
     public PresenceManager(JDA jda) {
         this.jda = jda;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
-//        scheduler.scheduleAtFixedRate(this::updatePresence, 0, 15, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::forcedUpdatePresence, 0, 20, TimeUnit.SECONDS);
         this.bot = DiscordBot.musicBot;
     }
 
@@ -31,14 +32,12 @@ public class PresenceManager extends ListenerAdapter {
         defaultPresence();
     }
 
-    public void setPresence(String message, String type) {
-        String newPresence = type + ":" + message;
-//        if (!newPresence.equals(lastPresenceMessage)) {
-//            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
-//            lastPresenceMessage = newPresence;
-//        }
-        if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
-        lastPresenceMessage = newPresence;
+    private void setPresence(String message, String type) {
+        if (!Objects.equals(lastPresenceMessage, message)) {
+            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
+            lastPresenceMessage = message;
+        }
+
         switch (type) {
             case "playing" -> jda.getPresence().setActivity(Activity.playing(message));
             case "listening" -> jda.getPresence().setActivity(Activity.listening(message));
@@ -48,15 +47,14 @@ public class PresenceManager extends ListenerAdapter {
         }
     }
 
-    public void setStatus(String status) {
-        String newStatus = status.toLowerCase();
-//        if (!newStatus.equals(lastStatus)) {
-//            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
-//            lastStatus = newStatus;
-//        }
-        if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
-        lastStatus = newStatus;
-        switch (status.toLowerCase()) {
+    private void setStatus(String status) {
+        status = status.toLowerCase();
+        if (!status.equals(lastStatus)) {
+            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
+            lastStatus = status;
+        }
+
+        switch (status) {
             case "online" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
             case "idle" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.IDLE);
             case "dnd" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.DO_NOT_DISTURB);
@@ -65,22 +63,41 @@ public class PresenceManager extends ListenerAdapter {
         }
     }
 
+    private String getDefaultPresenceMessage() {
+        return "the server 👀";
+    }
+
     public void defaultPresence() {
-        setPresence("the server \uD83D\uDC40", "watching");
-        setStatus("online");
+        setPresence(getDefaultPresenceMessage(), "watching");
+        setStatus("idle");
     }
 
     public void updatePresence() {
+        updatePresence(false);
+    }
+
+    public void forcedUpdatePresence() {
+        updatePresence(true);
+    }
+
+    private void updatePresence(boolean forced) {
         if (bot.currentTrack != null) {
             String formattedInfo = MusicBot.formatTrackInfo(bot.currentTrack);
             String[] parts = formattedInfo.split("\\]\\(<");
             String title = parts[0].substring(1);
             if (title.length() > 120) title = title.substring(0, 120) + "...";
-            setPresence(title + " 🎵", "listening");
+            String presence = title + " 🎵";
+            if (presence.equals(lastPresenceMessage) && !forced) return;
+            setPresence(presence, "listening");
+            setStatus("dnd");
         } else if (BotHolder.getJDA().getGuilds().stream().anyMatch(g -> g.getAudioManager().isConnected())) {
-            String newPresence = "over the vc ✅";
-            setPresence(newPresence, "watching");
+            String presence = "over the vc ✅";
+            if (presence.equals(lastPresenceMessage) && !forced) return;
+            setPresence(presence, "watching");
+            setStatus("online");
         } else {
+            String presence = getDefaultPresenceMessage();
+            if (presence.equals(lastPresenceMessage) && !forced) return;
             defaultPresence();
         }
     }

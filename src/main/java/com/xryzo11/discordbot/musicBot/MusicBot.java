@@ -11,6 +11,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
 import com.xryzo11.discordbot.core.BotSettings;
 import com.xryzo11.discordbot.core.Config;
@@ -106,20 +107,14 @@ public class MusicBot {
         });
     }
 
-    public void playTrack(AudioTrack track) {
-        if (player.getPlayingTrack() == null) {
-            player.playTrack(track);
-        } else {
-            trackQueue.offer(track);
-        }
-    }
-
     public static void playNextTrack() {
         AudioTrack nextTrack = trackQueue.poll();
         if (nextTrack != null) {
             player.playTrack(nextTrack);
+            DiscordBot.presenceManager.forcedUpdatePresence();
         } else {
             player.stopTrack();
+            DiscordBot.presenceManager.forcedUpdatePresence();
         }
     }
 

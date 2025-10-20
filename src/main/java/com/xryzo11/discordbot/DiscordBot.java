@@ -32,6 +32,7 @@ public class DiscordBot {
     public static String lastRestart = Calendar.getInstance().getTime().toString();
     public static String workingDirectory = System.getProperty("user.dir");
     public static MusicBot musicBot;
+    public static PresenceManager presenceManager;
 
     public static void main(String[] args) throws Exception {
         System.out.print("\n");
@@ -63,7 +64,8 @@ public class DiscordBot {
                 .addEventListeners(new ReactionListener())
                 .addEventListeners(new GuildJoinListener())
                 .build();
-        jda.addEventListener(new PresenceManager(jda));
+        presenceManager = new PresenceManager(jda);
+        jda.addEventListener(presenceManager);
         BotHolder.setJDA(jda);
         jda.awaitReady();
         jda.updateCommands().queue();

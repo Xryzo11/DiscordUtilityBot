@@ -13,9 +13,13 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class SlashCommands {
     public final MusicBot bot = DiscordBot.musicBot;
+    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private Runnable updatePresence = () -> DiscordBot.presenceManager.updatePresence();
 
     public static void safeDefer(SlashCommandInteractionEvent event) {
         if (!event.isAcknowledged()) {
@@ -102,6 +106,8 @@ public class SlashCommands {
                 RoleRestorer.restoreRole(event);
                 break;
         }
+
+        scheduler.schedule(updatePresence, 3, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     private void handleJoinCommand(SlashCommandInteractionEvent event) {
