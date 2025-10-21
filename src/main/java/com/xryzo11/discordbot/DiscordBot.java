@@ -35,6 +35,10 @@ public class DiscordBot {
     public static PresenceManager presenceManager;
 
     public static void main(String[] args) throws Exception {
+        if (Config.isYtDlpUpdateEnabled()) {
+            ProcessBuilder ytdlpUpdate = new ProcessBuilder("yt-dlp", "-U");
+            ytdlpUpdate.start();
+        }
         System.out.print("\n");
         System.out.println("File: " + fullVersion);
         System.out.println("Last restart: " + lastRestart);
@@ -108,7 +112,7 @@ public class DiscordBot {
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
                             .addOptions(rpsChoices),
                     Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game"),
-                    Commands.slash("roll", "Roll 'x' sided dice 'y' times")
+                    Commands.slash("roll", "Roll 'x' sided dice 'y' times (1d6 default)")
                             .addOption(OptionType.INTEGER, "sides", "Number of sides on the dice", false)
                             .addOption(OptionType.INTEGER, "times", "Number of times to roll the dice", false),
                     Commands.slash("restore", "Restore roles from the old server")
