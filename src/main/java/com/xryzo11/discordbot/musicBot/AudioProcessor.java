@@ -58,24 +58,24 @@ public class AudioProcessor {
                     long startTime = System.currentTimeMillis();
                     while (activeDownloads.contains(videoId)) {
                         if (System.currentTimeMillis() - startTime > 30000) {
-                            throw new TimeoutException("Download is taking too long");
+                            throw new TimeoutException("[processYouTubeAudio] Download is taking too long");
                         }
                         Thread.sleep(100);
                     }
                     if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
                         return loadMetadataFromJson(videoId, httpUrl);
                     } else {
-                        throw new IOException("Audio file not available after waiting");
+                        throw new IOException("[processYouTubeAudio] Audio file not available after waiting");
                     }
                 }
             } catch (Exception e) {
-                throw new RuntimeException("Failed to process audio: " + e.getMessage(), e);
+                throw new RuntimeException("[processYouTubeAudio] Failed to process audio: " + e.getMessage(), e);
             }
         }, executor);
     }
 
     private static AudioTrackInfo downloadAndConvertWithMetadata(String youtubeUrl, String outputFile, boolean isUrl) throws Exception {
-        int maxRetries = 3;
+        int maxRetries = 5;
         int retryCount = 0;
         Exception lastException = null;
 
@@ -98,6 +98,7 @@ public class AudioProcessor {
                 command.add("--no-warnings");
                 command.add("--force-ipv4");
                 command.add("--no-check-certificate");
+                command.add("--geo-bypass");
                 if (Config.isYtCookiesEnabled()) {
                     command.add("--cookies-from-browser");
                     command.add(Config.getYtCookiesBrowser());
@@ -127,10 +128,10 @@ public class AudioProcessor {
 
                 if (!process.waitFor(2, TimeUnit.MINUTES)) {
                     process.destroyForcibly();
-                    throw new IOException("Download timed out");
+                    throw new IOException("[downloadAndConvert] Download timed out");
                 }
                 if (process.exitValue() != 0) {
-                    throw new IOException("yt-dlp failed with exit code " + process.exitValue());
+                    throw new IOException("[downloadAndConvert] yt-dlp failed with exit code " + process.exitValue() + " (" + command.toString() + ")");
                 }
 
                 JsonObject json = new Gson().fromJson(jsonOutput.toString(), JsonObject.class);
@@ -150,7 +151,7 @@ public class AudioProcessor {
             }
         } while (++retryCount < maxRetries);
 
-        throw new IOException("Download failed after " + maxRetries + " attempts", lastException);
+        throw new IOException("[downloadAndConvert] Download failed after " + maxRetries + " attempts", lastException);
     }
 
     public static String extractVideoId(String url) {
