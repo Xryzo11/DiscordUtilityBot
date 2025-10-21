@@ -2,6 +2,7 @@ package com.xryzo11.discordbot.core;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.xryzo11.discordbot.DiscordBot;
+import com.xryzo11.discordbot.misc.DiceRoll;
 import com.xryzo11.discordbot.misc.RockPaperScissors;
 import com.xryzo11.discordbot.misc.RoleRestorer;
 import com.xryzo11.discordbot.musicBot.LavaPlayerAudioSendHandler;
@@ -13,6 +14,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -101,6 +103,9 @@ public class SlashCommands {
                 break;
             case "rps-cancel":
                 handleRpsCancelCommand(event);
+                break;
+            case "roll":
+                handleRollCommand(event);
                 break;
             case "restore":
                 RoleRestorer.restoreRole(event);
@@ -455,5 +460,39 @@ public class SlashCommands {
        event.reply("Cancelling game...").setEphemeral(true).queue();
        safeDefer(event);
        RockPaperScissors.cancelGame();
+   }
+
+   private void handleRollCommand(SlashCommandInteractionEvent event) {
+        int sides;
+        int count;
+
+        if (event.getOption("sides") == null) {
+            sides = 6;
+        } else {
+            sides = Objects.requireNonNull(event.getOption("sides")).getAsInt();
+        }
+        if (event.getOption("times") == null) {
+            count = 1;
+        } else {
+            count = Objects.requireNonNull(event.getOption("times")).getAsInt();
+        }
+
+        if (sides <= 1) {
+            event.reply("❌ Number of sides must be greater than 1").setEphemeral(true).queue();
+            return;
+        } else if (sides > 1000) {
+            event.reply("❌ You can roll a maximum of 1000 sided dice").setEphemeral(true).queue();
+            return;
+        }
+        if (count <= 0) {
+            event.reply("❌ Number of times must be a positive integer").setEphemeral(true).queue();
+            return;
+        } else if (count > 25) {
+            event.reply("❌ You can roll the dice a maximum of 25 times at once").setEphemeral(true).queue();
+            return;
+        }
+
+       safeDefer(event);
+       DiceRoll.rollDice(event, sides, count);
    }
 }

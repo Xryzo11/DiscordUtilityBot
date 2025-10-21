@@ -108,6 +108,9 @@ public class DiscordBot {
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
                             .addOptions(rpsChoices),
                     Commands.slash("rps-cancel", "Cancel the current Rock-Paper-Scissors game"),
+                    Commands.slash("roll", "Roll 'x' sided dice 'y' times")
+                            .addOption(OptionType.INTEGER, "sides", "Number of sides on the dice", false)
+                            .addOption(OptionType.INTEGER, "times", "Number of times to roll the dice", false),
                     Commands.slash("restore", "Restore roles from the old server")
             ).queue();
         }
