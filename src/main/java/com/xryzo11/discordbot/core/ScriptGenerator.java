@@ -36,7 +36,6 @@ public class ScriptGenerator {
                 fw.write("source /etc/profile\n");
                 fw.write("while (true); do\n");
                 fw.write("  clear\n");
-                if (Config.isYtDlpUpdateEnabled()) fw.write("  pip install -U yt-dlp\n");
                 fw.write("  ./start-params.sh\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");
