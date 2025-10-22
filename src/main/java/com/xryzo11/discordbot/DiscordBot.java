@@ -35,10 +35,6 @@ public class DiscordBot {
     public static PresenceManager presenceManager;
 
     public static void main(String[] args) throws Exception {
-        if (Config.isYtDlpUpdateEnabled()) {
-            ProcessBuilder ytdlpUpdate = new ProcessBuilder("yt-dlp", "-U");
-            ytdlpUpdate.start();
-        }
         System.out.print("\n");
         System.out.println("File: " + fullVersion);
         System.out.println("Last restart: " + lastRestart);
