@@ -12,6 +12,7 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.regex.*;
@@ -84,8 +85,12 @@ public class AudioProcessor {
             try {
                 List<String> command = new ArrayList<>();
                 command.add("yt-dlp");
-                command.add("--format");
-                command.add("bestaudio[ext=webm]/bestaudio");
+                command.add("-f");
+                command.add("bestaudio/best");
+                command.add("--audio-format");
+                command.add("opus");
+                command.add("--audio-quality");
+                command.add("0");
                 if (isUrl) {
                     command.add("-o");
                     command.add(outputFile);
@@ -104,12 +109,18 @@ public class AudioProcessor {
                     command.add("--cookies-from-browser");
                     command.add(Config.getYtCookiesBrowser());
                 }
+                command.add("--extractor-args");
+                command.add("youtube:player_client=android,web");
+                command.add("--extractor-args");
+                command.add("youtube:player_skip=configs,webpage");
                 if (isUrl) {
                     command.add(youtubeUrl);
                 } else {
                     command.add("ytsearch1:" + youtubeUrl);
                 }
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
+                Map<String, String> env = processBuilder.environment();
+                env.put("PATH", System.getenv("PATH") + ":/usr/local/bin:/usr/bin");
 
                 processBuilder.redirectErrorStream(true);
                 Process process = processBuilder.start();
@@ -133,7 +144,7 @@ public class AudioProcessor {
                 }
                 if (process.exitValue() != 0) {
                     MusicBot.updateYtdlp();
-                    throw new IOException("[downloadAndConvert] yt-dlp failed with exit code " + process.exitValue() + " (" + command.toString() + ")");
+                    throw new IOException("[downloadAndConvert] yt-dlp failed with exit code " + process.exitValue() + " (" + String.join(" ", command) + ")");
                 }
 
                 JsonObject json = new Gson().fromJson(jsonOutput.toString(), JsonObject.class);
