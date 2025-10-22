@@ -105,6 +105,28 @@ public class MusicBot {
                 currentTrack = track;
             }
         });
+
+        try {
+            if (BotSettings.isDebug()) System.out.println("[MusicBot] Attempting yt-dlp update...");
+            updateYtdlp();
+        } catch (IOException e) {
+            if (BotSettings.isDebug()) System.out.println("[MusicBot] Failed to update yt-dlp: " + e.getMessage());
+        }
+    }
+
+    public static void updateYtdlp() throws IOException {
+        ProcessBuilder ytdlpNightly;
+        ProcessBuilder ytdlpUpdate;
+        if (Config.isYtDlpUpdateEnabled()) {
+            ytdlpNightly = new ProcessBuilder("python3", "-m", "pip", "install", "-U", "--pre", "yt-dlp[default]");
+            ytdlpUpdate = new ProcessBuilder("pip", "install", "--upgrade", "yt-dlp");
+            ytdlpNightly.start();
+            ytdlpUpdate.start();
+        }
+        ytdlpNightly = new ProcessBuilder("yt-dlp", "--update-to", "nightly");
+        ytdlpUpdate = new ProcessBuilder("yt-dlp", "-U");
+        ytdlpNightly.start();
+        ytdlpUpdate.start();
     }
 
     public static void playNextTrack() {
