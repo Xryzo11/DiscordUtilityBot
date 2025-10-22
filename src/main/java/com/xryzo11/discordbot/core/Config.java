@@ -59,8 +59,8 @@ public class Config {
                 writer.write("# Enable debug automatically [true/false]\n");
                 writer.write("debug.enabled=false\n");
 
-                writer.write("# Automatically update yt-dlp using pip [true/false]\n");
-                writer.write("update.yt-dlp=true\n");
+                writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip) [true/false]\n");
+                writer.write("update.yt-dlp=false\n");
 
                 writer.write("# Automatically remove audio files on startup [true/false]\n");
                 writer.write("audio.cleanup=true\n");
@@ -185,7 +185,7 @@ public class Config {
     }
 
     public static boolean isYtDlpUpdateEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("update.yt-dlp", "true"));
+        return Boolean.parseBoolean(properties.getProperty("update.yt-dlp", "false"));
     }
 
     public static boolean isAudioCleanupEnabled() {
@@ -284,7 +284,7 @@ public class Config {
                 writer.write("debug.enabled=" + debug + "\n");
                 System.out.println("[config] Debug enabled saved as: " + debug);
 
-                writer.write("# Automatically update yt-dlp using pip [true/false]\n");
+                writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip) [true/false]\n");
                 writer.write("update.yt-dlp=" + ytDlpUpdate + "\n");
                 System.out.println("[config] yt-dlp update enabled saved as: " + ytDlpUpdate);
 
