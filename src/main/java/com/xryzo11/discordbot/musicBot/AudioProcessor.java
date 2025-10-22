@@ -58,6 +58,7 @@ public class AudioProcessor {
                     long startTime = System.currentTimeMillis();
                     while (activeDownloads.contains(videoId)) {
                         if (System.currentTimeMillis() - startTime > 30000) {
+                            MusicBot.updateYtdlp();
                             throw new TimeoutException("[processYouTubeAudio] Download is taking too long");
                         }
                         Thread.sleep(100);
@@ -131,6 +132,7 @@ public class AudioProcessor {
                     throw new IOException("[downloadAndConvert] Download timed out");
                 }
                 if (process.exitValue() != 0) {
+                    MusicBot.updateYtdlp();
                     throw new IOException("[downloadAndConvert] yt-dlp failed with exit code " + process.exitValue() + " (" + command.toString() + ")");
                 }
 
@@ -145,7 +147,7 @@ public class AudioProcessor {
             } catch (Exception e) {
                 lastException = e;
                 if (BotSettings.isDebug()) {
-                    System.err.println("Download attempt " + (retryCount + 1) + " failed: " + e.getMessage());
+                    System.err.println("[downloadAndConvert] Download attempt " + (retryCount + 1) + " failed: " + e.getMessage());
                 }
                 Thread.sleep(1000 * (retryCount + 1));
             }
