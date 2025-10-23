@@ -73,7 +73,7 @@ public class MusicBot {
                                     file.toPath(),
                                     targetFile.toPath()
                             );
-                            File jsonSource = new File(file.getParent(), fileName.replace(".webm", ".info.json"));
+                            File jsonSource = new File(file.getParent(), fileName + ".info.json");
                             File jsonTarget = new File(audioDir, videoId + ".info.json");
                             if (jsonSource.exists() && !jsonTarget.exists()) {
                                 java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
@@ -549,17 +549,23 @@ public class MusicBot {
             try {
                 List<String> command = new ArrayList<>();
                 command.add("yt-dlp");
-                command.add("--format");
-                command.add("bestaudio[ext=webm]/bestaudio");
+                command.add("-f");
+                command.add("249/bestaudio/best");
+                command.add("--audio-format"); command.add("opus");
                 command.add("-o");
-                command.add(Config.getPreloadedDirectory() + name + " [(" + videoId + ")]" + ".%(ext)s");
+                command.add(Config.getPreloadedDirectory() + name + " [(" + videoId + ")]" + ".webm");
                 command.add("--write-info-json");
                 command.add("--force-ipv4");
                 command.add("--no-check-certificate");
+                command.add("--geo-bypass");
                 if (Config.isYtCookiesEnabled()) {
                     command.add("--cookies-from-browser");
                     command.add(Config.getYtCookiesBrowser());
                 }
+                command.add("--extractor-args");
+                command.add("youtube:player_client=android,web");
+                command.add("--extractor-args");
+                command.add("youtube:player_skip=configs,webpage");
                 command.add(url);
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);

@@ -86,17 +86,14 @@ public class AudioProcessor {
                 List<String> command = new ArrayList<>();
                 command.add("yt-dlp");
                 command.add("-f");
-                command.add("bestaudio/best");
+                command.add("249/bestaudio/best");
                 command.add("--audio-format");
                 command.add("opus");
-                command.add("--audio-quality");
-                command.add("0");
+                command.add("-o");
                 if (isUrl) {
-                    command.add("-o");
                     command.add(outputFile);
                 } else {
-                    command.add("-o");
-                    command.add(AUDIO_DIR + "%(id)s.%(ext)s");
+                    command.add(AUDIO_DIR + "%(id)s.webm");
                 }
                 command.add("--write-info-json");
                 command.add("--print-json");
@@ -113,6 +110,10 @@ public class AudioProcessor {
                 command.add("youtube:player_client=android,web");
                 command.add("--extractor-args");
                 command.add("youtube:player_skip=configs,webpage");
+                command.add("--external-downloader");
+                command.add("aria2c");
+                command.add("--external-downloader-args");
+                command.add("-x 16 -k 1M");
                 if (isUrl) {
                     command.add(youtubeUrl);
                 } else {
