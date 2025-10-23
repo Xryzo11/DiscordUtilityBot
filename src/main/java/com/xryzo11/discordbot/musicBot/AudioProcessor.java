@@ -43,7 +43,7 @@ public class AudioProcessor {
                 String outputFile = AUDIO_DIR + videoId + ".webm";
                 String httpUrl = "http://localhost:" + HTTP_PORT + "/audio/" + videoId + ".webm";
                 File audioFile = new File(outputFile);
-                File infoFile = new File(AUDIO_DIR + videoId + ".info.json");
+                File infoFile = new File(AUDIO_DIR + videoId + ".webm.info.json");
 
                 if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
                     return loadMetadataFromJson(videoId, httpUrl);
@@ -305,7 +305,7 @@ public class AudioProcessor {
     }
 
     private static AudioTrackInfo loadMetadataFromJson(String videoId, String httpUrl) {
-        File jsonFile = new File(AUDIO_DIR + videoId + ".info.json");
+        File jsonFile = new File(AUDIO_DIR + videoId + ".webm.info.json");
         if (jsonFile.exists()) {
             try (Reader r = new FileReader(jsonFile)) {
                 JsonObject json = new Gson().fromJson(r, JsonObject.class);

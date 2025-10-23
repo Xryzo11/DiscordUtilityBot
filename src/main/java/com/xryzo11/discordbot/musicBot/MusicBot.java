@@ -74,7 +74,7 @@ public class MusicBot {
                                     targetFile.toPath()
                             );
                             File jsonSource = new File(file.getParent(), fileName + ".info.json");
-                            File jsonTarget = new File(audioDir, videoId + ".info.json");
+                            File jsonTarget = new File(audioDir, videoId + ".webm.info.json");
                             if (jsonSource.exists() && !jsonTarget.exists()) {
                                 java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
                             }
@@ -381,7 +381,7 @@ public class MusicBot {
                     }
                     String videoId = AudioProcessor.extractVideoId(videoUrl);
                     File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
-                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".info.json");
+                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm.info.json");
 
                     if (BotSettings.isDebug()) System.out.println("[queue] Attempting to queue video ID: " + videoId);
 
@@ -626,8 +626,8 @@ public class MusicBot {
                         audioFile.toPath(),
                         targetFile.toPath()
                 );
-                File jsonSource = new File(audioFile.getParent(), name + " [(" + videoId + ")].info.json");
-                File jsonTarget = new File(targetDir, videoId + ".info.json");
+                File jsonSource = new File(audioFile.getParent(), name + " [(" + videoId + ")].webm.info.json");
+                File jsonTarget = new File(targetDir, videoId + ".webm.info.json");
                 if (jsonSource.exists() && !jsonTarget.exists()) {
                     java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
                 }
