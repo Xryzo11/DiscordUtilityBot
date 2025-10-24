@@ -58,7 +58,7 @@ public class AudioProcessor {
                 } else {
                     long startTime = System.currentTimeMillis();
                     while (activeDownloads.contains(videoId)) {
-                        if (System.currentTimeMillis() - startTime > 30000) {
+                        if (System.currentTimeMillis() - startTime > 60000) {
                             MusicBot.updateYtdlp();
                             throw new TimeoutException("[processYouTubeAudio] Download is taking too long");
                         }
@@ -86,7 +86,9 @@ public class AudioProcessor {
                 List<String> command = new ArrayList<>();
                 command.add("yt-dlp");
                 command.add("-f");
-                command.add("249/bestaudio/best");
+//                command.add("249/bestaudio/best"); // go back to this if original is broken again, has large file sizes
+//                command.add("\"bestaudio[ext=webm]/bestaudio\""); // wait for fix xdddd
+                command.add("bestaudio[ext=webm]/91/249/bestaudio/best");
                 command.add("--audio-format");
                 command.add("opus");
                 command.add("-o");
@@ -110,10 +112,6 @@ public class AudioProcessor {
                 command.add("youtube:player_client=android,web");
                 command.add("--extractor-args");
                 command.add("youtube:player_skip=configs,webpage");
-                command.add("--external-downloader");
-                command.add("aria2c");
-                command.add("--external-downloader-args");
-                command.add("-x 16 -k 1M");
                 if (isUrl) {
                     command.add(youtubeUrl);
                 } else {
