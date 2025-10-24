@@ -15,6 +15,7 @@ import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
 import com.xryzo11.discordbot.core.BotSettings;
 import com.xryzo11.discordbot.core.Config;
+import com.xryzo11.discordbot.core.SlashCommands;
 import com.xryzo11.discordbot.listeners.ReactionListener;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
@@ -292,10 +293,12 @@ public class MusicBot {
     }
 
     public void queue(SlashCommandInteractionEvent event, String url, Guild guild, Member member) {
-        event.deferReply().queue(hook -> queue(hook, url, guild, member, event));
+//        event.deferReply().queue(hook -> queue(hook, url));
+        SlashCommands.safeDefer(event);
+        queue(event.getHook(), url);
     }
 
-    public void queue(InteractionHook hook, String url, Guild guild, Member member, SlashCommandInteractionEvent event) {
+    public void queue(InteractionHook hook, String url) {
         CompletableFuture.runAsync(() -> {
             try {
                 boolean isPlaylist = url.contains("playlist?list=") || url.contains("&list=");
@@ -526,7 +529,7 @@ public class MusicBot {
                     }
 
                     String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                    queue(event.getHook(), videoUrl, guild, member, event);
+                    queue(event.getHook(), videoUrl);
                 } catch (Exception e) {
                     e.printStackTrace();
                     hook.editOriginal("❌ An error occurred while searching").queue();
@@ -640,7 +643,7 @@ public class MusicBot {
             return;
         }
 
-        queue(event.getHook(), videoUrl, event.getGuild(), event.getMember(), event);
+        queue(event.getHook(), videoUrl);
     }
 
     private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, int[] addedCount, int totalTracks) {
