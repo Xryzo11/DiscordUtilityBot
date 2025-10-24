@@ -7,6 +7,7 @@ import com.xryzo11.discordbot.misc.RockPaperScissors;
 import com.xryzo11.discordbot.misc.RoleRestorer;
 import com.xryzo11.discordbot.musicBot.LavaPlayerAudioSendHandler;
 import com.xryzo11.discordbot.musicBot.MusicBot;
+import com.xryzo11.discordbot.musicBot.SpotifyHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -162,6 +163,11 @@ public class SlashCommands {
 
         if (!guild.getAudioManager().isConnected()) {
             event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+            return;
+        }
+
+        if (url.contains("spotify")) {
+            SpotifyHandler.handleSpotifyUrl(event, url, guild, member);
             return;
         }
 
