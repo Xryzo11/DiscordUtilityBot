@@ -16,66 +16,7 @@ public class Config {
         configFile = new File(CONFIG_FILE);
 
         if (!configFile.exists()) {
-            try (FileWriter writer = new FileWriter(configFile)) {
-                writer.write("# Discord Bot Configuration [token]\n");
-                writer.write("bot.token=YOUR_BOT_TOKEN_HERE\n");
-
-                writer.write("# Web panel requires authentication [true/false]\n");
-                writer.write("web.auth.enabled=true\n");
-
-                writer.write("# Web panel password [string]\n");
-                writer.write("web.auth.password=YOUR_PASSWORD_HERE\n");
-
-                writer.write("# Http web panel port [int]\n");
-                writer.write("web.port=21379\n");
-
-                writer.write("# Http audio player port [int]\n");
-                writer.write("audio.port=21378\n");
-
-                writer.write("# Audio directory [string]\n");
-                writer.write("audio.directory=/tmp/discord_audio/\n");
-
-                writer.write("# Enable pre-loaded tracks [true/false]\n");
-                writer.write("audio.preloaded=true\n");
-
-                writer.write("# Pre-loaded directory [string]\n");
-                writer.write("audio.preloaded.directory=/tmp/discord_audio_preloaded/\n");
-
-                writer.write("# Copy tracks from preloaded dir to audio dir on startup [true/false]\n");
-                writer.write("audio.preloaded.copy=true\n");
-
-                writer.write("# Block ASMR content [true/false]\n");
-                writer.write("audio.block.asmr=false\n");
-
-                writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
-                writer.write("audio.yt.cookies=false\n");
-
-                writer.write("# Which browser to use for cookies [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
-                writer.write("audio.yt.cookies.browser=chrome\n");
-
-                writer.write("# Enable auto-kick automatically [true/false]\n");
-                writer.write("auto.kick.enabled=true\n");
-
-                writer.write("# Enable debug automatically [true/false]\n");
-                writer.write("debug.enabled=false\n");
-
-                writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip) [true/false]\n");
-                writer.write("update.yt-dlp=false\n");
-
-                writer.write("# Automatically remove audio files on startup [true/false]\n");
-                writer.write("audio.cleanup=true\n");
-
-                writer.write("# Enable automatic restarts (only when unused) [true/false]\n");
-                writer.write("auto.restart.enabled=true\n");
-
-                writer.write("# Automatic restart hour (24-hour format) [int]h\n");
-                writer.write("auto.restart.hour=6\n");
-
-                writer.write("# Automatically update config  by removing and creating a new one (with current settings) [true/false]\n");
-                writer.write("config.update=true\n");
-            } catch (IOException e) {
-                System.err.println("Failed to create config file: " + e.getMessage());
-            }
+            createDefaultConfig();
         }
 
         try (FileInputStream input = new FileInputStream(CONFIG_FILE)) {
@@ -92,6 +33,172 @@ public class Config {
             webPassword = sha512(password);
         }
 
+    }
+
+    private static void writeConfig(String botToken,
+                                    boolean webAuthEnabled,
+                                    String webAuthPassword,
+                                    int webPort,
+                                    boolean autoRestartEnabled,
+                                    int autoRestartHour,
+                                    boolean configUpdate,
+                                    int audioPort,
+                                    String audioDirectory,
+                                    boolean audioPreloaded,
+                                    String audioPreloadedDirectory,
+                                    boolean audioPreloadedCopy,
+                                    boolean audioCleanup,
+                                    boolean audioBlockAsmr,
+                                    boolean audioYtCookies,
+                                    String audioYtCookiesBrowser,
+                                    boolean updateYtDlp,
+                                    String spotifyClientId,
+                                    String spotifyClientSecret,
+                                    boolean limitPlaylist,
+                                    boolean autoKickEnabled,
+                                    boolean debugEnabled) {
+        try (FileWriter writer = new FileWriter(configFile)) {
+            writer.write("#################################\n");
+            writer.write("# CORE SETTINGS\n");
+            writer.write("#################################\n\n");
+
+            writer.write("# Discord Bot Configuration [token]\n");
+            writer.write("bot.token=" + botToken + "\n\n");
+
+            writer.write("# Web panel requires authentication [true/false]\n");
+            writer.write("web.auth.enabled=" + webAuthEnabled + "\n\n");
+
+            writer.write("# Web panel password [string]\n");
+            writer.write("web.auth.password=" + webAuthPassword + "\n\n");
+
+            writer.write("# Http web panel port [int]\n");
+            writer.write("web.port=" + webPort + "\n\n");
+
+            writer.write("# Enable automatic restarts (only when bot is unused) [true/false]\n");
+            writer.write("auto.restart.enabled=" + autoRestartEnabled + "\n\n");
+
+            writer.write("# Automatic restart hour (24-hour format) [int]h\n");
+            writer.write("auto.restart.hour=" + autoRestartHour + "\n\n");
+
+            writer.write("# Automatically update config by removing and creating a new one (with current settings) [true/false]\n");
+            writer.write("config.update=" + configUpdate + "\n\n");
+
+            writer.write("\n\n#################################\n");
+            writer.write("# MUSIC BOT SETTINGS\n");
+            writer.write("#################################\n\n");
+
+            writer.write("# Http audio player port (doesn't have to be open) [int]\n");
+            writer.write("audio.port=" + audioPort + "\n\n");
+
+            writer.write("# Audio directory [string]\n");
+            writer.write("audio.directory=" + audioDirectory + "\n\n");
+
+            writer.write("# Enable pre-loaded tracks [true/false]\n");
+            writer.write("audio.preloaded=" + audioPreloaded + "\n\n");
+
+            writer.write("# Pre-loaded directory [string]\n");
+            writer.write("audio.preloaded.directory=" + audioPreloadedDirectory + "\n\n");
+
+            writer.write("# Copy tracks from preloaded dir to audio dir on startup (faster playback) [true/false]\n");
+            writer.write("audio.preloaded.copy=" + audioPreloadedCopy + "\n\n");
+
+            writer.write("# Automatically remove non-preloaded audio files on startup [true/false]\n");
+            writer.write("audio.cleanup=" + audioCleanup + "\n\n");
+
+            writer.write("# Block ASMR content [true/false]\n");
+            writer.write("audio.block.asmr=" + audioBlockAsmr + "\n\n");
+
+            writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
+            writer.write("audio.yt.cookies=" + audioYtCookies + "\n\n");
+
+            writer.write("# Which browser to use for cookies [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
+            writer.write("audio.yt.cookies.browser=" + audioYtCookiesBrowser + "\n\n");
+
+            writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip) [true/false]\n");
+            writer.write("update.yt-dlp=" + updateYtDlp + "\n\n");
+
+            writer.write("# Spotify Client ID (required for Spotify playlist support) [string]\n");
+            writer.write("spotify.client.id=" + spotifyClientId + "\n\n");
+
+            writer.write("# Spotify Client Secret (required for Spotify playlist support) [string]\n");
+            writer.write("spotify.client.secret=" + spotifyClientSecret + "\n\n");
+
+            writer.write("# Limit max Youtube/Spotify playlist size to 250 (doesnt limit queue size, | false = infinite) [true/false]\n");
+            writer.write("audio.limit.playlist=" + limitPlaylist + "\n\n");
+
+            writer.write("\n\n#################################\n");
+            writer.write("# MISC SETTINGS\n");
+            writer.write("#################################\n\n");
+
+            writer.write("# Enable auto-kick automatically [true/false]\n");
+            writer.write("auto.kick.enabled=" + autoKickEnabled + "\n\n");
+
+            writer.write("# Enable debug automatically [true/false]\n");
+            writer.write("debug.enabled=" + debugEnabled + "\n\n");
+        } catch (IOException e) {
+            System.err.println("Failed to write config: " + e.getMessage());
+        }
+    }
+
+    private static void createDefaultConfig() {
+        writeConfig(
+                "YOUR_BOT_TOKEN",
+                true,
+                "YOUR_PASSWORD_HERE",
+                21379,
+                true,
+                6,
+                true,
+                21378,
+                "/tmp/discord_audio/",
+                true,
+                "/tmp/discord_audio_preloaded/",
+                true,
+                true,
+                false,
+                false,
+                "chrome",
+                false,
+                "YOUR_SPOTIFY_CLIENT_ID_HERE",
+                "YOUR_SPOTIFY_CLIENT_SECRET_HERE",
+                true,
+                true,
+                false
+        );
+    }
+
+    public static void updateConfig() {
+        System.out.println("[config] Updating config file...");
+        configFile.delete();
+        if (!configFile.exists()) {
+            writeConfig(
+                    getBotToken(),
+                    isWebAuthEnabled(),
+                    properties.getProperty("web.auth.password"),
+                    getWebPort(),
+                    isAutoRestartEnabled(),
+                    getAutoRestartHour(),
+                    isConfigUpdateEnabled(),
+                    getAudioPort(),
+                    getAudioDirectory(),
+                    isPreloadedEnabled(),
+                    getPreloadedDirectory(),
+                    isPreloadedCopyEnabled(),
+                    isAudioCleanupEnabled(),
+                    isAsmrBlockEnabled(),
+                    isYtCookiesEnabled(),
+                    getYtCookiesBrowser(),
+                    isYtDlpUpdateEnabled(),
+                    getSpotifyClientId(),
+                    getSpotifyClientSecret(),
+                    isLimitPlaylistEnabled(),
+                    isAutoKickEnabled(),
+                    isDebugEnabled()
+            );
+            System.out.println("[config] Config file updated successfully.");
+        } else {
+            System.out.println("[config] Config file didn't remove. Not updating.");
+        }
     }
 
     public static String sha512(String input) {
@@ -188,6 +295,18 @@ public class Config {
         return Boolean.parseBoolean(properties.getProperty("update.yt-dlp", "false"));
     }
 
+    public static String getSpotifyClientId() {
+        return properties.getProperty("spotify.client.id", "YOUR_SPOTIFY_CLIENT_ID_HERE");
+    }
+
+    public static String getSpotifyClientSecret() {
+        return properties.getProperty("spotify.client.secret", "YOUR_SPOTIFY_CLIENT_SECRET_HERE");
+    }
+
+    public static boolean isLimitPlaylistEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("audio.limit.playlist", "true"));
+    }
+
     public static boolean isAudioCleanupEnabled() {
         return Boolean.parseBoolean(properties.getProperty("audio.cleanup", "true"));
     }
@@ -202,115 +321,5 @@ public class Config {
 
     public static boolean isConfigUpdateEnabled() {
         return Boolean.parseBoolean(properties.getProperty("config.update", "true"));
-    }
-
-    public static void updateConfig() {
-        String token = getBotToken();
-        boolean webAuth = isWebAuthEnabled();
-        String password = properties.getProperty("web.auth.password");
-        int webPort = getWebPort();
-        int audioPort = getAudioPort();
-        String audioDir = getAudioDirectory();
-        boolean preloaded = isPreloadedEnabled();
-        String preloadedDir = getPreloadedDirectory();
-        boolean preloadedCopy = isPreloadedCopyEnabled();
-        boolean asmrBlock = isAsmrBlockEnabled();
-        boolean ytCookies = isYtCookiesEnabled();
-        String ytCookiesBrowser = getYtCookiesBrowser();
-        boolean autoKick = isAutoKickEnabled();
-        boolean debug = isDebugEnabled();
-        boolean ytDlpUpdate = isYtDlpUpdateEnabled();
-        boolean audioCleanup = isAudioCleanupEnabled();
-        boolean autoRestart = isAutoRestartEnabled();
-        int autoRestartHour = getAutoRestartHour();
-        boolean configUpdate = isConfigUpdateEnabled();
-        System.out.println("[config] Updating config file...");
-        configFile.delete();
-        if (!configFile.exists()) {
-            try (FileWriter writer = new FileWriter(configFile)) {
-                writer.write("# Discord Bot Configuration [token]\n");
-                writer.write("bot.token=" + token + "\n");
-                System.out.println("[config] Bot token saved as (first 15 chars): " + token.substring(0,15));
-
-                writer.write("# Web panel requires authentication [true/false]\n");
-                writer.write("web.auth.enabled=" + webAuth + "\n");
-                System.out.println("[config] Web auth enabled saved as: " + webAuth);
-
-                writer.write("# Web panel password [string]\n");
-                writer.write("web.auth.password=" + password + "\n");
-                System.out.println("[config] Web auth password saved as: (sha512) " + webPassword);
-
-                writer.write("# Http web panel port [int]\n");
-                writer.write("web.port=" + webPort + "\n");
-                System.out.println("[config] Web port saved as: " + webPort);
-
-                writer.write("# Http audio player port [int]\n");
-                writer.write("audio.port=" + audioPort + "\n");
-                System.out.println("[config] Audio port saved as: " + audioPort);
-
-                writer.write("# Audio directory [string]\n");
-                writer.write("audio.directory=" + audioDir + "\n");
-                System.out.println("[config] Audio directory saved as: " + audioDir);
-
-                writer.write("# Enable pre-loaded tracks [true/false]\n");
-                writer.write("audio.preloaded=" + preloaded + "\n");
-                System.out.println("[config] Preloaded enabled saved as: " + preloaded);
-
-                writer.write("# Pre-loaded directory [string]\n");
-                writer.write("audio.preloaded.directory=" + preloadedDir + "\n");
-                System.out.println("[config] Preloaded directory saved as: " + preloadedDir);
-
-                writer.write("# Copy tracks from preloaded dir to audio dir on startup [true/false]\n");
-                writer.write("audio.preloaded.copy=" + preloadedCopy + "\n");
-                System.out.println("[config] Preloaded copy enabled saved as: " + preloadedCopy);
-
-                writer.write("# Block ASMR content [true/false]\n");
-                writer.write("audio.block.asmr=" + asmrBlock + "\n");
-                System.out.println("[config] ASMR block enabled saved as: " + asmrBlock);
-
-                writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
-                writer.write("audio.yt.cookies=" + ytCookies + "\n");
-                System.out.println("[config] YouTube cookies enabled saved as: " + ytCookies);
-
-                writer.write("# Which browser to use for cookies [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
-                writer.write("audio.yt.cookies.browser=" + ytCookiesBrowser + "\n");
-                System.out.println("[config] YouTube cookies browser saved as: " + ytCookiesBrowser);
-
-                writer.write("# Enable auto-kick automatically [true/false]\n");
-                writer.write("auto.kick.enabled=" + autoKick + "\n");
-                System.out.println("[config] Auto-kick enabled saved as: " + autoKick);
-
-                writer.write("# Enable debug automatically [true/false]\n");
-                writer.write("debug.enabled=" + debug + "\n");
-                System.out.println("[config] Debug enabled saved as: " + debug);
-
-                writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip) [true/false]\n");
-                writer.write("update.yt-dlp=" + ytDlpUpdate + "\n");
-                System.out.println("[config] yt-dlp update enabled saved as: " + ytDlpUpdate);
-
-                writer.write("# Automatically remove audio files on startup [true/false]\n");
-                writer.write("audio.cleanup=" + audioCleanup + "\n");
-                System.out.println("[config] Audio cleanup enabled saved as: " + audioCleanup);
-
-                writer.write("# Enable automatic restarts (only when unused) [true/false]\n");
-                writer.write("auto.restart.enabled=" + autoRestart + "\n");
-                System.out.println("[config] Auto-restart enabled saved as: " + autoRestart);
-
-                writer.write("# Automatic restart hour (24-hour format) [int]h\n");
-                writer.write("auto.restart.hour=" + autoRestartHour + "\n");
-                System.out.println("[config] Auto-restart hour saved as: " + autoRestartHour);
-
-                writer.write("# Automatically update config by removing and creating a new one (with current settings) [true/false]\n");
-                writer.write("config.update=" + configUpdate + "\n");
-                System.out.println("[config] Config update enabled saved as: " + configUpdate);
-
-                System.out.println("[config] Config file updated.");
-            }
-            catch (IOException e) {
-                System.err.println("Failed to create config file: " + e.getMessage());
-            }
-        } else {
-            System.out.println("[config] Config file didn't remove. Not updating.");
-        }
     }
 }
