@@ -96,6 +96,11 @@ public class SlashCommands {
             case "add":
                 handleAddCommand(event);
                 break;
+            case "cancel":
+                safeDefer(event);
+                MusicBot.isCancelled = true;
+                event.getHook().editOriginal("✅ Playlist processing cancelled.").queue();
+                break;
             case "rps-challenge":
                 handleRpsChallengeCommand(event);
                 break;
@@ -167,12 +172,12 @@ public class SlashCommands {
         }
 
         if (url.contains("spotify")) {
-            SpotifyHandler.handleSpotifyUrl(event, url, guild, member);
+            SpotifyHandler.handleSpotifyUrl(event, url);
             return;
         }
 
         if (!url.contains("youtube.com") && !url.contains("youtu.be") && !url.contains("youtube.pl")) {
-            event.reply("❌ URL must contain a youtube link!").setEphemeral(true).queue();
+            event.reply("❌ URL must contain a youtube or a spotify link!").setEphemeral(true).queue();
             return;
         }
 
@@ -181,7 +186,7 @@ public class SlashCommands {
             return;
         }
 
-        bot.queue(event, url, guild, member);
+        bot.queue(event, url);
     }
 
     private void handleDequeueCommand(SlashCommandInteractionEvent event) {
