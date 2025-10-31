@@ -1,7 +1,7 @@
 package com.xryzo11.discordbot;
 
 import com.xryzo11.discordbot.core.*;
-import com.xryzo11.discordbot.listeners.*;
+import com.xryzo11.discordbot.utils.listeners.*;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.musicBot.AudioProcessor;
 import com.xryzo11.discordbot.musicBot.MusicBot;

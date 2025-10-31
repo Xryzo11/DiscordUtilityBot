@@ -16,7 +16,7 @@ import com.xryzo11.discordbot.core.BotHolder;
 import com.xryzo11.discordbot.core.BotSettings;
 import com.xryzo11.discordbot.core.Config;
 import com.xryzo11.discordbot.core.SlashCommands;
-import com.xryzo11.discordbot.listeners.ReactionListener;
+import com.xryzo11.discordbot.utils.listeners.ReactionListener;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;

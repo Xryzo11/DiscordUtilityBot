@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot.listeners;
+package com.xryzo11.discordbot.utils.listeners;
 
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;

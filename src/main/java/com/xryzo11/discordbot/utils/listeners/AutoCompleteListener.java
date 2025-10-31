@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot.listeners;
+package com.xryzo11.discordbot.utils.listeners;
 
 import com.xryzo11.discordbot.core.Config;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;

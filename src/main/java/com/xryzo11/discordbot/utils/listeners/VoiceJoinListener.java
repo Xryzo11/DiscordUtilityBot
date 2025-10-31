@@ -1,4 +1,4 @@
-package com.xryzo11.discordbot.listeners;
+package com.xryzo11.discordbot.utils.listeners;
 
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.core.BotSettings;
