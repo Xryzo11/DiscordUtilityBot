@@ -292,35 +292,40 @@ public class MusicBot {
         trackQueue.addAll(trackList);
     }
 
-    public void queue(SlashCommandInteractionEvent event, String url, Guild guild, Member member) {
-//        event.deferReply().queue(hook -> queue(hook, url));
+    public void queue(SlashCommandInteractionEvent event, String url) {
         SlashCommands.safeDefer(event);
-        queue(event.getHook(), url);
+        queue(event.getHook(), url, false);
     }
 
-    public void queue(InteractionHook hook, String url) {
+    public void queueSilent(InteractionHook hook, String url) {
+        queue(hook, url, true);
+    }
+
+    public void queue(InteractionHook hook, String url, boolean silent) {
         CompletableFuture.runAsync(() -> {
             try {
                 boolean isPlaylist = url.contains("playlist?list=") || url.contains("&list=");
 
                 if (isPlaylist) {
                     if (BotSettings.isDebug()) System.out.println("[queue] Processing playlist URL: " + url);
-                    hook.editOriginal("📋 Processing playlist...").queue();
+                    if (!silent) hook.editOriginal("📋 Processing playlist...").queue();
                     AudioProcessor.processYouTubePlaylist(url).thenAccept(videoUrls -> {
                         final int totalTracks = videoUrls.size();
                         final int[] addedCount = {0};
                         final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
 
                         if (totalTracks == 0) {
-                            hook.editOriginal("❌ No tracks found in playlist").queue();
+                            if (!silent) hook.editOriginal("❌ No tracks found in playlist").queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] No tracks found in playlist");
                             return;
                         }
 
-                        if (totalTracks > 250) {
-                            hook.editOriginal("❗ Playlist is too long! (Max 250 tracks)").queue();
-                            if (BotSettings.isDebug()) System.out.println("[queue] Playlist too long: " + totalTracks + " tracks");
-                            return;
+                        if (Config.isLimitPlaylistEnabled()) {
+                            if (totalTracks > 250) {
+                                if (!silent) hook.editOriginal("❗ Playlist has " + totalTracks + " tracks, which exceeds the limit of 250.").queue();
+                                if (BotSettings.isDebug()) System.out.println("[queue] Playlist too long: " + totalTracks + " tracks");
+                                return;
+                            }
                         }
 
                         AtomicBoolean wasCancelled = new AtomicBoolean(false);
@@ -330,13 +335,18 @@ public class MusicBot {
                                 wasCancelled.set(true);
                                 futures.forEach(f -> f.cancel(true));
                                 futures.clear();
-                                hook.editOriginal("❗ Playlist processing cancelled").queue();
+                                if (!silent) hook.editOriginal("❗ Playlist processing cancelled").queue();
                                 if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing cancelled");
                                 break;
                             }
 
                             String videoUrl = videoUrls.get(i);
                             CompletableFuture<?> future = CompletableFuture.runAsync(() -> {
+                                if (isCancelled) {
+                                    wasCancelled.set(true);
+                                    return;
+                                }
+
                                 try {
                                     if (!isCancelled) {
                                         AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
@@ -348,7 +358,7 @@ public class MusicBot {
                                     if (!isCancelled) {
                                         synchronized (addedCount) {
                                             addedCount[0]++;
-                                            hook.editOriginal(String.format("❌ Failed to process track: %s\n%d/%d",
+                                            if (!silent) hook.editOriginal(String.format("❌ Failed to process track: %s\n%d/%d",
                                                     e.getMessage(), addedCount[0], totalTracks)).queue();
                                             if (BotSettings.isDebug()) System.out.println("[queue] Failed to process track: " + e.getMessage());
                                         }
@@ -360,23 +370,23 @@ public class MusicBot {
                         }
 
                         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                                .thenRun(() -> {
+                                .whenComplete((v, ex) -> {
                                     if (wasCancelled.get()) {
-                                        hook.editOriginal("❗ Playlist processing cancelled").queue();
+                                        if (!silent) hook.editOriginal("❗ Playlist processing cancelled").queue();
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing cancelled");
                                     } else if (!isCancelled) {
-                                        hook.editOriginal("✅ Playlist processing complete").queueAfter(5, TimeUnit.SECONDS);
+                                        if (!silent) hook.editOriginal("✅ Playlist processing complete").queueAfter(5, TimeUnit.SECONDS);
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing complete");
                                     }
                                 });
 
                     }).exceptionally(e -> {
-                        hook.editOriginal("❌ Failed to process playlist: " + e.getMessage()).queue();
+                        if (!silent) hook.editOriginal("❌ Failed to process playlist: " + e.getMessage()).queue();
                         if (BotSettings.isDebug()) System.out.println("[queue] Failed to process playlist: " + e.getMessage());
                         return null;
                     });
                 } else {
-                    hook.editOriginal("⏳ Processing YouTube URL...").queue();
+                    if (!silent) hook.editOriginal("⏳ Processing YouTube URL...").queue();
 
                     String videoUrl = url;
                     if (videoUrl.contains("/shorts/")) {
@@ -389,26 +399,26 @@ public class MusicBot {
                     if (BotSettings.isDebug()) System.out.println("[queue] Attempting to queue video ID: " + videoId);
 
                     if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
-                        hook.editOriginal("🔍 Fetching metadata...").queue();
+                        if (!silent) hook.editOriginal("🔍 Fetching metadata...").queue();
                     } else {
-                        hook.editOriginal("📥 Downloading audio...").queue();
+                        if (!silent) hook.editOriginal("📥 Downloading audio...").queue();
                     }
 
                     AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
 
                     if (!audioFile.exists() || !audioFile.canRead()) {
-                        hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
+                        if (!silent) hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
                         return;
                     }
 
                     if (Config.isAsmrBlockEnabled()) {
                         if (trackInfo.title.contains("ASMR") || trackInfo.title.contains("F4A") || trackInfo.title.contains("F4M") || trackInfo.title.contains("F4F") || trackInfo.title.contains("M4A") || trackInfo.title.contains("M4M") || trackInfo.title.contains("M4F")) {
-                            hook.editOriginal("❌ ASMR content is blocked.").queue();
+                            if (!silent) hook.editOriginal("❌ ASMR content is blocked.").queue();
                             return;
                         }
                     }
 
-                    hook.editOriginal("🎵 Loading track into player...").queue();
+                    if (!silent) hook.editOriginal("🎵 Loading track into player...").queue();
 
                     int retries = 0;
                     while (retries < 10) {
@@ -417,6 +427,12 @@ public class MusicBot {
                         } catch (Exception ignored) {}
                         Thread.sleep(200);
                         retries++;
+                    }
+
+                    if (MusicBot.isCancelled) {
+                        if (!silent) hook.editOriginal("❗ Track processing cancelled").queue();
+                        if (BotSettings.isDebug()) System.out.println("[queue] Track processing cancelled");
+                        return;
                     }
 
                     playerManager.loadItem(trackInfo.uri, new AudioLoadResultHandler() {
@@ -429,7 +445,7 @@ public class MusicBot {
                                     "✅ Added and playing: " + trackInfo.title :
                                     "✅ Added to queue: " + trackInfo.title;
 
-                            hook.editOriginal(message).queue();
+                            if (!silent) hook.editOriginal(message).queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] Queued track: " + trackInfo.title);
 
                             if (player.getPlayingTrack() == null) {
@@ -442,19 +458,19 @@ public class MusicBot {
 
                         @Override
                         public void noMatches() {
-                            hook.editOriginal("❌ No matching audio found").queue();
+                            if (!silent) hook.editOriginal("❌ No matching audio found").queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] No matches found for ID: " + videoId);
                         }
 
                         @Override
                         public void loadFailed(FriendlyException exception) {
-                            hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
+                            if (!silent) hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] Failed to load track: " + exception.getMessage());
                         }
                     });
                 }
             } catch (Exception e) {
-                hook.editOriginal("❌ Error processing track: " + e.getMessage()).queue();
+                if (!silent) hook.editOriginal("❌ Error processing track: " + e.getMessage()).queue();
                 if (BotSettings.isDebug()) System.out.println("[queue] Error processing track: " + e.getMessage());
                 if (BotSettings.isDebug()) {
                     e.printStackTrace();
@@ -469,13 +485,6 @@ public class MusicBot {
                 try {
                     hook.editOriginal("⏳ Processing YouTube search...").queue();
                     if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
-
-//                    ProcessBuilder processBuilder = new ProcessBuilder(
-//                            "yt-dlp",
-//                            "--get-id",
-//                            "ytsearch1:" + query
-//                    );
-//                    Process process = processBuilder.start();
 
                     List<String> command = new ArrayList<>();
                     command.add("yt-dlp");
@@ -529,7 +538,7 @@ public class MusicBot {
                     }
 
                     String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                    queue(event.getHook(), videoUrl);
+                    queue(event.getHook(), videoUrl, false);
                 } catch (Exception e) {
                     e.printStackTrace();
                     hook.editOriginal("❌ An error occurred while searching").queue();
@@ -643,7 +652,7 @@ public class MusicBot {
             return;
         }
 
-        queue(event.getHook(), videoUrl);
+        queue(event.getHook(), videoUrl, false);
     }
 
     private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, int[] addedCount, int totalTracks) {
