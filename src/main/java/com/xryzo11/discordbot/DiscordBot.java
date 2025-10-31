@@ -78,10 +78,10 @@ public class DiscordBot {
         for (Guild guild : jda.getGuilds()) {
             guild.updateCommands().addCommands(
                     Commands.slash("join", "Join voice channel"),
-                    Commands.slash("play", "Queue YouTube audio by url")
-                            .addOption(OptionType.STRING, "url", "YouTube URL", true),
-                    Commands.slash("queue", "Queue YouTube audio by url")
-                            .addOption(OptionType.STRING, "url", "YouTube URL", true),
+                    Commands.slash("play", "Queue YouTube/Spotify audio by url")
+                            .addOption(OptionType.STRING, "url", "YouTube/Spotify URL", true),
+                    Commands.slash("queue", "Queue YouTube/Spotify audio by url")
+                            .addOption(OptionType.STRING, "url", "YouTube/Spotify URL", true),
                     Commands.slash("dequeue", "Remove a track from the queue")
                             .addOption(OptionType.INTEGER, "position", "Track position in the queue", true),
                     Commands.slash("search", "Queue YouTube audio by title")
@@ -103,6 +103,7 @@ public class DiscordBot {
                             .addOption(OptionType.STRING, "name", "Short track name", true),
                     Commands.slash("add", "Add pre-downloaded track to the queue")
                             .addOptions(preloadedTracks),
+                    Commands.slash("cancel", "Cancel current playlist processing"),
                     Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
                             .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")
