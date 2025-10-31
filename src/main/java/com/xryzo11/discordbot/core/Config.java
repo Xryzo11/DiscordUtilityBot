@@ -62,7 +62,7 @@ public class Config {
             writer.write("# CORE SETTINGS\n");
             writer.write("#################################\n\n");
 
-            writer.write("# Discord Bot Configuration [token]\n");
+            writer.write("# Discord bot token [token]\n");
             writer.write("bot.token=" + botToken + "\n\n");
 
             writer.write("# Web panel requires authentication [true/false]\n");
@@ -114,7 +114,7 @@ public class Config {
             writer.write("# Which browser to use for cookies [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
             writer.write("audio.yt.cookies.browser=" + audioYtCookiesBrowser + "\n\n");
 
-            writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip) [true/false]\n");
+            writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip, uses 'yt-dlp -U' otherwise) [true/false]\n");
             writer.write("update.yt-dlp=" + updateYtDlp + "\n\n");
 
             writer.write("# Spotify Client ID (required for Spotify playlist support) [string]\n");
@@ -130,10 +130,10 @@ public class Config {
             writer.write("# MISC SETTINGS\n");
             writer.write("#################################\n\n");
 
-            writer.write("# Enable auto-kick automatically [true/false]\n");
+            writer.write("# Enable auto-kick automatically in web panel [true/false]\n");
             writer.write("auto.kick.enabled=" + autoKickEnabled + "\n\n");
 
-            writer.write("# Enable debug automatically [true/false]\n");
+            writer.write("# Enable debug automatically in web panel [true/false]\n");
             writer.write("debug.enabled=" + debugEnabled + "\n\n");
         } catch (IOException e) {
             System.err.println("Failed to write config: " + e.getMessage());
