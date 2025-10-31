@@ -2,6 +2,8 @@ package com.xryzo11.discordbot.core;
 
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.musicBot.MusicBot;
+import com.xryzo11.discordbot.utils.enums.PresenceStatus;
+import com.xryzo11.discordbot.utils.enums.PresenceActivity;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
@@ -20,6 +22,10 @@ public class PresenceManager extends ListenerAdapter {
     private String lastPresenceMessage = "";
     private String lastStatus = "";
 
+    private final String idleMessage = "Chilling in the server 👀";
+    private final String vcMessage = "Watching over the vc ✅";
+    private final String musicMessage = "Listening to ";
+
     public PresenceManager(JDA jda) {
         this.jda = jda;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -32,44 +38,40 @@ public class PresenceManager extends ListenerAdapter {
         defaultPresence();
     }
 
-    private void setPresence(String message, String type) {
+    private void setPresence(String message, PresenceActivity type) {
         if (!Objects.equals(lastPresenceMessage, message)) {
             if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
             lastPresenceMessage = message;
         }
 
         switch (type) {
-            case "playing" -> jda.getPresence().setActivity(Activity.playing(message));
-            case "listening" -> jda.getPresence().setActivity(Activity.listening(message));
-            case "watching" -> jda.getPresence().setActivity(Activity.watching(message));
-            case "streaming" -> jda.getPresence().setActivity(Activity.streaming(message, "https://twitch.tv/xryzo11"));
+            case PLAYING -> jda.getPresence().setActivity(Activity.playing(message));
+            case LISTENING -> jda.getPresence().setActivity(Activity.listening(message));
+            case WATCHING -> jda.getPresence().setActivity(Activity.watching(message));
+            case STREAMING -> jda.getPresence().setActivity(Activity.streaming(message, "https://twitch.tv/xryzo11"));
             default -> jda.getPresence().setActivity(Activity.playing(message));
         }
     }
 
-    private void setStatus(String status) {
-        status = status.toLowerCase();
-        if (!status.equals(lastStatus)) {
+    private void setStatus(PresenceStatus status) {
+        String statusStr = status.toString();
+        if (!statusStr.equals(lastStatus)) {
             if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
-            lastStatus = status;
+            lastStatus = statusStr;
         }
 
         switch (status) {
-            case "online" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
-            case "idle" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.IDLE);
-            case "dnd" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.DO_NOT_DISTURB);
-            case "invisible", "offline" -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.INVISIBLE);
+            case ONLINE -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
+            case IDLE -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.IDLE);
+            case DND -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.DO_NOT_DISTURB);
+            case INVISIBLE -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.INVISIBLE);
             default -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
         }
     }
 
-    private String getDefaultPresenceMessage() {
-        return "the server 👀";
-    }
-
     public void defaultPresence() {
-        setPresence(getDefaultPresenceMessage(), "watching");
-        setStatus("idle");
+        setPresence(idleMessage, PresenceActivity.WATCHING);
+        setStatus(PresenceStatus.IDLE);
     }
 
     public void updatePresence() {
@@ -86,17 +88,17 @@ public class PresenceManager extends ListenerAdapter {
             String[] parts = formattedInfo.split("\\]\\(<");
             String title = parts[0].substring(1);
             if (title.length() > 120) title = title.substring(0, 120) + "...";
-            String presence = title + " 🎵";
+            String presence =  musicMessage + title + " 🎵";
             if (presence.equals(lastPresenceMessage) && !forced) return;
-            setPresence(presence, "listening");
-            setStatus("dnd");
+            setPresence(presence, PresenceActivity.LISTENING);
+            setStatus(PresenceStatus.DND);
         } else if (BotHolder.getJDA().getGuilds().stream().anyMatch(g -> g.getAudioManager().isConnected())) {
-            String presence = "over the vc ✅";
+            String presence = vcMessage;
             if (presence.equals(lastPresenceMessage) && !forced) return;
-            setPresence(presence, "watching");
-            setStatus("online");
+            setPresence(presence, PresenceActivity.WATCHING);
+            setStatus(PresenceStatus.ONLINE);
         } else {
-            String presence = getDefaultPresenceMessage();
+            String presence = idleMessage;
             if (presence.equals(lastPresenceMessage) && !forced) return;
             defaultPresence();
         }
