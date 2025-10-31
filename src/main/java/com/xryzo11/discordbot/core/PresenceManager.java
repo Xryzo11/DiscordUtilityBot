@@ -40,7 +40,7 @@ public class PresenceManager extends ListenerAdapter {
 
     private void setPresence(String message, PresenceActivity type) {
         if (!Objects.equals(lastPresenceMessage, message)) {
-            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
+            if (BotSettings.isDebug()) System.out.println("[PresenceManager] Setting presence: " + type + " " + message);
             lastPresenceMessage = message;
         }
 
@@ -55,7 +55,7 @@ public class PresenceManager extends ListenerAdapter {
     private void setStatus(PresenceStatus status) {
         String statusStr = status.toString();
         if (!statusStr.equals(lastStatus)) {
-            if (Config.isDebugEnabled()) System.out.println("[PresenceManager] Setting status: " + status);
+            if (BotSettings.isDebug()) System.out.println("[PresenceManager] Setting status: " + status);
             lastStatus = statusStr;
         }
 

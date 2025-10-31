@@ -1,5 +1,6 @@
 package com.xryzo11.discordbot.listeners;
 
+import com.xryzo11.discordbot.core.BotSettings;
 import com.xryzo11.discordbot.core.Config;
 import com.xryzo11.discordbot.misc.RoleRestorer;
 import net.dv8tion.jda.api.entities.Guild;
@@ -15,7 +16,7 @@ public class GuildJoinListener extends ListenerAdapter {
         Member member = event.getMember();
         Guild guild = event.getGuild();
 
-        if (Config.isDebugEnabled()) System.out.println("[JoinListener] New member joined: " + member.getEffectiveName());
+        if (BotSettings.isDebug()) System.out.println("[JoinListener] New member joined: " + member.getEffectiveName());
 
         RoleRestorer.restoreRole(event);
     }
