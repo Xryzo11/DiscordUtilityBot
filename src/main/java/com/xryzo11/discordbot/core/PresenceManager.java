@@ -49,7 +49,6 @@ public class PresenceManager extends ListenerAdapter {
             case LISTENING -> jda.getPresence().setActivity(Activity.listening(message));
             case WATCHING -> jda.getPresence().setActivity(Activity.watching(message));
             case STREAMING -> jda.getPresence().setActivity(Activity.streaming(message, "https://twitch.tv/xryzo11"));
-            default -> jda.getPresence().setActivity(Activity.playing(message));
         }
     }
 
@@ -65,7 +64,6 @@ public class PresenceManager extends ListenerAdapter {
             case IDLE -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.IDLE);
             case DND -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.DO_NOT_DISTURB);
             case INVISIBLE -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.INVISIBLE);
-            default -> jda.getPresence().setStatus(net.dv8tion.jda.api.OnlineStatus.ONLINE);
         }
     }
 
