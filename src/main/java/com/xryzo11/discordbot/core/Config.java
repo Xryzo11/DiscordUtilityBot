@@ -56,6 +56,9 @@ public class Config {
                                     String spotifyClientSecret,
                                     boolean limitPlaylist,
                                     boolean autoKickEnabled,
+                                    boolean autoKickAuto,
+                                    boolean tempRoleEnabled,
+                                    boolean tempRoleAuto,
                                     boolean debugEnabled) {
         try (FileWriter writer = new FileWriter(configFile)) {
             writer.write("#################################\n");
@@ -68,7 +71,7 @@ public class Config {
             writer.write("# Web panel requires authentication [true/false]\n");
             writer.write("web.auth.enabled=" + webAuthEnabled + "\n\n");
 
-            writer.write("# Web panel password [string]\n");
+            writer.write("# Web panel password (requires web.auth.enabled) [string]\n");
             writer.write("web.auth.password=" + webAuthPassword + "\n\n");
 
             writer.write("# Http web panel port [int]\n");
@@ -77,7 +80,7 @@ public class Config {
             writer.write("# Enable automatic restarts (only when bot is unused) [true/false]\n");
             writer.write("auto.restart.enabled=" + autoRestartEnabled + "\n\n");
 
-            writer.write("# Automatic restart hour (24-hour format) [int]h\n");
+            writer.write("# Automatic restart hour (24-hour format, requires auto.restart.enabled) [int]h\n");
             writer.write("auto.restart.hour=" + autoRestartHour + "\n\n");
 
             writer.write("# Automatically update config by removing and creating a new one (with current settings) [true/false]\n");
@@ -96,10 +99,10 @@ public class Config {
             writer.write("# Enable pre-loaded tracks [true/false]\n");
             writer.write("audio.preloaded=" + audioPreloaded + "\n\n");
 
-            writer.write("# Pre-loaded directory [string]\n");
+            writer.write("# Pre-loaded directory (requires audio.preloaded) [string]\n");
             writer.write("audio.preloaded.directory=" + audioPreloadedDirectory + "\n\n");
 
-            writer.write("# Copy tracks from preloaded dir to audio dir on startup (faster playback) [true/false]\n");
+            writer.write("# Copy tracks from preloaded dir to audio dir on startup (faster playback, requires audio.preloaded) [true/false]\n");
             writer.write("audio.preloaded.copy=" + audioPreloadedCopy + "\n\n");
 
             writer.write("# Automatically remove non-preloaded audio files on startup [true/false]\n");
@@ -111,7 +114,7 @@ public class Config {
             writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
             writer.write("audio.yt.cookies=" + audioYtCookies + "\n\n");
 
-            writer.write("# Which browser to use for cookies [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
+            writer.write("# Which browser to use for cookies (requires audio.yt.cookies) [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
             writer.write("audio.yt.cookies.browser=" + audioYtCookiesBrowser + "\n\n");
 
             writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip, uses 'yt-dlp -U' otherwise) [true/false]\n");
@@ -123,15 +126,24 @@ public class Config {
             writer.write("# Spotify Client Secret (required for Spotify playlist support) [string]\n");
             writer.write("spotify.client.secret=" + spotifyClientSecret + "\n\n");
 
-            writer.write("# Limit max Youtube/Spotify playlist size to 250 (doesnt limit queue size, | false = infinite) [true/false]\n");
+            writer.write("# Limit max Youtube/Spotify playlist size to 250 (doesn't limit queue size | false = infinite) [true/false]\n");
             writer.write("audio.limit.playlist=" + limitPlaylist + "\n\n");
 
             writer.write("\n\n#################################\n");
             writer.write("# MISC SETTINGS\n");
             writer.write("#################################\n\n");
 
-            writer.write("# Enable auto-kick automatically in web panel [true/false]\n");
+            writer.write("# Enable auto-kick functionality [true/false]\n");
             writer.write("auto.kick.enabled=" + autoKickEnabled + "\n\n");
+
+            writer.write("# Enable auto-kick automatically in web panel (requires auto.kick.enabled) [true/false]\n");
+            writer.write("auto.kick.auto=" + autoKickAuto + "\n\n");
+
+            writer.write("# Enable temporary role functionality [true/false]\n");
+            writer.write("temp.role.enabled=" + tempRoleEnabled + "\n\n");
+
+            writer.write("# Enable temporary role automatically in web panel (requires temp.role.enabled) [true/false]\n");
+            writer.write("temp.role.auto=" + tempRoleAuto + "\n\n");
 
             writer.write("# Enable debug automatically in web panel [true/false]\n");
             writer.write("debug.enabled=" + debugEnabled + "\n\n");
@@ -161,6 +173,9 @@ public class Config {
                 false,
                 "YOUR_SPOTIFY_CLIENT_ID_HERE",
                 "YOUR_SPOTIFY_CLIENT_SECRET_HERE",
+                true,
+                true,
+                true,
                 true,
                 true,
                 false
@@ -193,6 +208,9 @@ public class Config {
                     getSpotifyClientSecret(),
                     isLimitPlaylistEnabled(),
                     isAutoKickEnabled(),
+                    isAutoKickAutoEnabled(),
+                    isTempRoleEnabled(),
+                    isTempRoleAutoEnabled(),
                     isDebugEnabled()
             );
             System.out.println("[config] Config file updated successfully.");
@@ -285,6 +303,18 @@ public class Config {
 
     public static boolean isAutoKickEnabled() {
         return Boolean.parseBoolean(properties.getProperty("auto.kick.enabled", "true"));
+    }
+
+    public static boolean isAutoKickAutoEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("auto.kick.auto", "true"));
+    }
+
+    public static boolean isTempRoleEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("temp.role.enabled", "true"));
+    }
+
+    public static boolean isTempRoleAutoEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("temp.role.auto", "true"));
     }
 
     public static boolean isDebugEnabled() {

@@ -1,5 +1,6 @@
 package com.xryzo11.discordbot.utils.listeners;
 
+import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.core.BotSettings;
 import net.dv8tion.jda.api.entities.Guild;
@@ -15,19 +16,37 @@ public class VoiceUpdateListener extends ListenerAdapter {
             String channel = event.getChannelJoined().getName();
             long channelId = event.getChannelJoined().getIdLong();
             long userId = event.getMember().getUser().getIdLong();
+
             if (BotSettings.isDebug()) {
-                System.out.println("[wywozBindingManager]" + user + " joined voice channel: " + channel);
+                System.out.println("[VoiceUpdateListener] " + user + " joined voice channel: " + channel);
             }
+
             if (BotSettings.isWywozSmieci()) {
                 if (WywozBindingManager.isBound(userId, channelId)) {
-                    Member member = event.getGuild().getMemberById(userId);
-                    Guild guild = event.getGuild();
-                    if (member != null && guild != null) {
-                        guild.kickVoiceMember(member).queue();
-                        System.out.println("[wywozBindingManager] Wywoz smieci (" + user + " | " + channel + ")");
-                    } else {
-                        System.out.println("[wywozBindingManager] Blad z wywozem smieci  (" + user + " | " + channel + ")");
-                    }
+                    WywozBindingManager.execute(event, userId, user, channel);
+                }
+            }
+
+            if (BotSettings.isTempRole()) {
+                if (TempRoleManager.isBound(channelId)) {
+                    TempRoleManager.execute(event, userId, user, channel, true);
+                }
+            }
+        }
+
+        if (event.getChannelLeft() != null) {
+            String user = event.getMember().getEffectiveName();
+            String channel = event.getChannelLeft().getName();
+            long channelId = event.getChannelLeft().getIdLong();
+            long userId = event.getMember().getUser().getIdLong();
+
+            if (BotSettings.isDebug()) {
+                System.out.println("[VoiceUpdateListener] " + user + " left voice channel: " + channel);
+            }
+
+            if (BotSettings.isTempRole()) {
+                if (TempRoleManager.isBound(channelId)) {
+                    TempRoleManager.execute(event, userId, user, channel, false);
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.xryzo11.discordbot;
 
 import com.xryzo11.discordbot.core.*;
+import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.utils.listeners.*;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.musicBot.AudioProcessor;
@@ -15,6 +16,8 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,12 +60,21 @@ public class DiscordBot {
         musicBot = new MusicBot();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
-                .enableIntents(GatewayIntent.GUILD_MEMBERS)
-                .addEventListeners(new VoiceUpdateListener())
-                .addEventListeners(new SlashCommandListener())
-                .addEventListeners(new AutoCompleteListener())
-                .addEventListeners(new ReactionListener())
-                .addEventListeners(new GuildJoinListener())
+                .enableIntents(
+                        GatewayIntent.GUILD_MEMBERS,
+                        GatewayIntent.GUILD_VOICE_STATES,
+                        GatewayIntent.GUILD_MESSAGE_REACTIONS,
+                        GatewayIntent.GUILD_MESSAGES
+                )
+                .addEventListeners(
+                        new VoiceUpdateListener(),
+                        new SlashCommandListener(),
+                        new AutoCompleteListener(),
+                        new ReactionListener(),
+                        new GuildJoinListener()
+                )
+                .setChunkingFilter(ChunkingFilter.ALL)
+                .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         presenceManager = new PresenceManager(jda);
         jda.addEventListener(presenceManager);
@@ -115,6 +127,7 @@ public class DiscordBot {
                     Commands.slash("restore", "Restore roles from the old server")
             ).queue();
         }
+        TempRoleManager.loadTempRoles();
         WywozBindingManager.loadBindings();
         Dashboard.start();
     }
