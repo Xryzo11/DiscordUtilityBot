@@ -7,7 +7,12 @@ import java.io.FileWriter;
 
 public class ScriptGenerator {
     public static void main(String[] args) {
-        createNewScripts("target" + File.separator);
+        String libDirectory = "target" + File.separator + "libs" + File.separator;
+        File libDir = new File(libDirectory);
+        if (!libDir.exists()) {
+            libDir.mkdirs();
+        }
+        createNewScripts(libDirectory);
     }
 
     public static void createNewScripts(String directory) {
@@ -20,7 +25,7 @@ public class ScriptGenerator {
             version = pkg.getImplementationVersion();
             jarName = artifactId + "-" + version + "-shaded.jar";
         }
-        createStartScript(directory);
+        createStartScript(directory + File.separator + "..");
         createStartParamsScript(jarName, directory);
         createRestartScript(jarName, directory);
     }
@@ -36,7 +41,7 @@ public class ScriptGenerator {
                 fw.write("source /etc/profile\n");
                 fw.write("while (true); do\n");
                 fw.write("  clear\n");
-                fw.write("  ./start-params.sh\n");
+                fw.write("  ./libs/start-params.sh\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");
             }

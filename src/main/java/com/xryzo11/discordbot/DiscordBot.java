@@ -37,6 +37,7 @@ public class DiscordBot {
     public static MusicBot musicBot;
     public static PresenceManager presenceManager;
     public static String configDirectory = workingDirectory + File.separator + "config" + File.separator;
+    public static String libsDirectory = workingDirectory + File.separator + "libs" + File.separator;
 
     public static void main(String[] args) throws Exception {
         System.out.print("\n");
@@ -44,14 +45,18 @@ public class DiscordBot {
         System.out.println("Last restart: " + lastRestart);
         System.out.print("\n");
         File configDir = new File(configDirectory);
+        File libsDir = new File(libsDirectory);
         if (!configDir.exists()) {
             configDir.mkdirs();
+        }
+        if (!libsDir.exists()) {
+            libsDir.mkdirs();
         }
         if (Config.isConfigUpdateEnabled()) {
             Config.updateConfig();
             System.out.println("\n");
         }
-        ScriptGenerator.createNewScripts(workingDirectory + File.separator);
+        ScriptGenerator.createNewScripts(libsDirectory + File.separator);
         if (Config.isAudioCleanupEnabled()) AudioProcessor.cleanupAudioDirectory();
         if (Config.isAutoRestartEnabled()) {
             restart(() -> {
@@ -176,12 +181,12 @@ public class DiscordBot {
             System.out.println("Skipping restart");
             return;
         }
-        ProcessBuilder process = new ProcessBuilder("./restart.sh");
+        ProcessBuilder process = new ProcessBuilder("./libs/restart.sh");
         process.start();
     }
 
     public static void forceRestart() throws IOException {
-        ProcessBuilder process = new ProcessBuilder("./restart.sh");
+        ProcessBuilder process = new ProcessBuilder("./libs/restart.sh");
         process.start();
     }
 }
