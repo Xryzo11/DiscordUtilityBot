@@ -58,7 +58,7 @@ public class DiscordBot {
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
                 .enableIntents(GatewayIntent.GUILD_MEMBERS)
-                .addEventListeners(new VoiceJoinListener())
+                .addEventListeners(new VoiceUpdateListener())
                 .addEventListeners(new SlashCommandListener())
                 .addEventListeners(new AutoCompleteListener())
                 .addEventListeners(new ReactionListener())
