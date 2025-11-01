@@ -1,12 +1,14 @@
 package com.xryzo11.discordbot.core;
 
+import com.xryzo11.discordbot.DiscordBot;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Properties;
 
 public class Config {
-    private static final String CONFIG_FILE = "config.properties";
+    private static final String CONFIG_FILE = DiscordBot.configDirectory + "config.properties";
     private static Properties properties;
     private static String webPassword = null;
     private static final File configFile;

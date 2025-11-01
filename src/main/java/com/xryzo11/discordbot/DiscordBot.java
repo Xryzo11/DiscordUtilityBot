@@ -36,12 +36,17 @@ public class DiscordBot {
     public static String workingDirectory = System.getProperty("user.dir");
     public static MusicBot musicBot;
     public static PresenceManager presenceManager;
+    public static String configDirectory = workingDirectory + File.separator + "config" + File.separator;
 
     public static void main(String[] args) throws Exception {
         System.out.print("\n");
         System.out.println("File: " + fullVersion);
         System.out.println("Last restart: " + lastRestart);
         System.out.print("\n");
+        File configDir = new File(configDirectory);
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
         if (Config.isConfigUpdateEnabled()) {
             Config.updateConfig();
             System.out.println("\n");

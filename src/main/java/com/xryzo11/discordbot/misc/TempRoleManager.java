@@ -2,6 +2,7 @@ package com.xryzo11.discordbot.misc;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotSettings;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TempRoleManager {
-    private static final String FILE_PATH = "temp-roles.json";
+    private static final String FILE_PATH = DiscordBot.configDirectory + "temp-roles.json";
     private static final Gson gson = new Gson();
     public static List<TempRole> tempRoles = new ArrayList<>();
 

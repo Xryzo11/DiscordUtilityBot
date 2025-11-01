@@ -2,6 +2,7 @@ package com.xryzo11.discordbot.misc;
 
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotSettings;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -12,7 +13,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 public class WywozBindingManager {
-    private static final String FILE_PATH = "bindings.json";
+    private static final String FILE_PATH = DiscordBot.configDirectory + "bindings.json";
     private static final Gson gson = new Gson();
     private static List<Binding> bindings = new ArrayList<>();
 
