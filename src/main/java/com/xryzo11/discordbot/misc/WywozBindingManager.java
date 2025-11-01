@@ -3,6 +3,9 @@ package com.xryzo11.discordbot.misc;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.xryzo11.discordbot.core.BotSettings;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -54,11 +57,17 @@ public class WywozBindingManager {
         b.channelId = channelId;
         b.enabled = true;
         bindings.add(b);
+        if (BotSettings.isDebug()) {
+            System.out.println("[wywozBindingManager] Added binding: userId=" + userId + ", channelId=" + channelId);
+        }
         saveBindings();
     }
 
     public static void removeBinding(long userId, long channelId) {
         bindings.removeIf(b -> b.userId == userId && b.channelId == channelId);
+        if (BotSettings.isDebug()) {
+            System.out.println("[wywozBindingManager] Removed binding: userId=" + userId + ", channelId=" + channelId);
+        }
         saveBindings();
     }
 
@@ -67,19 +76,12 @@ public class WywozBindingManager {
     }
 
     public static void setBindingEnabled(long userId, long channelId, boolean enabled) {
-        if (BotSettings.isDebug()) {
-            System.out.println("[wywozBindingManager] setBindingEnabled called: userId=" + userId + ", channelId=" + channelId + ", enabled=" + enabled);
-            System.out.println("[wywozBindingManager] Current bindings:");
-            for (Binding b : bindings) {
-                System.out.println("[wywozBindingManager]  userId=" + b.userId + ", channelId=" + b.channelId + ", enabled=" + b.enabled);
-            }
-        }
         boolean found = false;
         for (Binding b : bindings) {
             if (b.userId == userId && b.channelId == channelId) {
                 b.enabled = enabled;
                 found = true;
-                System.out.println("[wywozBindingManager] Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
+                if (BotSettings.isDebug()) System.out.println("[wywozBindingManager] Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
                 break;
             }
         }
@@ -87,5 +89,16 @@ public class WywozBindingManager {
             if (BotSettings.isDebug()) System.out.println("[wywozBindingManager] No matching binding found to update!");
         }
         saveBindings();
+    }
+
+    public static void execute(GuildVoiceUpdateEvent event, long userId, String user, String channel) {
+        Member member = event.getGuild().getMemberById(userId);
+        Guild guild = event.getGuild();
+        if (member != null && guild != null) {
+            guild.kickVoiceMember(member).queue();
+            System.out.println("[wywozBindingManager] Wywoz smieci (" + user + " | " + channel + ")");
+        } else {
+            System.out.println("[wywozBindingManager] Blad z wywozem smieci  (" + user + " | " + channel + ")");
+        }
     }
 }
