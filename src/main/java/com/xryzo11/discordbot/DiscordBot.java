@@ -1,6 +1,7 @@
 package com.xryzo11.discordbot;
 
 import com.xryzo11.discordbot.core.*;
+import com.xryzo11.discordbot.leaderboard.LeaderboardManager;
 import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.utils.listeners.*;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
@@ -36,6 +37,7 @@ public class DiscordBot {
     public static String workingDirectory = System.getProperty("user.dir");
     public static MusicBot musicBot;
     public static PresenceManager presenceManager;
+    public static LeaderboardManager leaderboardManager;
     public static String configDirectory = workingDirectory + File.separator + "config" + File.separator;
     public static String libsDirectory = workingDirectory + File.separator + "libs" + File.separator;
 
@@ -89,6 +91,7 @@ public class DiscordBot {
         presenceManager = new PresenceManager(jda);
         jda.addEventListener(presenceManager);
         BotHolder.setJDA(jda);
+        leaderboardManager = new LeaderboardManager();
         jda.awaitReady();
         jda.updateCommands().queue();
         OptionData rpsChoices = new OptionData(OptionType.STRING, "choice", "rock / paper / scissors", true)
