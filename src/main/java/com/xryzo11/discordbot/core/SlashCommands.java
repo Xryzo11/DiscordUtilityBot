@@ -2,6 +2,7 @@ package com.xryzo11.discordbot.core;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.xryzo11.discordbot.DiscordBot;
+import com.xryzo11.discordbot.leaderboard.LeaderboardManager;
 import com.xryzo11.discordbot.misc.DiceRoll;
 import com.xryzo11.discordbot.misc.RockPaperScissors;
 import com.xryzo11.discordbot.misc.RoleRestorer;
@@ -23,6 +24,7 @@ public class SlashCommands {
     public final MusicBot bot = DiscordBot.musicBot;
     private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private Runnable updatePresence = () -> DiscordBot.presenceManager.updatePresence();
+    private final LeaderboardManager leaderboardManager = DiscordBot.leaderboardManager;
 
     public static void safeDefer(SlashCommandInteractionEvent event) {
         if (!event.isAcknowledged()) {
@@ -115,6 +117,9 @@ public class SlashCommands {
                 break;
             case "restore":
                 RoleRestorer.restoreRole(event);
+                break;
+            case "leaderboard":
+                handleLeaderboardCommand(event);
                 break;
         }
 
@@ -505,5 +510,22 @@ public class SlashCommands {
 
        safeDefer(event);
        DiceRoll.rollDice(event, sides, count);
+   }
+
+   private void handleLeaderboardCommand(SlashCommandInteractionEvent event) {
+       safeDefer(event, true);
+       String leaderboard;
+       if (event.getOption("user" ) != null) {
+           try {
+               Member member = event.getOption("user").getAsMember();
+               leaderboard = leaderboardManager.memberLeaderboardToString(member);
+           } catch (Exception e) {
+               event.getHook().editOriginal("❌ Could not retrieve user stats. Make sure the user has sent messages in this server.").queue();
+               return;
+           }
+       } else {
+           leaderboard = leaderboardManager.topLeaderboardToString();
+       }
+       event.getHook().editOriginal(leaderboard).queue();
    }
 }
