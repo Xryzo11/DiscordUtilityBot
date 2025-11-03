@@ -85,10 +85,9 @@ public class AudioProcessor {
             try {
                 List<String> command = new ArrayList<>();
                 command.add("yt-dlp");
+//                command.add("list-formats");
                 command.add("-f");
-//                command.add("249/bestaudio/best"); // go back to this if original is broken again, has large file sizes
-//                command.add("\"bestaudio[ext=webm]/bestaudio\""); // wait for fix xdddd
-                command.add("bestaudio[ext=webm]/91/249/bestaudio/best");
+                command.add("bestaudio[ext=webm]/18/91/bestaudio/249/best");
                 command.add("--audio-format");
                 command.add("opus");
                 command.add("-o");
@@ -109,7 +108,7 @@ public class AudioProcessor {
                     command.add(Config.getYtCookiesBrowser());
                 }
                 command.add("--extractor-args");
-                command.add("youtube:player_client=android,web");
+                command.add("youtube:player_client=tv");
                 command.add("--extractor-args");
                 command.add("youtube:player_skip=configs,webpage");
                 if (isUrl) {
@@ -117,9 +116,26 @@ public class AudioProcessor {
                 } else {
                     command.add("ytsearch1:" + youtubeUrl);
                 }
+                String denoPath = resolveExecutable(
+                        "/usr/bin/deno",
+                        "/usr/local/bin/deno",
+                        System.getProperty("user.home") + "/.deno/bin/deno"
+                );
+                if (denoPath != null) {
+                    command.add("--js-runtimes");
+                    command.add("deno=" + denoPath);
+                }
+
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
                 Map<String, String> env = processBuilder.environment();
-                env.put("PATH", System.getenv("PATH") + ":/usr/local/bin:/usr/bin");
+                String path = env.getOrDefault("PATH", System.getenv("PATH"));
+                if (denoPath != null) {
+                    String denoBinDir = new File(denoPath).getParent();
+                    if (denoBinDir != null && !path.contains(denoBinDir)) {
+                        path = path + ":" + denoBinDir;
+                    }
+                }
+                env.put("PATH", path + ":/usr/local/bin:/usr/bin");
 
                 processBuilder.redirectErrorStream(true);
                 Process process = processBuilder.start();
@@ -164,6 +180,13 @@ public class AudioProcessor {
         } while (++retryCount < maxRetries);
 
         throw new IOException("[downloadAndConvert] Download failed after " + maxRetries + " attempts", lastException);
+    }
+
+    private static String resolveExecutable(String... candidates) {
+        for (String c : candidates) {
+            if (c != null && new File(c).canExecute()) return c;
+        }
+        return null;
     }
 
     public static String extractVideoId(String url) {

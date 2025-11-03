@@ -25,10 +25,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -489,13 +486,35 @@ public class MusicBot {
                     List<String> command = new ArrayList<>();
                     command.add("yt-dlp");
                     command.add("--get-id");
+                    command.add("--ignore-errors");
+                    command.add("--no-warnings");
+                    command.add("-q");
                     command.add("ytsearch1:" + query);
                     if (Config.isYtCookiesEnabled()) {
                         command.add("--cookies-from-browser");
                         command.add(Config.getYtCookiesBrowser());
                     }
+                    String denoPath = resolveExecutable(
+                            "/usr/bin/deno",
+                            "/usr/local/bin/deno",
+                            System.getProperty("user.home") + "/.deno/bin/deno"
+                    );
+                    if (denoPath != null) {
+                        command.add("--js-runtimes");
+                        command.add("deno=" + denoPath);
+                    }
 
                     ProcessBuilder processBuilder = new ProcessBuilder(command);
+                    Map<String, String> env = processBuilder.environment();
+                    String path = env.getOrDefault("PATH", System.getenv("PATH"));
+                    if (denoPath != null) {
+                        String denoBinDir = new File(denoPath).getParent();
+                        if (denoBinDir != null && !path.contains(denoBinDir)) {
+                            path = path + ":" + denoBinDir;
+                        }
+                    }
+                    env.put("PATH", path + ":/usr/local/bin:/usr/bin");
+
                     processBuilder.redirectErrorStream(true);
                     Process process = processBuilder.start();
 
@@ -506,7 +525,7 @@ public class MusicBot {
                         while ((line = reader.readLine()) != null) {
                             if (BotSettings.isDebug()) System.out.println("[yt-dlp] " + line);
 
-                            if (line.contains("Deprecated Feature") || line.contains("WARNING")) {
+                            if (line.contains("Deprecated Feature") || line.contains("WARNING") || line.isBlank()) {
                                 continue;
                             }
 
@@ -546,6 +565,13 @@ public class MusicBot {
                 }
             });
         });
+    }
+
+    private static String resolveExecutable(String... candidates) {
+        for (String c : candidates) {
+            if (c != null && new File(c).canExecute()) return c;
+        }
+        return null;
     }
 
     public void preload(SlashCommandInteractionEvent event) {

@@ -6,7 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>DiscordBot</artifactId>
-    <version>1.7.1-SNAPSHOT</version>
+    <version>1.7.2-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>24</maven.compiler.source>
