@@ -2,4 +2,4 @@ Guild id config
 Longer /list + pages
 Music bot keyword blocking (modify existing asmr blocking)
 Toggle bot keyword blocking from web panel
-Chat leaderboard
+Implement levels for leaderboard system
