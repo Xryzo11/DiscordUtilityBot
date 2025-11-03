@@ -70,6 +70,7 @@ public class DiscordBot {
             });
         }
         musicBot = new MusicBot();
+        leaderboardManager = new LeaderboardManager();
         String token = Config.getBotToken();
         JDA jda = JDABuilder.createDefault(token)
                 .enableIntents(
@@ -83,7 +84,8 @@ public class DiscordBot {
                         new SlashCommandListener(),
                         new AutoCompleteListener(),
                         new ReactionListener(),
-                        new GuildJoinListener()
+                        new GuildJoinListener(),
+                        new MessageListener()
                 )
                 .setChunkingFilter(ChunkingFilter.ALL)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
@@ -91,7 +93,6 @@ public class DiscordBot {
         presenceManager = new PresenceManager(jda);
         jda.addEventListener(presenceManager);
         BotHolder.setJDA(jda);
-        leaderboardManager = new LeaderboardManager();
         jda.awaitReady();
         jda.updateCommands().queue();
         OptionData rpsChoices = new OptionData(OptionType.STRING, "choice", "rock / paper / scissors", true)
@@ -137,7 +138,9 @@ public class DiscordBot {
                     Commands.slash("roll", "Roll 'x' sided dice 'y' times (1d6 default)")
                             .addOption(OptionType.INTEGER, "sides", "Number of sides on the dice", false)
                             .addOption(OptionType.INTEGER, "times", "Number of times to roll the dice", false),
-                    Commands.slash("restore", "Restore roles from the old server")
+                    Commands.slash("restore", "Restore roles from the old server"),
+                    Commands.slash("leaderboard", "Show top 10 users on the experience leaderboard")
+                            .addOption(OptionType.USER, "user", "Show specific user rank", false)
             ).queue();
         }
         TempRoleManager.loadTempRoles();
