@@ -199,9 +199,9 @@ public class MusicBot {
         if (currentTrack != null) {
             builder.append("▶️ **Now Playing:** ")
                     .append("[")
-                    .append(formatTime(currentTrack.getPosition()))
+                    .append(formatTime(currentTrack.getPosition() / 1000))
                     .append(" / ")
-                    .append(formatTime(currentTrack.getDuration()))
+                    .append(formatTime(currentTrack.getDuration() / 1000))
                     .append("]\n")
                     .append(formatTrackInfo(currentTrack))
                     .append("\n\n");
