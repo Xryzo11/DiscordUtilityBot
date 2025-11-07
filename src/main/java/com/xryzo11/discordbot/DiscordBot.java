@@ -77,7 +77,8 @@ public class DiscordBot {
                         GatewayIntent.GUILD_MEMBERS,
                         GatewayIntent.GUILD_VOICE_STATES,
                         GatewayIntent.GUILD_MESSAGE_REACTIONS,
-                        GatewayIntent.GUILD_MESSAGES
+                        GatewayIntent.GUILD_MESSAGES,
+                        GatewayIntent.MESSAGE_CONTENT
                 )
                 .addEventListeners(
                         new VoiceUpdateListener(),
