@@ -180,7 +180,12 @@ public class MusicBot {
     private String totalQueueDuration() {
         long totalDuration = 0;
         for (AudioTrack track : trackQueue) {
-            totalDuration += track.getDuration() / 1000;
+            long trackDuration = track.getDuration();
+            if (trackDuration > 0 && trackDuration < TimeUnit.HOURS.toMillis(50)) {
+                totalDuration += trackDuration / 1000;
+            } else {
+                totalDuration += 0;
+            }
         }
         return formatTime(totalDuration);
     }
@@ -249,9 +254,14 @@ public class MusicBot {
         String uri = info.uri;
         String youtubeId = uri.substring(uri.lastIndexOf('/') + 1).replace(".webm", "");
 
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs);
-        long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60;
-        String durationStr = String.format("%d:%02d", minutes, seconds);
+        String durationStr;
+        if (durationMs < 0 || durationMs >= TimeUnit.HOURS.toMillis(50)) {
+            durationStr = "Unknown";
+        } else {
+            long minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs);
+            long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60;
+            durationStr = String.format("%d:%02d", minutes, seconds);
+        }
 
         String youtubeUrl = "https://www.youtube.com/watch?v=" + youtubeId;
         String title = track.getUserData() != null ? track.getUserData().toString() : youtubeId;
@@ -327,6 +337,17 @@ public class MusicBot {
 
                         AtomicBoolean wasCancelled = new AtomicBoolean(false);
 
+                        ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
+                        ScheduledFuture<?> heartbeatTask = heartbeat.scheduleAtFixedRate(() -> {
+                            if (!wasCancelled.get()) {
+                                hook.editOriginal(String.format(
+                                        "⏳ Processing playlist: %d/%d tracks added...",
+                                        addedCount[0],
+                                        totalTracks
+                                )).queue();
+                            }
+                        }, 3, 3, TimeUnit.MINUTES);
+
                         for (int i = 0; i < totalTracks; i++) {
                             if (isCancelled) {
                                 wasCancelled.set(true);
@@ -375,6 +396,8 @@ public class MusicBot {
                                         if (!silent) hook.editOriginal("✅ Playlist processing complete").queueAfter(5, TimeUnit.SECONDS);
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing complete");
                                     }
+                                    heartbeatTask.cancel(false);
+                                    heartbeat.shutdown();
                                 });
 
                     }).exceptionally(e -> {
