@@ -167,10 +167,10 @@ public class MusicBot {
         }
     }
 
-    private String formatTime(long millis) {
-        int hours = (int) TimeUnit.MILLISECONDS.toHours(millis);
-        int minutes = (int) (TimeUnit.MILLISECONDS.toMinutes(millis) % 60);
-        int seconds = (int) (TimeUnit.MILLISECONDS.toSeconds(millis) % 60);
+    private String formatTime(long input) {
+        long hours = (long) TimeUnit.SECONDS.toHours(input);
+        long minutes = (long) (TimeUnit.SECONDS.toMinutes(input) % 60);
+        long seconds = (long) (TimeUnit.SECONDS.toSeconds(input) % 60);
 
         return hours > 0
                 ? String.format("%02d:%02d:%02d", hours, minutes, seconds)
@@ -180,7 +180,7 @@ public class MusicBot {
     private String totalQueueDuration() {
         long totalDuration = 0;
         for (AudioTrack track : trackQueue) {
-            totalDuration += track.getDuration();
+            totalDuration += track.getDuration() / 1000;
         }
         return formatTime(totalDuration);
     }
