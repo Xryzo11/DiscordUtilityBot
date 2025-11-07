@@ -128,27 +128,51 @@ public class SlashCommands {
 
     private void handleJoinCommand(SlashCommandInteractionEvent event) {
         MusicBot.isCancelled = false;
-        Guild guild = event.getGuild();
+        Member member = event.getMember();
+
+        if (checkVoiceConnection(event)) return;
+
+        safeDefer(event);
+
+        VoiceChannel voiceChannel = member.getVoiceState().getChannel().asVoiceChannel();
+
+        joinChannel(event);
+
+        event.getHook().editOriginal("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
+    }
+
+    private boolean checkVoiceConnection(SlashCommandInteractionEvent event) {
         Member member = event.getMember();
 
         if (member == null || !member.getVoiceState().inAudioChannel()) {
             event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
+            return true;
         }
+
+        return isInVoiceChannel(event);
+    }
+
+    private boolean isInVoiceChannel(SlashCommandInteractionEvent event) {
+        Guild guild = event.getGuild();
 
         if (guild.getAudioManager().isConnected()) {
             event.reply("❌ Bot is already in a voice channel!").setEphemeral(true).queue();
-            return;
+            return true;
         }
 
         boolean isConnectedAnywhere = BotHolder.getJDA().getGuilds().stream()
                 .anyMatch(g -> g.getAudioManager().isConnected());
         if (isConnectedAnywhere) {
             event.reply("❌ Bot is already in a voice channel in another server!").setEphemeral(true).queue();
-            return;
+            return true;
         }
 
-        safeDefer(event);
+        return false;
+    }
+
+    private void joinChannel(SlashCommandInteractionEvent event) {
+        Guild guild = event.getGuild();
+        Member member = event.getMember();
 
         VoiceChannel voiceChannel = member.getVoiceState().getChannel().asVoiceChannel();
 
@@ -160,21 +184,24 @@ public class SlashCommands {
         event.getHook().editOriginal("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
     }
 
+    private void joinAndWait(SlashCommandInteractionEvent event) {
+        if (!checkVoiceConnection(event)) {
+            joinChannel(event);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
         MusicBot.isCancelled = false;
         String url = event.getOption("url").getAsString();
         Guild guild = event.getGuild();
         Member member = event.getMember();
 
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
-        }
-
-        if (!guild.getAudioManager().isConnected()) {
-            event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
-            return;
-        }
+        joinAndWait(event);
 
         if (url.contains("spotify")) {
             SpotifyHandler.handleSpotifyUrl(event, url);
@@ -230,15 +257,7 @@ public class SlashCommands {
         Guild guild = event.getGuild();
         Member member = event.getMember();
 
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
-        }
-
-        if (!guild.getAudioManager().isConnected()) {
-            event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
-            return;
-        }
+        joinAndWait(event);
 
         if (query.contains("youtube.com") || query.contains("youtu.be") || query.contains("youtube.pl")) {
             event.reply("❌ Please use /play or /queue for direct URLs").setEphemeral(true).queue();
@@ -414,15 +433,7 @@ public class SlashCommands {
         Member member = event.getMember();
         Guild guild = event.getGuild();
 
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
-        }
-
-        if (!guild.getAudioManager().isConnected()) {
-            event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
-            return;
-        }
+        joinAndWait(event);
 
         bot.addPreloaded(event);
     }
