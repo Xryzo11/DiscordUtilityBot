@@ -8,16 +8,19 @@ import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.utils.comparators.LeaderboardUserComparator;
 
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class LeaderboardManager {
     private List<LeaderboardUser> leaderboardUserList;
@@ -26,6 +29,11 @@ public class LeaderboardManager {
     private static final Gson gson = new Gson();
     private final int delay = 10;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    private static final Random rand = new Random();
+
+    private static final Pattern URL_PATTERN = Pattern.compile("https?://\\S+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern IMAGE_EXT = Pattern.compile("(?i)\\.(jpg|jpeg|png|gif|webp|bmp)(\\?.*)?$");
 
     public LeaderboardManager() {
         if (!LEADERBOARD_FILE.exists()) {
@@ -59,9 +67,42 @@ public class LeaderboardManager {
             if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Adding new user to leaderboard: " + member.getUser().getAsTag());
             leaderboardUserList.add(new LeaderboardUser(userId, 0));
         }
+        Message message = event.getMessage();
+        String messageContent = message.getContentRaw();
+
+        boolean hasLinkInText = URL_PATTERN.matcher(messageContent).find();
+        boolean hasAttachmentImage = message.getAttachments().stream()
+                .anyMatch(attachment -> IMAGE_EXT.matcher(attachment.getFileName()).find());
+        boolean hasImageEmbed = message.getEmbeds().stream()
+                .anyMatch(embed -> embed.getImage() != null || embed.getThumbnail() != null);
+        boolean hasImageUrlInText = URL_PATTERN.matcher(messageContent).results()
+                .anyMatch(m -> IMAGE_EXT.matcher(m.group()).find());
+
+        boolean containsLink = hasLinkInText || message.getEmbeds().stream().anyMatch(e -> e.getUrl() != null);
+        boolean containsImage = hasAttachmentImage || hasImageEmbed || hasImageUrlInText;
+
         for (LeaderboardUser user : leaderboardUserList) {
             if (user.getUserId().equals(userId)) {
-                if (!user.isDelayed()) user.incrementXp();
+                if (!user.isDelayed()) {
+                    int xpGain = 0;
+                    if (messageContent.length() >= 100) {
+                        xpGain = 25;
+                    } else if (messageContent.length() >= 50) {
+                        xpGain = 15;
+                    } else if (messageContent.length() >= 20) {
+                        xpGain = 10;
+                    } else if (!messageContent.isEmpty()) {
+                        xpGain = 1;
+                    }
+                    if (containsLink) {
+                        xpGain += 15;
+                    }
+                    if (containsImage) {
+                        xpGain += 15;
+                    }
+                    xpGain += rand.nextInt(0, 6);
+                    user.incrementXp(xpGain);
+                }
                 user.incrementMessagesSent();
                 user.setDelayed(true);
                 scheduler.schedule(() -> {

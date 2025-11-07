@@ -40,7 +40,7 @@ public class LeaderboardUser {
         this.messagesSent++;
     }
 
-    public void incrementXp() {
-        this.xp++;
+    public void incrementXp(int value) {
+        this.xp += value;
     }
 }
