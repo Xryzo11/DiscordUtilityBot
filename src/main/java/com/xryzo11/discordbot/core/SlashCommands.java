@@ -28,13 +28,13 @@ public class SlashCommands {
 
     public static void safeDefer(SlashCommandInteractionEvent event) {
         if (!event.isAcknowledged()) {
-            event.deferReply().queue();
+            event.deferReply(false).queue();
         }
     }
 
     public static void safeDefer(SlashCommandInteractionEvent event, boolean isEphemeral) {
         if (!event.isAcknowledged()) {
-            event.deferReply().setEphemeral(true).queue();
+            event.deferReply(true).queue();
         }
     }
 
@@ -185,7 +185,8 @@ public class SlashCommands {
     }
 
     private void joinAndWait(SlashCommandInteractionEvent event) {
-        if (!checkVoiceConnection(event)) {
+        Guild guild = event.getGuild();
+        if (!guild.getAudioManager().isConnected()) {
             joinChannel(event);
             try {
                 Thread.sleep(1000);
@@ -198,8 +199,12 @@ public class SlashCommands {
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
         MusicBot.isCancelled = false;
         String url = event.getOption("url").getAsString();
-        Guild guild = event.getGuild();
         Member member = event.getMember();
+
+        if (member == null || !member.getVoiceState().inAudioChannel()) {
+            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+            return;
+        }
 
         joinAndWait(event);
 
@@ -256,6 +261,11 @@ public class SlashCommands {
         String query = event.getOption("query").getAsString();
         Guild guild = event.getGuild();
         Member member = event.getMember();
+
+        if (member == null || !member.getVoiceState().inAudioChannel()) {
+            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+            return;
+        }
 
         joinAndWait(event);
 
@@ -432,6 +442,11 @@ public class SlashCommands {
 
         Member member = event.getMember();
         Guild guild = event.getGuild();
+
+        if (member == null || !member.getVoiceState().inAudioChannel()) {
+            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+            return;
+        }
 
         joinAndWait(event);
 
