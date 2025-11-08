@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.local.LocalAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
@@ -53,6 +54,7 @@ public class MusicBot {
 
         playerManager = new DefaultAudioPlayerManager();
         playerManager.registerSourceManager(new HttpAudioSourceManager());
+        playerManager.registerSourceManager(new LocalAudioSourceManager());
         player = playerManager.createPlayer();
         playerManager.getConfiguration().setFilterHotSwapEnabled(true);
 
@@ -110,6 +112,13 @@ public class MusicBot {
         } catch (IOException e) {
             if (BotSettings.isDebug()) System.out.println("[MusicBot] Failed to update yt-dlp: " + e.getMessage());
         }
+    }
+
+    private static String toLocalFileUri(AudioTrackInfo info) {
+        String last = info.uri.substring(info.uri.lastIndexOf('/') + 1);
+        String videoId = last.replace(".webm", "");
+        File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
+        return audioFile.toURI().toString();
     }
 
     public static void updateYtdlp() throws IOException {
@@ -455,33 +464,28 @@ public class MusicBot {
                         return;
                     }
 
-                    playerManager.loadItem(trackInfo.uri, new AudioLoadResultHandler() {
+                    String filePath = audioFile.getAbsolutePath();
+                    playerManager.loadItem(filePath, new AudioLoadResultHandler() {
                         @Override
                         public void trackLoaded(AudioTrack track) {
                             track.setUserData(trackInfo.title);
                             trackQueue.offer(track);
-
-                            String message = player.getPlayingTrack() == null ?
-                                    "✅ Added and playing: " + trackInfo.title :
-                                    "✅ Added to queue: " + trackInfo.title;
-
+                            String message = player.getPlayingTrack() == null
+                                    ? "✅ Added and playing: " + trackInfo.title
+                                    : "✅ Added to queue: " + trackInfo.title;
                             if (!silent) hook.editOriginal(message).queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] Queued track: " + trackInfo.title);
-
                             if (player.getPlayingTrack() == null) {
                                 playNextTrack();
                             }
                         }
-
                         @Override
                         public void playlistLoaded(AudioPlaylist playlist) {}
-
                         @Override
                         public void noMatches() {
                             if (!silent) hook.editOriginal("❌ No matching audio found").queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] No matches found for ID: " + videoId);
                         }
-
                         @Override
                         public void loadFailed(FriendlyException exception) {
                             if (!silent) hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
@@ -704,14 +708,21 @@ public class MusicBot {
         queue(event.getHook(), videoUrl, false);
     }
 
+    private static String toLocalFilePath(AudioTrackInfo info) {
+        String last = info.uri.substring(info.uri.lastIndexOf('/') + 1);
+        String videoId = last.replace(".webm", "");
+        File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
+        return audioFile.getAbsolutePath();
+    }
+
     private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, int[] addedCount, int totalTracks) {
         if (isCancelled) {
             hook.editOriginal("❗ Playlist processing cancelled").queue();
             if (BotSettings.isDebug()) System.out.println("[loadTrack] Playlist processing cancelled");
             return;
         }
-
-        playerManager.loadItem(processedTrack.uri, new AudioLoadResultHandler() {
+        String filePath = toLocalFilePath(processedTrack);
+        playerManager.loadItem(filePath, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
                 track.setUserData(processedTrack.title);
@@ -723,20 +734,15 @@ public class MusicBot {
                 trackQueue.offer(track);
                 synchronized (addedCount) {
                     addedCount[0]++;
-                    hook.editOriginal(String.format("✅ Queued: %s\n%d/%d",
-                            processedTrack.title, addedCount[0], totalTracks)).queue();
+                    hook.editOriginal(String.format("✅ Queued: %s\n%d/%d", processedTrack.title, addedCount[0], totalTracks)).queue();
                     if (BotSettings.isDebug()) System.out.println("[loadTrack] Queued track: " + processedTrack.title);
                 }
                 if (player.getPlayingTrack() == null) {
                     playNextTrack();
                 }
             }
-
-            @Override
-            public void playlistLoaded(AudioPlaylist playlist) {}
-
-            @Override
-            public void noMatches() {
+            @Override public void playlistLoaded(AudioPlaylist playlist) {}
+            @Override public void noMatches() {
                 if (isCancelled) {
                     hook.editOriginal("❗ Playlist processing cancelled").queue();
                     if (BotSettings.isDebug()) System.out.println("[noMatches] Playlist processing cancelled");
@@ -744,14 +750,11 @@ public class MusicBot {
                 }
                 synchronized (addedCount) {
                     addedCount[0]++;
-                    hook.editOriginal(String.format("❌ No matches found\n%d/%d",
-                            addedCount[0], totalTracks)).queue();
+                    hook.editOriginal(String.format("❌ No matches found\n%d/%d", addedCount[0], totalTracks)).queue();
                     if (BotSettings.isDebug()) System.out.println("[loadTrack] No matches found for track: " + processedTrack.title);
                 }
             }
-
-            @Override
-            public void loadFailed(FriendlyException exception) {
+            @Override public void loadFailed(FriendlyException exception) {
                 if (isCancelled) {
                     hook.editOriginal("❗ Playlist processing cancelled").queue();
                     if (BotSettings.isDebug()) System.out.println("[loadFailed] Playlist processing cancelled");
@@ -759,8 +762,7 @@ public class MusicBot {
                 }
                 synchronized (addedCount) {
                     addedCount[0]++;
-                    hook.editOriginal(String.format("❌ Failed to load track\n%d/%d",
-                            addedCount[0], totalTracks)).queue();
+                    hook.editOriginal(String.format("❌ Failed to load track\n%d/%d", addedCount[0], totalTracks)).queue();
                     if (BotSettings.isDebug()) System.out.println("[loadTrack] Failed to load track: " + exception.getMessage());
                 }
             }

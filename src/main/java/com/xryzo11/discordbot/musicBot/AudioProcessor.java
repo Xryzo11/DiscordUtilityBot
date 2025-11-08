@@ -46,6 +46,9 @@ public class AudioProcessor {
                 File infoFile = new File(AUDIO_DIR + videoId + ".webm.info.json");
 
                 if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
+                    if (audioFile.length() < 1024) {
+                        throw new IOException("[processYouTubeAudio] Audio file is too small");
+                    }
                     return loadMetadataFromJson(videoId, httpUrl);
                 }
 
@@ -65,6 +68,9 @@ public class AudioProcessor {
                         Thread.sleep(100);
                     }
                     if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
+                        if (audioFile.length() < 1024) {
+                            throw new IOException("[processYouTubeAudio] Audio file is too small");
+                        }
                         return loadMetadataFromJson(videoId, httpUrl);
                     } else {
                         throw new IOException("[processYouTubeAudio] Audio file not available after waiting");
@@ -87,9 +93,14 @@ public class AudioProcessor {
                 command.add("yt-dlp");
 //                command.add("list-formats");
                 command.add("-f");
-                command.add("bestaudio[ext=webm]/18/91/bestaudio/249/best");
-                command.add("--audio-format");
-                command.add("opus");
+//                command.add("bestaudio[ext=webm]/18/91/bestaudio/249/best");
+//                command.add("bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio");
+                command.add("251/250/249");
+//                command.add("--audio-format");
+//                command.add("opus");
+                command.add("--audio-quality");
+                command.add("0");
+                command.add("--no-restrict-filenames");
                 command.add("-o");
                 if (isUrl) {
                     command.add(outputFile);
