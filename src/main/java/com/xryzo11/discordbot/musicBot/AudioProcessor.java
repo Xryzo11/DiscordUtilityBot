@@ -115,8 +115,11 @@ public class AudioProcessor {
                 command.add("--no-check-certificate");
                 command.add("--geo-bypass");
                 if (Config.isYtCookiesEnabled()) {
-                    command.add("--cookies-from-browser");
-                    command.add(Config.getYtCookiesBrowser());
+                    switch (Config.getYtCookiesSource()) {
+                        case "file" -> command.add("--cookies");
+                        case "browser" -> command.add("--cookies-from-browser");
+                    }
+                    command.add(Config.getYtCookies());
                 }
                 command.add("--extractor-args");
                 command.add("youtube:player_client=tv");

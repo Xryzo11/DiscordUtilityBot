@@ -518,8 +518,11 @@ public class MusicBot {
                     command.add("-q");
                     command.add("ytsearch1:" + query);
                     if (Config.isYtCookiesEnabled()) {
-                        command.add("--cookies-from-browser");
-                        command.add(Config.getYtCookiesBrowser());
+                        switch (Config.getYtCookiesSource()) {
+                            case "file" -> command.add("--cookies");
+                            case "browser" -> command.add("--cookies-from-browser");
+                        }
+                        command.add(Config.getYtCookies());
                     }
                     String denoPath = resolveExecutable(
                             "/usr/bin/deno",
@@ -624,8 +627,11 @@ public class MusicBot {
                 command.add("--no-check-certificate");
                 command.add("--geo-bypass");
                 if (Config.isYtCookiesEnabled()) {
-                    command.add("--cookies-from-browser");
-                    command.add(Config.getYtCookiesBrowser());
+                    switch (Config.getYtCookiesSource()) {
+                        case "file" -> command.add("--cookies");
+                        case "browser" -> command.add("--cookies-from-browser");
+                    }
+                    command.add(Config.getYtCookies());
                 }
                 command.add("--extractor-args");
                 command.add("youtube:player_client=android,web");

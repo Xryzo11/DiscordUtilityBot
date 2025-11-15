@@ -4,11 +4,14 @@ import com.xryzo11.discordbot.DiscordBot;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Properties;
 
 public class Config {
-    private static final String CONFIG_FILE = DiscordBot.configDirectory + "config.properties";
+    private static final String CONFIG_FILE_PATH = DiscordBot.configDirectory;
+    private static final String CONFIG_FILE_NAME = "config.properties";
+    private static final String CONFIG_FILE = CONFIG_FILE_PATH + CONFIG_FILE_NAME;
     private static Properties properties;
     private static String webPassword = null;
     private static final File configFile;
@@ -37,7 +40,8 @@ public class Config {
 
     }
 
-    private static void writeConfig(String botToken,
+    private static void writeConfig(File newConfigFile,
+                                    String botToken,
                                     boolean webAuthEnabled,
                                     String webAuthPassword,
                                     int webPort,
@@ -52,6 +56,8 @@ public class Config {
                                     boolean audioCleanup,
                                     boolean audioBlockAsmr,
                                     boolean audioYtCookies,
+                                    String audioYtCookiesSource,
+                                    String audioYtCookiesPath,
                                     String audioYtCookiesBrowser,
                                     boolean updateYtDlp,
                                     String spotifyClientId,
@@ -62,7 +68,7 @@ public class Config {
                                     boolean tempRoleEnabled,
                                     boolean tempRoleAuto,
                                     boolean debugEnabled) {
-        try (FileWriter writer = new FileWriter(configFile)) {
+        try (FileWriter writer = new FileWriter(newConfigFile)) {
             writer.write("#################################\n");
             writer.write("# CORE SETTINGS\n");
             writer.write("#################################\n\n");
@@ -116,7 +122,13 @@ public class Config {
             writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
             writer.write("audio.yt.cookies=" + audioYtCookies + "\n\n");
 
-            writer.write("# Which browser to use for cookies (requires audio.yt.cookies) [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
+            writer.write("# Where to source cookies from (requires audio.yt.cookies) [file/browser]\n");
+            writer.write("audio.yt.cookies.source=" + audioYtCookiesSource + "\n\n");
+
+            writer.write("# Path to cookies file (requires audio.yt.cookies and audio.yt.cookies.source=file) [string]\n");
+            writer.write("audio.yt.cookies.file=" + audioYtCookiesPath + "\n\n");
+
+            writer.write("# Which browser to use for cookies (requires audio.yt.cookies and audio.yt.cookies.source=browser) [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
             writer.write("audio.yt.cookies.browser=" + audioYtCookiesBrowser + "\n\n");
 
             writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip, uses 'yt-dlp -U' otherwise) [true/false]\n");
@@ -156,6 +168,7 @@ public class Config {
 
     private static void createDefaultConfig() {
         writeConfig(
+                configFile,
                 "YOUR_BOT_TOKEN",
                 true,
                 "YOUR_PASSWORD_HERE",
@@ -171,6 +184,8 @@ public class Config {
                 true,
                 false,
                 false,
+                "browser",
+                "YOUR_YT_COOKIES_FILE_PATH_HERE",
                 "chrome",
                 false,
                 "YOUR_SPOTIFY_CLIENT_ID_HERE",
@@ -186,39 +201,68 @@ public class Config {
 
     public static void updateConfig() {
         System.out.println("[config] Updating config file...");
-        configFile.delete();
         if (!configFile.exists()) {
-            writeConfig(
-                    getBotToken(),
-                    isWebAuthEnabled(),
-                    properties.getProperty("web.auth.password"),
-                    getWebPort(),
-                    isAutoRestartEnabled(),
-                    getAutoRestartHour(),
-                    isConfigUpdateEnabled(),
-                    getAudioPort(),
-                    getAudioDirectory(),
-                    isPreloadedEnabled(),
-                    getPreloadedDirectory(),
-                    isPreloadedCopyEnabled(),
-                    isAudioCleanupEnabled(),
-                    isAsmrBlockEnabled(),
-                    isYtCookiesEnabled(),
-                    getYtCookiesBrowser(),
-                    isYtDlpUpdateEnabled(),
-                    getSpotifyClientId(),
-                    getSpotifyClientSecret(),
-                    isLimitPlaylistEnabled(),
-                    isAutoKickEnabled(),
-                    isAutoKickAutoEnabled(),
-                    isTempRoleEnabled(),
-                    isTempRoleAutoEnabled(),
-                    isDebugEnabled()
-            );
+            try {
+                updateConfig(configFile);
+            } catch (Exception e) {
+                System.err.println("[config] Failed to create config file: " + e.getMessage());
+                return;
+            }
             System.out.println("[config] Config file updated successfully.");
         } else {
-            System.out.println("[config] Config file didn't remove. Not updating.");
+            File tempFile = new File(CONFIG_FILE + ".tmp");
+            try {
+                updateConfig(tempFile);
+                if (!tempFile.exists()) {
+                    System.err.println("[config] Failed to create temporary config file for update. Aborting.");
+                    return;
+                }
+                configFile.delete();
+                Files.copy(tempFile.toPath(), configFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                if (!configFile.exists()) {
+                    System.err.println("[config] Failed to replace old config file with updated one. Aborting.");
+                    return;
+                }
+                tempFile.delete();
+                System.out.println("[config] Config file updated successfully.");
+            } catch (IOException e) {
+                System.out.println("[config] Failed to update config file: " + e.getMessage());
+                return;
+            }
         }
+    }
+
+    private static void updateConfig(File newFile) {
+        writeConfig(
+                newFile,
+                getBotToken(),
+                isWebAuthEnabled(),
+                properties.getProperty("web.auth.password"),
+                getWebPort(),
+                isAutoRestartEnabled(),
+                getAutoRestartHour(),
+                isConfigUpdateEnabled(),
+                getAudioPort(),
+                getAudioDirectory(),
+                isPreloadedEnabled(),
+                getPreloadedDirectory(),
+                isPreloadedCopyEnabled(),
+                isAudioCleanupEnabled(),
+                isAsmrBlockEnabled(),
+                isYtCookiesEnabled(),
+                getYtCookiesSource(),
+                getYtCookiesPathRaw(),
+                getYtCookiesBrowser(),
+                isYtDlpUpdateEnabled(),
+                getSpotifyClientId(),
+                getSpotifyClientSecret(),
+                isLimitPlaylistEnabled(),
+                isAutoKickEnabled(),
+                isAutoKickAutoEnabled(),
+                isTempRoleEnabled(),
+                isTempRoleAutoEnabled(),
+                isDebugEnabled()
+        );
     }
 
     public static String sha512(String input) {
@@ -299,8 +343,34 @@ public class Config {
         return Boolean.parseBoolean(properties.getProperty("audio.yt.cookies", "false"));
     }
 
+    public static String getYtCookiesSource() {
+        return properties.getProperty("audio.yt.cookies.source", "file").toLowerCase();
+    }
+
+    private static String getYtCookiesPathRaw() {
+        return properties.getProperty("audio.yt.cookies.file", "YOUR_YT_COOKIES_FILE_PATH_HERE");
+    }
+
+    public static String getYtCookiesPath() {
+        String path = properties.getProperty("audio.yt.cookies.file", "YOUR_YT_COOKIES_FILE_PATH_HERE");
+        if (path == null || path.trim().isEmpty() || path.equals("YOUR_YT_COOKIES_FILE_PATH_HERE")) {
+            throw new IllegalStateException("YouTube cookies file path not configured in config.properties");
+        }
+        return path;
+    }
+
     public static String getYtCookiesBrowser() {
         return properties.getProperty("audio.yt.cookies.browser", "chrome").toLowerCase();
+    }
+
+    public static String getYtCookies() {
+        if (getYtCookiesSource().equals("file")) {
+            return getYtCookiesPath();
+        } else if (getYtCookiesSource().equals("browser")) {
+            return getYtCookiesBrowser();
+        } else {
+            throw new IllegalStateException("Invalid YouTube cookies source configured in config.properties");
+        }
     }
 
     public static boolean isAutoKickEnabled() {
