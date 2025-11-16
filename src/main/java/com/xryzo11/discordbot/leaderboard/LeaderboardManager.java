@@ -116,6 +116,30 @@ public class LeaderboardManager {
         saveToFile();
     }
 
+    public void commandExecuted(Member member) {
+        String userId = member.getId();
+        if (leaderboardUserList.stream().noneMatch(user -> user.getUserId().equals(userId))) {
+            if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Adding new user to leaderboard: " + member.getUser().getAsTag());
+            leaderboardUserList.add(new LeaderboardUser(userId, 0));
+        }
+        for (LeaderboardUser user : leaderboardUserList) {
+            if (user.getUserId().equals(userId)) {
+                if (!user.isDelayed()) {
+                    int xpGain = rand.nextInt(0, 4);
+                    if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " for command execution");
+                    user.incrementXp(xpGain);
+                }
+                user.setDelayed(true);
+                scheduler.schedule(() -> {
+                    user.setDelayed(false);
+                    saveToFile();
+                }, delay, TimeUnit.SECONDS);
+                break;
+            }
+        }
+        saveToFile();
+    }
+
     public void saveToFile() {
         try {
             File file = LEADERBOARD_FILE;

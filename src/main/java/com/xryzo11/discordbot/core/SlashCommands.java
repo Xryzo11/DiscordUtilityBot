@@ -124,6 +124,10 @@ public class SlashCommands {
         }
 
         scheduler.schedule(updatePresence, 3, java.util.concurrent.TimeUnit.SECONDS);
+
+        if (event.getMember() != null) {
+            leaderboardManager.commandExecuted(event.getMember());
+        }
     }
 
     private void handleJoinCommand(SlashCommandInteractionEvent event) {
