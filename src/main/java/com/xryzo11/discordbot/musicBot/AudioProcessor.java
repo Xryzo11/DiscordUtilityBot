@@ -90,8 +90,8 @@ public class AudioProcessor {
         do {
             try {
                 List<String> command = new ArrayList<>();
-                command.add("yt-dlp");
-//                command.add("list-formats");
+                command.add(MusicBot.whichYtDlp());
+//                command.add("--list-formats");
                 command.add("-f");
 //                command.add("bestaudio[ext=webm]/18/91/bestaudio/249/best");
 //                command.add("bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio");
@@ -130,26 +130,11 @@ public class AudioProcessor {
                 } else {
                     command.add("ytsearch1:" + youtubeUrl);
                 }
-                String denoPath = resolveExecutable(
-                        "/usr/bin/deno",
-                        "/usr/local/bin/deno",
-                        System.getProperty("user.home") + "/.deno/bin/deno"
-                );
-                if (denoPath != null) {
-                    command.add("--js-runtimes");
-                    command.add("deno=" + denoPath);
-                }
+                command.add("--remote-components");
+                command.add("ejs:github");
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
-                Map<String, String> env = processBuilder.environment();
-                String path = env.getOrDefault("PATH", System.getenv("PATH"));
-                if (denoPath != null) {
-                    String denoBinDir = new File(denoPath).getParent();
-                    if (denoBinDir != null && !path.contains(denoBinDir)) {
-                        path = path + ":" + denoBinDir;
-                    }
-                }
-                env.put("PATH", path + ":/usr/local/bin:/usr/bin");
+                MusicBot.setPath(processBuilder);
 
                 processBuilder.redirectErrorStream(true);
                 Process process = processBuilder.start();
@@ -301,7 +286,7 @@ public class AudioProcessor {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder(
-                        "yt-dlp",
+                        MusicBot.whichYtDlp(),
                         "--flat-playlist",
                         "--dump-json",
                         youtubeUrl

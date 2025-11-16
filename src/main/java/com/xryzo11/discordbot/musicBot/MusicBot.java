@@ -121,19 +121,114 @@ public class MusicBot {
         return audioFile.toURI().toString();
     }
 
+    public static String whichYtDlp() {
+        List<String> command = new ArrayList<>();
+
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            command.add("where");
+        } else {
+            command.add("which");
+        }
+        command.add("yt-dlp");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        Map<String, String> env = processBuilder.environment();
+        String path = env.getOrDefault("PATH", System.getenv("PATH"));
+        String home = System.getProperty("user.home");
+        String localBin = home + "/.local/bin";
+        if (!path.contains(localBin)) {
+            path = localBin + ":" + path;
+        }
+        env.put("PATH", path);
+        processBuilder.redirectErrorStream(true);
+        try {
+            Process process = processBuilder.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                if ((line = reader.readLine()) != null) {
+                    return line.trim();
+                }
+            }
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            if (BotSettings.isDebug()) System.out.println("[whichYtDlp] Failed to locate yt-dlp: " + e.getMessage());
+        }
+        if (BotSettings.isDebug()) System.out.println("[whichYtDlp] Failed to locate yt-dlp. Returned null.");
+        return null;
+    }
+
+    public static void setPath(ProcessBuilder processBuilder) {
+        Map<String, String> env = processBuilder.environment();
+
+        env.put("HOME", System.getProperty("user.home"));
+        env.put("LANG", "en_US.UTF-8");
+        env.put("LC_ALL", "en_US.UTF-8");
+
+        String path = env.getOrDefault("PATH", System.getenv("PATH"));
+        String home = System.getProperty("user.home");
+        String localBin = home + "/.local/bin";
+        String ffmpegBin = "/usr/bin";
+        String usrLocalBin = "/usr/local/bin";
+        env.put("PATH", String.join(":", List.of(localBin, ffmpegBin, usrLocalBin, path)));
+        env.put("TERM", "xterm");
+    }
+
+
     public static void updateYtdlp() throws IOException {
         ProcessBuilder ytdlpNightly;
         ProcessBuilder ytdlpUpdate;
-        if (Config.isYtDlpUpdateEnabled()) {
-            ytdlpNightly = new ProcessBuilder("python3", "-m", "pip", "install", "-U", "--pre", "yt-dlp[default]");
-            ytdlpUpdate = new ProcessBuilder("pip", "install", "--upgrade", "yt-dlp");
-            ytdlpNightly.start();
-            ytdlpUpdate.start();
+        String whichResult = whichYtDlp();
+        if (whichResult == null) {
+            if (BotSettings.isDebug()) System.out.println("[yt-dlp update] yt-dlp not found in PATH. Skipping update.");
+            return;
+        } else {
+            if (BotSettings.isDebug()) {
+                System.out.println("[yt-dlp update] yt-dlp located at: " + whichResult);
+            }
         }
-        ytdlpNightly = new ProcessBuilder("yt-dlp", "--update-to", "nightly");
-        ytdlpUpdate = new ProcessBuilder("yt-dlp", "-U");
+        if (Config.isYtDlpUpdateEnabled()) {
+            ProcessBuilder ytdlpNightlyPipx;
+            ProcessBuilder ytdlpUpdatePipx;
+            ytdlpNightly = new ProcessBuilder("python3", "-m", "pip", "install", "-U", "--pre", "yt-dlp[default]");
+            ytdlpNightlyPipx = new ProcessBuilder("pipx", "upgrade", "yt-dlp", "--pip-args=--pre");
+            ytdlpUpdate = new ProcessBuilder("pip", "install", "--upgrade", "yt-dlp");
+            ytdlpUpdatePipx = new ProcessBuilder("pipx", "upgrade", "yt-dlp", "--pip-args=--pre");
+            setPath(ytdlpNightly);
+            setPath(ytdlpNightlyPipx);
+            setPath(ytdlpUpdate);
+            setPath(ytdlpUpdatePipx);
+            ytdlpNightly.start();
+            ytdlpNightlyPipx.start();
+            ytdlpUpdate.start();
+            ytdlpUpdatePipx.start();
+        }
+        ytdlpNightly = new ProcessBuilder(whichYtDlp(), "--update-to", "nightly");
+        ytdlpUpdate = new ProcessBuilder(whichYtDlp(), "-U");
+        setPath(ytdlpNightly);
+        setPath(ytdlpUpdate);
         ytdlpNightly.start();
         ytdlpUpdate.start();
+        List<String> command = new ArrayList<>();
+        command.add(whichYtDlp());
+        command.add("--version");
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        setPath(processBuilder);
+        processBuilder.redirectErrorStream(true);
+        Process versionProcess = processBuilder.start();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(versionProcess.getInputStream()))) {
+            String line;
+            if ((line = reader.readLine()) != null) {
+                if (BotSettings.isDebug()) {
+                    System.out.println("[yt-dlp update] Version: " + line);
+                }
+            }
+        }
+//        try {
+//            testDownload(whichResult);
+//        } catch (Exception e) {
+//            if (BotSettings.isDebug()) System.out.println("[yt-dlp update] yt-dlp test download failed: " + e.getMessage());
+//        }
     }
 
     public static void playNextTrack() {
@@ -511,7 +606,7 @@ public class MusicBot {
                     if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
 
                     List<String> command = new ArrayList<>();
-                    command.add("yt-dlp");
+                    command.add(whichYtDlp());
                     command.add("--get-id");
                     command.add("--ignore-errors");
                     command.add("--no-warnings");
@@ -524,26 +619,11 @@ public class MusicBot {
                         }
                         command.add(Config.getYtCookies());
                     }
-                    String denoPath = resolveExecutable(
-                            "/usr/bin/deno",
-                            "/usr/local/bin/deno",
-                            System.getProperty("user.home") + "/.deno/bin/deno"
-                    );
-                    if (denoPath != null) {
-                        command.add("--js-runtimes");
-                        command.add("deno=" + denoPath);
-                    }
+                    command.add("--remote-components");
+                    command.add("ejs:github");
 
                     ProcessBuilder processBuilder = new ProcessBuilder(command);
-                    Map<String, String> env = processBuilder.environment();
-                    String path = env.getOrDefault("PATH", System.getenv("PATH"));
-                    if (denoPath != null) {
-                        String denoBinDir = new File(denoPath).getParent();
-                        if (denoBinDir != null && !path.contains(denoBinDir)) {
-                            path = path + ":" + denoBinDir;
-                        }
-                    }
-                    env.put("PATH", path + ":/usr/local/bin:/usr/bin");
+                    setPath(processBuilder);
 
                     processBuilder.redirectErrorStream(true);
                     Process process = processBuilder.start();
@@ -575,12 +655,14 @@ public class MusicBot {
 
                     int exitCode = process.waitFor();
                     if (exitCode != 0) {
+                        updateYtdlp();
                         hook.editOriginal("❌ Failed to search for video").queue();
                         if (BotSettings.isDebug()) System.out.println("[search] yt-dlp exited with code: " + exitCode);
                         return;
                     }
 
                     if (videoId == null || videoId.isEmpty() || videoId.contains("ERROR") || videoId.trim().isEmpty()) {
+                        updateYtdlp();
                         hook.editOriginal("❌ No results found").queue();
                         if (BotSettings.isDebug()) System.out.println("[search] No video ID found in search results");
                         return;
@@ -590,6 +672,11 @@ public class MusicBot {
                     queue(event.getHook(), videoUrl, false);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    try {
+                        updateYtdlp();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
                     hook.editOriginal("❌ An error occurred while searching").queue();
                     if (BotSettings.isDebug()) System.out.println("[search] Error during search: " + e.getMessage());
                 }
@@ -616,7 +703,7 @@ public class MusicBot {
         CompletableFuture.runAsync(() -> {
             try {
                 List<String> command = new ArrayList<>();
-                command.add("yt-dlp");
+                command.add(whichYtDlp());
                 command.add("-f");
                 command.add("249/bestaudio/best");
                 command.add("--audio-format"); command.add("opus");
@@ -638,8 +725,10 @@ public class MusicBot {
                 command.add("--extractor-args");
                 command.add("youtube:player_skip=configs,webpage");
                 command.add(url);
+                command.add("--remote-components ejs:github");
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
+                setPath(processBuilder);
                 processBuilder.redirectErrorStream(true);
                 Process process = processBuilder.start();
 
@@ -833,6 +922,68 @@ public class MusicBot {
         } else {
             event.getHook().editOriginal("❌ Invalid position").queue();
             if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Invalid position: " + position);
+        }
+    }
+
+    private static void testDownload(String whichResult) throws IOException, InterruptedException {
+            ProcessBuilder test = new ProcessBuilder(
+                whichResult,
+                "-f", "251/250/249",
+                "--audio-quality", "0",
+                "--no-restrict-filenames",
+                "-o", "/home/DiscordBot/discord_audio/YJdCpltq-_k.webm",
+                "--write-info-json",
+                "--print-json",
+                "--quiet",
+                "--no-warnings",
+                "--force-ipv4",
+                "--no-check-certificate",
+                "--geo-bypass",
+                "--cookies", "/home/serwer/DiscordBot/config/cookies.txt",
+                "--extractor-args", "youtube:player_client=tv",
+                "--extractor-args", "youtube:player_skip=configs,webpage",
+                "https://www.youtube.com/watch?v=YJdCpltq-_k",
+                "--remote-components", "ejs:github"
+        );
+        setPath(test);
+        test.redirectErrorStream(true);
+        Process testProcess = test.start();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(testProcess.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (BotSettings.isDebug()) {
+                    System.out.println("[yt-dlp] " + line);
+                }
+            }
+        }
+        ProcessBuilder test2 = new ProcessBuilder(
+                whichResult,
+                "--list-formats",
+                "-f", "251/250/249",
+                "--audio-quality", "0",
+                "--no-restrict-filenames",
+                "-o", "/home/DiscordBot/discord_audio/YJdCpltq-_k.webm",
+                "--quiet",
+                "--no-warnings",
+                "--force-ipv4",
+                "--no-check-certificate",
+                "--geo-bypass",
+                "--cookies", "/home/serwer/DiscordBot/config/cookies.txt",
+                "--extractor-args", "youtube:player_client=tv",
+                "--extractor-args", "youtube:player_skip=configs,webpage",
+                "https://www.youtube.com/watch?v=YJdCpltq-_k",
+                "--remote-components", "ejs:github"
+        );
+        setPath(test2);
+        test2.redirectErrorStream(true);
+        Process testProcess2 = test2.start();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(testProcess2.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (BotSettings.isDebug()) {
+                    System.out.println("[yt-dlp] " + line);
+                }
+            }
         }
     }
 }
