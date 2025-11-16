@@ -81,17 +81,19 @@ public class LeaderboardManager {
         boolean containsLink = hasLinkInText || message.getEmbeds().stream().anyMatch(e -> e.getUrl() != null);
         boolean containsImage = hasAttachmentImage || hasImageEmbed || hasImageUrlInText;
 
+        String messageWithoutUrls = URL_PATTERN.matcher(messageContent).replaceAll("").trim();
+
         for (LeaderboardUser user : leaderboardUserList) {
             if (user.getUserId().equals(userId)) {
                 if (!user.isDelayed()) {
                     int xpGain = 0;
-                    if (messageContent.length() >= 100) {
+                    if (messageWithoutUrls.length() >= 100) {
                         xpGain = 25;
-                    } else if (messageContent.length() >= 50) {
+                    } else if (messageWithoutUrls.length() >= 50) {
                         xpGain = 15;
-                    } else if (messageContent.length() >= 20) {
+                    } else if (messageWithoutUrls.length() >= 20) {
                         xpGain = 10;
-                    } else if (!messageContent.isEmpty()) {
+                    } else if (!messageWithoutUrls.isEmpty()) {
                         xpGain = 1;
                     }
                     if (containsLink) {
