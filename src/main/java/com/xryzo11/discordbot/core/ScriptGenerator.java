@@ -34,22 +34,35 @@ public class ScriptGenerator {
         try {
             File startScript = new File(directory, "start.sh");
             startScript.delete();
+
             try (FileWriter fw = new FileWriter(startScript)) {
                 fw.write("#!/bin/bash\n");
-                fw.write("echo 'export JAVA_HOME=/usr/lib/jvm/jdk-24.0.1-oracle-x64' | sudo tee -a /etc/profile\n");
-                fw.write("echo 'export PATH=$JAVA_HOME/bin:$PATH' | sudo tee -a /etc/profile\n");
-                fw.write("source /etc/profile\n");
-                fw.write("while (true); do\n");
+                fw.write("\n");
+                fw.write("# Set Java environment\n");
+                fw.write("export JAVA_HOME=\"/usr/lib/jvm/jdk-24.0.1-oracle-x64\"\n");
+                fw.write("export PATH=\"$JAVA_HOME/bin:$PATH\"\n");
+                fw.write("\n");
+                fw.write("# Ensure UTF-8 locale\n");
+                fw.write("export LANG=\"en_US.UTF-8\"\n");
+                fw.write("export LC_ALL=\"en_US.UTF-8\"\n");
+                fw.write("\n");
+                fw.write("# Force IPv4 for Java and all subprocesses\n");
+                fw.write("export _JAVA_OPTIONS=\"-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false\"\n");
+                fw.write("\n");
+                fw.write("while true; do\n");
                 fw.write("  clear\n");
                 fw.write("  ./libs/start-params.sh\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");
             }
+
             startScript.setExecutable(true);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     private static void createStartParamsScript(String jarName, String directory) {
         try {
@@ -57,7 +70,7 @@ public class ScriptGenerator {
             startParamsScript.delete();
             try (FileWriter fw = new FileWriter(startParamsScript)) {
                 fw.write("#!/bin/bash\n");
-                fw.write("exec java --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
+                fw.write("exec java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false --enable-native-access=ALL-UNNAMED -jar \"" + jarName + "\"\n");
             }
             startParamsScript.setExecutable(true);
         } catch (Exception e) {
