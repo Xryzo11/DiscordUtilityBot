@@ -103,7 +103,7 @@ public class LeaderboardManager {
                         xpGain += 15;
                     }
                     xpGain += rand.nextInt(0, 6);
-                    if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName());
+                    if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " (" + messageWithoutUrls.length() + " chars, link: " + containsLink + ", image: " + containsImage + ")");
                     user.incrementXp(xpGain);
                 }
                 user.incrementMessagesSent();
