@@ -127,7 +127,7 @@ public class LeaderboardManager {
         for (LeaderboardUser user : leaderboardUserList) {
             if (user.getUserId().equals(userId)) {
                 if (!user.isDelayed()) {
-                    int xpGain = rand.nextInt(0, 4);
+                    int xpGain = rand.nextInt(3, 11);
                     if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " for command execution");
                     user.incrementXp(xpGain);
                 }
