@@ -77,7 +77,16 @@ public class MusicBot {
                                     targetFile.toPath()
                             );
                             File jsonSource = new File(file.getParent(), fileName + ".info.json");
-                            File jsonTarget = new File(audioDir, videoId + ".webm.info.json");
+                            if (!jsonSource.exists()) {
+                                String fileNameNoExt = fileName.split("\\.")[0];
+                                jsonSource = new File(file.getParent(), fileNameNoExt + ".info.json");
+                                if (!jsonSource.exists()) {
+                                    if (BotSettings.isDebug()) System.out.println("[MusicBot] No JSON metadata found for preloaded track: " + fileName);
+                                    continue;
+                                }
+                            }
+//                            File jsonTarget = new File(audioDir, videoId + ".webm.info.json");
+                            File jsonTarget = new File(audioDir, videoId + ".info.json");
                             if (jsonSource.exists() && !jsonTarget.exists()) {
                                 java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
                             }
@@ -521,7 +530,8 @@ public class MusicBot {
                     }
                     String videoId = AudioProcessor.extractVideoId(videoUrl);
                     File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
-                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm.info.json");
+//                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm.info.json");
+                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".info.json");
 
                     if (BotSettings.isDebug()) System.out.println("[queue] Attempting to queue video ID: " + videoId);
 
@@ -705,13 +715,16 @@ public class MusicBot {
 
         CompletableFuture.runAsync(() -> {
             try {
+                String baseName = name + " [(" + videoId + ")]";
+                String preloadedDir = Config.getPreloadedDirectory();
+
                 List<String> command = new ArrayList<>();
                 command.add(whichYtDlp());
                 command.add("-f");
                 command.add("249/bestaudio/best");
                 command.add("--audio-format"); command.add("opus");
                 command.add("-o");
-                command.add(Config.getPreloadedDirectory() + name + " [(" + videoId + ")]" + ".webm");
+                command.add(preloadedDir + baseName + ".%(ext)s");
                 command.add("--write-info-json");
                 command.add("--force-ipv4");
                 command.add("--no-check-certificate");
@@ -812,8 +825,9 @@ public class MusicBot {
                         audioFile.toPath(),
                         targetFile.toPath()
                 );
-                File jsonSource = new File(audioFile.getParent(), name + " [(" + videoId + ")].webm.info.json");
-                File jsonTarget = new File(targetDir, videoId + ".webm.info.json");
+                File jsonSource = new File(audioFile.getParent(), name + " [(" + videoId + ")].info.json");
+//                File jsonTarget = new File(targetDir, videoId + ".webm.info.json");
+                File jsonTarget = new File(targetDir, videoId + ".info.json");
                 if (jsonSource.exists() && !jsonTarget.exists()) {
                     java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
                 }
