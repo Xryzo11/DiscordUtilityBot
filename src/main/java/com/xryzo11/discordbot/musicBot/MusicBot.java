@@ -26,6 +26,9 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -725,7 +728,8 @@ public class MusicBot {
                 command.add("--extractor-args");
                 command.add("youtube:player_skip=configs,webpage");
                 command.add(url);
-                command.add("--remote-components ejs:github");
+                command.add("--remote-components");
+                command.add("ejs:github");
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
                 setPath(processBuilder);
@@ -733,6 +737,7 @@ public class MusicBot {
                 Process process = processBuilder.start();
 
                 if (!process.waitFor(2, TimeUnit.MINUTES)) {
+                    cleanupPreloadCrash(videoId);
                     process.destroyForcibly();
                     event.getHook().sendMessage("❌ Download timed out").queue();
                     if (BotSettings.isDebug()) System.out.println("[preload] Download timed out for URL: " + url);
@@ -740,6 +745,7 @@ public class MusicBot {
                 }
 
                 if (process.exitValue() != 0) {
+                    cleanupPreloadCrash(videoId);
                     event.getHook().sendMessage("❌ Failed to download track").queue();
                     if (BotSettings.isDebug()) System.out.println("[preload] yt-dlp exited with code: " + process.exitValue());
                     return;
@@ -749,10 +755,30 @@ public class MusicBot {
                 if (BotSettings.isDebug()) System.out.println("[preload] Successfully preloaded track: " + name);
 
             } catch (Exception e) {
+                cleanupPreloadCrash(videoId);
                 event.getHook().sendMessage("❌ Error: " + e.getMessage()).queue();
                 if (BotSettings.isDebug()) System.out.println("[preload] Error during preload: " + e.getMessage());
             }
         });
+    }
+
+    private void cleanupPreloadCrash(String videoId) {
+        try {
+            updateYtdlp();
+            Path preloadedDir = Paths.get(Config.getPreloadedDirectory());
+            for (File file : Objects.requireNonNull(preloadedDir.toFile().listFiles())) {
+                if (file.getName().endsWith(".part")) {
+                    Files.deleteIfExists(file.toPath());
+                    if (BotSettings.isDebug()) System.out.println("[preload] Deleted incomplete file: " + file.getName());
+                }
+                if (file.getName().contains(videoId)) {
+                    Files.deleteIfExists(file.toPath());
+                    if (BotSettings.isDebug()) System.out.println("[preload] Deleted file after crash: " + file.getName());
+                }
+            }
+        } catch (IOException e) {
+            if (BotSettings.isDebug()) System.out.println("[preload] Failed to update yt-dlp after crash: " + e.getMessage());
+        }
     }
 
     public void addPreloaded(SlashCommandInteractionEvent event) {
