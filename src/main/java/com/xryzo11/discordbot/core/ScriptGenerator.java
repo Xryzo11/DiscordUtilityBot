@@ -38,20 +38,27 @@ public class ScriptGenerator {
             try (FileWriter fw = new FileWriter(startScript)) {
                 fw.write("#!/bin/bash\n");
                 fw.write("\n");
-                fw.write("# Set Java environment\n");
                 fw.write("export JAVA_HOME=\"/usr/lib/jvm/jdk-24.0.1-oracle-x64\"\n");
                 fw.write("export PATH=\"$JAVA_HOME/bin:$PATH\"\n");
                 fw.write("\n");
-                fw.write("# Ensure UTF-8 locale\n");
                 fw.write("export LANG=\"en_US.UTF-8\"\n");
                 fw.write("export LC_ALL=\"en_US.UTF-8\"\n");
                 fw.write("\n");
-                fw.write("# Force IPv4 for Java and all subprocesses\n");
                 fw.write("export _JAVA_OPTIONS=\"-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false\"\n");
                 fw.write("\n");
                 fw.write("while true; do\n");
                 fw.write("  clear\n");
-                fw.write("  ./libs/start-params.sh\n");
+                fw.write("  if [ -f \"./libs/start-params.sh\" ]; then\n");
+                fw.write("    ./libs/start-params.sh\n");
+                fw.write("  else\n");
+                fw.write("    JAR_FILE=$(ls ./*-shaded.jar 2>/dev/null | head -n 1)\n");
+                fw.write("    if [ -n \"$JAR_FILE\" ]; then\n");
+                fw.write("      java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false --enable-native-access=ALL-UNNAMED -jar \"$JAR_FILE\"\n");
+                fw.write("    else\n");
+                fw.write("      echo \"No start-params.sh or *-shaded.jar found in ./libs\" >&2\n");
+                fw.write("      sleep 5\n");
+                fw.write("    fi\n");
+                fw.write("  fi\n");
                 fw.write("  sleep 3\n");
                 fw.write("done\n");
             }
@@ -62,7 +69,6 @@ public class ScriptGenerator {
             e.printStackTrace();
         }
     }
-
 
     private static void createStartParamsScript(String jarName, String directory) {
         try {
