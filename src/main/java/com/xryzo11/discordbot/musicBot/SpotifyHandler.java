@@ -13,9 +13,11 @@ import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,6 +42,43 @@ public class SpotifyHandler {
         } else {
             event.getHook().editOriginal("❗ Unsupported Spotify URL. Please provide a track, album, or playlist URL.").queue();
         }
+    }
+
+    public static String whichSpotdl() {
+        List<String> command = new ArrayList<>();
+
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            command.add("where");
+        } else {
+            command.add("which");
+        }
+        command.add("spotdl");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        Map<String, String> env = processBuilder.environment();
+        String path = env.getOrDefault("PATH", System.getenv("PATH"));
+        String home = System.getProperty("user.home");
+        String localBin = home + "/.local/bin";
+        if (!path.contains(localBin)) {
+            path = localBin + ":" + path;
+        }
+        env.put("PATH", path);
+        processBuilder.redirectErrorStream(true);
+        try {
+            Process process = processBuilder.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                if ((line = reader.readLine()) != null) {
+                    return line.trim();
+                }
+            }
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            if (BotSettings.isDebug()) System.out.println("[whichSpotdl] Failed to locate spotdl: " + e.getMessage());
+        }
+        if (BotSettings.isDebug()) System.out.println("[whichSpotdl] Failed to locate spotdl. Returned null.");
+        return null;
     }
 
     private static void handleSpotifyTrack(SlashCommandInteractionEvent event, String url) {
@@ -90,8 +129,8 @@ public class SpotifyHandler {
             }
 
             int total = trackUrls.size();
-            AtomicInteger converted = new AtomicInteger(0);
-            AtomicInteger failed = new AtomicInteger(0);
+            AtomicInteger converted = new AtomicInteger(0);           // Spotify -> YT URL succeeded
+            AtomicInteger convertFailed = new AtomicInteger(0);       // could not get YT URL
 
             hook.editOriginal("✅ Found " + total + " tracks. Converting and queuing...").queue();
 
@@ -110,21 +149,26 @@ public class SpotifyHandler {
                         return null;
                     }
                 }, SPOTIFY_EXEC).thenAccept(ytUrl -> {
+                    if (MusicBot.isCancelled) {
+                        return;
+                    }
+
                     if (ytUrl != null && !ytUrl.isEmpty()) {
                         converted.incrementAndGet();
                         bot.queueSilent(hook, ytUrl);
                     } else {
-                        failed.incrementAndGet();
+                        convertFailed.incrementAndGet();
                     }
 
-                    int done = converted.get() + failed.get();
+                    int done = converted.get() + convertFailed.get();
                     if (done == 1 || done % 2 == 0 || done == total) {
                         if (MusicBot.isCancelled) {
                             hook.editOriginal("❌ Playlist processing cancelled.").queue();
                             return;
                         }
-                        String summary = "🎵 Converted: " + converted.get() + "/" + total +
-                                " | ❌ Failed: " + failed.get();
+                        String summary =
+                                "🎵 Converted URLs: " + converted.get() + "/" + total +
+                                " | ❌ Conversion failed: " + convertFailed.get();
                         hook.editOriginal(summary).queue();
                     }
 
@@ -134,8 +178,9 @@ public class SpotifyHandler {
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .whenComplete((v, ex) -> {
-                        String finalMsg = "✅ Finished processing playlist. Converted: " + converted.get() +
-                                "/" + total + " | ❌ Failed: " + failed.get();
+                        String finalMsg =
+                                "✅ Finished processing playlist. Converted URLs: " + converted.get() + "/" + total +
+                                " | ❌ Conversion failed: " + convertFailed.get();
                         hook.editOriginal(finalMsg).queue();
                     });
 
@@ -151,14 +196,27 @@ public class SpotifyHandler {
         }
 
         List<String> command = new ArrayList<>();
-        command.add("python3");
-        command.add("-m");
-        command.add("spotdl");
+        command.add(whichSpotdl());
         command.add("url");
         command.add(url);
+        if (Config.isYtCookiesEnabled()) {
+            switch (Config.getYtCookiesSource()) {
+                case "file" -> {
+                    command.add("--cookie-file");
+                    command.add(Config.getYtCookies());
+                }
+                case "browser" -> {
+                    System.out.println("[SpotifyHandler] Browser cookies are not supported with spotdl. Please use file-based (youtube) cookies.");
+                }
+                default -> {
+                    System.out.println("[SpotifyHandler] Unknown yt-cookies-source: " + Config.getYtCookiesSource() + ". Please use file-based (youtube) cookies.");
+                }
+            }
+        }
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         processBuilder.redirectErrorStream(true);
+        MusicBot.setPath(processBuilder);
         Process process = processBuilder.start();
 
         String ytUrl = null;
@@ -168,13 +226,30 @@ public class SpotifyHandler {
                 if (BotSettings.isDebug()) {
                     System.out.println("[spotdl] " + line);
                 }
-                if (line.contains("youtube.com/watch?v=") || line.contains("music.youtube.com/watch?v=")) {
-                    ytUrl = line.trim();
+
+                String urlCandidate = extractYoutubeUrlFromLine(line);
+                if (urlCandidate != null) {
+                    ytUrl = urlCandidate;
                 }
             }
         }
         process.waitFor();
         return ytUrl;
+    }
+
+    private static String extractYoutubeUrlFromLine(String line) {
+        if (line == null || line.isBlank()) return null;
+
+        int idx = line.indexOf("youtube.com/watch?v=");
+        if (idx < 0) {
+            idx = line.indexOf("music.youtube.com/watch?v=");
+        }
+        if (idx < 0) return null;
+
+        String tail = line.substring(idx).trim();
+        int spaceIdx = tail.indexOf(' ');
+        String urlPart = spaceIdx > 0 ? tail.substring(0, spaceIdx) : tail;
+        return urlPart.trim();
     }
 
     private static List<String> getPlaylistTrackUrls(SlashCommandInteractionEvent event, String playlistUrl) throws Exception {
