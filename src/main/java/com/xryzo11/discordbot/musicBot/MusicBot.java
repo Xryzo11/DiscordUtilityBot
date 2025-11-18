@@ -32,6 +32,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -424,6 +425,7 @@ public class MusicBot {
         queue(hook, url, true);
     }
 
+
     public void queue(InteractionHook hook, String url, boolean silent) {
         CompletableFuture.runAsync(() -> {
             try {
@@ -431,12 +433,9 @@ public class MusicBot {
 
                 if (isPlaylist) {
                     if (BotSettings.isDebug()) System.out.println("[queue] Processing playlist URL: " + url);
-                    if (!silent) hook.editOriginal("📋 Processing playlist...").queue();
+                    if (!silent) hook.editOriginal("⏳ Processing playlist...").queue();
                     AudioProcessor.processYouTubePlaylist(url).thenAccept(videoUrls -> {
                         final int totalTracks = videoUrls.size();
-                        final int[] addedCount = {0};
-                        final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
-
                         if (totalTracks == 0) {
                             if (!silent) hook.editOriginal("❌ No tracks found in playlist").queue();
                             if (BotSettings.isDebug()) System.out.println("[queue] No tracks found in playlist");
@@ -451,30 +450,21 @@ public class MusicBot {
                             }
                         }
 
+                        if (!silent) {
+                            hook.editOriginal("✅ Found " + totalTracks + " tracks. Downloading & queuing...").queue();
+                        }
+
+                        final AtomicInteger converted = new AtomicInteger(0);
+                        final AtomicInteger failed = new AtomicInteger(0);
+                        final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
                         AtomicBoolean wasCancelled = new AtomicBoolean(false);
 
-                        ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
-                        ScheduledFuture<?> heartbeatTask = heartbeat.scheduleAtFixedRate(() -> {
-                            if (!wasCancelled.get()) {
-                                hook.editOriginal(String.format(
-                                        "⏳ Processing playlist: %d/%d tracks added...",
-                                        addedCount[0],
-                                        totalTracks
-                                )).queue();
-                            }
-                        }, 3, 3, TimeUnit.MINUTES);
-
-                        for (int i = 0; i < totalTracks; i++) {
+                        for (String videoUrl : videoUrls) {
                             if (isCancelled) {
                                 wasCancelled.set(true);
-                                futures.forEach(f -> f.cancel(true));
-                                futures.clear();
-                                if (!silent) hook.editOriginal("❗ Playlist processing cancelled").queue();
-                                if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing cancelled");
                                 break;
                             }
 
-                            String videoUrl = videoUrls.get(i);
                             CompletableFuture<?> future = CompletableFuture.runAsync(() -> {
                                 if (isCancelled) {
                                     wasCancelled.set(true);
@@ -482,21 +472,15 @@ public class MusicBot {
                                 }
 
                                 try {
-                                    if (!isCancelled) {
-                                        AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
-                                        if (!isCancelled) {
-                                            loadTrack(processedTrack, hook, addedCount, totalTracks);
-                                        }
+                                    AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
+                                    if (isCancelled) {
+                                        wasCancelled.set(true);
+                                        return;
                                     }
+                                    loadTrack(processedTrack, hook, converted, failed, totalTracks, silent);
                                 } catch (Exception e) {
-                                    if (!isCancelled) {
-                                        synchronized (addedCount) {
-                                            addedCount[0]++;
-                                            if (!silent) hook.editOriginal(String.format("❌ Failed to process track: %s\n%d/%d",
-                                                    e.getMessage(), addedCount[0], totalTracks)).queue();
-                                            if (BotSettings.isDebug()) System.out.println("[queue] Failed to process track: " + e.getMessage());
-                                        }
-                                    }
+                                    failed.incrementAndGet();
+                                    if (BotSettings.isDebug()) System.out.println("[queue] Failed to process track: " + e.getMessage());
                                 }
                             }, executor);
 
@@ -505,15 +489,17 @@ public class MusicBot {
 
                         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                                 .whenComplete((v, ex) -> {
-                                    if (wasCancelled.get()) {
-                                        if (!silent) hook.editOriginal("❗ Playlist processing cancelled").queue();
+                                    if (wasCancelled.get() || isCancelled) {
+                                        if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing cancelled");
-                                    } else if (!isCancelled) {
-                                        if (!silent) hook.editOriginal("✅ Playlist processing complete").queueAfter(5, TimeUnit.SECONDS);
+                                    } else {
+                                        if (!silent) {
+                                            String finalMsg = "✅ Finished processing playlist. Converted: " + converted.get() +
+                                                    "/" + totalTracks + " | ❌ Failed: " + failed.get();
+                                            hook.editOriginal(finalMsg).queue();
+                                        }
                                         if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing complete");
                                     }
-                                    heartbeatTask.cancel(false);
-                                    heartbeat.shutdown();
                                 });
 
                     }).exceptionally(e -> {
@@ -850,9 +836,10 @@ public class MusicBot {
         return audioFile.getAbsolutePath();
     }
 
-    private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, int[] addedCount, int totalTracks) {
+    private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, AtomicInteger converted,
+                           AtomicInteger failed, int totalTracks, boolean silent) {
         if (isCancelled) {
-            hook.editOriginal("❗ Playlist processing cancelled").queue();
+            if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
             if (BotSettings.isDebug()) System.out.println("[loadTrack] Playlist processing cancelled");
             return;
         }
@@ -862,16 +849,20 @@ public class MusicBot {
             public void trackLoaded(AudioTrack track) {
                 track.setUserData(processedTrack.title);
                 if (isCancelled) {
-                    hook.editOriginal("❗ Playlist processing cancelled").queue();
+                    if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
                     if (BotSettings.isDebug()) System.out.println("[trackLoaded] Playlist processing cancelled");
                     return;
                 }
                 trackQueue.offer(track);
-                synchronized (addedCount) {
-                    addedCount[0]++;
-                    hook.editOriginal(String.format("✅ Queued: %s\n%d/%d", processedTrack.title, addedCount[0], totalTracks)).queue();
-                    if (BotSettings.isDebug()) System.out.println("[loadTrack] Queued track: " + processedTrack.title);
+                int c = converted.incrementAndGet();
+                int f = failed.get();
+                int done = c + f;
+                if (!silent && (done == 1 || done % 5 == 0 || done == totalTracks)) {
+                    String summary = "🎵 Converted: " + c + "/" + totalTracks +
+                            " | ❌ Failed: " + f;
+                    hook.editOriginal(summary).queue();
                 }
+                if (BotSettings.isDebug()) System.out.println("[loadTrack] Queued track: " + processedTrack.title);
                 if (player.getPlayingTrack() == null) {
                     playNextTrack();
                 }
@@ -879,27 +870,35 @@ public class MusicBot {
             @Override public void playlistLoaded(AudioPlaylist playlist) {}
             @Override public void noMatches() {
                 if (isCancelled) {
-                    hook.editOriginal("❗ Playlist processing cancelled").queue();
+                    if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
                     if (BotSettings.isDebug()) System.out.println("[noMatches] Playlist processing cancelled");
                     return;
                 }
-                synchronized (addedCount) {
-                    addedCount[0]++;
-                    hook.editOriginal(String.format("❌ No matches found\n%d/%d", addedCount[0], totalTracks)).queue();
-                    if (BotSettings.isDebug()) System.out.println("[loadTrack] No matches found for track: " + processedTrack.title);
+                int f = failed.incrementAndGet();
+                int c = converted.get();
+                int done = c + f;
+                if (!silent && (done == 1 || done % 5 == 0 || done == totalTracks)) {
+                    String summary = "🎵 Converted: " + c + "/" + totalTracks +
+                            " | ❌ Failed: " + f;
+                    hook.editOriginal(summary).queue();
                 }
+                if (BotSettings.isDebug()) System.out.println("[loadTrack] No matches found for track: " + processedTrack.title);
             }
             @Override public void loadFailed(FriendlyException exception) {
                 if (isCancelled) {
-                    hook.editOriginal("❗ Playlist processing cancelled").queue();
+                    if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
                     if (BotSettings.isDebug()) System.out.println("[loadFailed] Playlist processing cancelled");
                     return;
                 }
-                synchronized (addedCount) {
-                    addedCount[0]++;
-                    hook.editOriginal(String.format("❌ Failed to load track\n%d/%d", addedCount[0], totalTracks)).queue();
-                    if (BotSettings.isDebug()) System.out.println("[loadTrack] Failed to load track: " + exception.getMessage());
+                int f = failed.incrementAndGet();
+                int c = converted.get();
+                int done = c + f;
+                if (!silent && (done == 1 || done % 5 == 0 || done == totalTracks)) {
+                    String summary = "🎵 Converted: " + c + "/" + totalTracks +
+                            " | ❌ Failed: " + f;
+                    hook.editOriginal(summary).queue();
                 }
+                if (BotSettings.isDebug()) System.out.println("[loadTrack] Failed to load track: " + exception.getMessage());
             }
         });
     }
