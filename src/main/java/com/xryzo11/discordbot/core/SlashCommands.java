@@ -8,7 +8,6 @@ import com.xryzo11.discordbot.misc.RockPaperScissors;
 import com.xryzo11.discordbot.misc.RoleRestorer;
 import com.xryzo11.discordbot.musicBot.LavaPlayerAudioSendHandler;
 import com.xryzo11.discordbot.musicBot.MusicBot;
-import com.xryzo11.discordbot.musicBot.SpotifyHandler;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -65,13 +64,11 @@ public class SlashCommands {
                 break;
             case "clear":
                 safeDefer(event);
-                MusicBot.isCancelled = true;
                 bot.clearQueue();
                 event.getHook().editOriginal("🧹 Queue cleared").queue();
                 break;
             case "stop":
                 safeDefer(event);
-                MusicBot.isCancelled = true;
                 bot.stopPlayer();
                 bot.disableLoop();
                 bot.clearQueue();
@@ -92,16 +89,11 @@ public class SlashCommands {
             case "playhead":
                 handlePlayheadCommand(event);
                 break;
-            case "preload":
-                handlePreloadCommand(event);
+            case "save":
+                handleSaveCommand(event);
                 break;
             case "add":
                 handleAddCommand(event);
-                break;
-            case "cancel":
-                safeDefer(event);
-                MusicBot.isCancelled = true;
-                event.getHook().editOriginal("✅ Playlist processing cancelled.").queue();
                 break;
             case "rps-challenge":
                 handleRpsChallengeCommand(event);
@@ -131,7 +123,6 @@ public class SlashCommands {
     }
 
     private void handleJoinCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
         Member member = event.getMember();
 
         if (checkVoiceConnection(event)) return;
@@ -201,7 +192,6 @@ public class SlashCommands {
     }
 
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
         String url = event.getOption("url").getAsString();
         Member member = event.getMember();
 
@@ -212,14 +202,16 @@ public class SlashCommands {
 
         joinAndWait(event);
 
-        if (url.contains("spotify")) {
-            SpotifyHandler.handleSpotifyUrl(event, url);
+        if (!url.contains("youtube.com") && !url.contains("youtu.be") && !url.contains("youtube.pl") && !url.contains("spotify.com")) {
+            event.reply("❌ URL must contain a youtube or a spotify link!").setEphemeral(true).queue();
             return;
         }
 
-        if (!url.contains("youtube.com") && !url.contains("youtu.be") && !url.contains("youtube.pl")) {
-            event.reply("❌ URL must contain a youtube or a spotify link!").setEphemeral(true).queue();
-            return;
+        if (url.contains("youtube.com") || url.contains("youtu.be") || url.contains("youtube.pl")) {
+            if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
+                event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
+                return;
+            }
         }
 
         if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
@@ -231,7 +223,6 @@ public class SlashCommands {
     }
 
     private void handleDequeueCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
         int position = event.getOption("position").getAsInt();
         int queueSize = MusicBot.trackQueue.size();
         Guild guild = event.getGuild();
@@ -261,7 +252,6 @@ public class SlashCommands {
     }
 
     private void handleSearchCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
         String query = event.getOption("query").getAsString();
         Guild guild = event.getGuild();
         Member member = event.getMember();
@@ -278,12 +268,16 @@ public class SlashCommands {
             return;
         }
 
-        bot.search(event, query, guild, member);
+        if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
+            event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
+            return;
+        }
+
+        bot.search(event, query);
     }
 
     private void handleListCommand(SlashCommandInteractionEvent event) {
         safeDefer(event);
-        MusicBot.isCancelled = false;
         String queueList = bot.getQueueList();
         event.getHook().editOriginal(queueList).queue();
     }
@@ -307,7 +301,6 @@ public class SlashCommands {
     }
 
     private void handleSkipCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
         if (bot.player.getPlayingTrack() == null) {
             event.reply("❌ No track is currently playing").setEphemeral(true).queue();
             return;
@@ -316,21 +309,25 @@ public class SlashCommands {
         safeDefer(event);
 
         AudioTrack track = bot.currentTrack;
-        String title = track.getUserData() != null ? track.getUserData().toString() : track.getInfo().identifier;
+        String title = track.getInfo().title;
         bot.skipCurrentTrack();
-        event.getHook().editOriginal("⏭️ Skipped: " + title).queue();
+        AudioTrack newTrack = bot.currentTrack;
+        if (newTrack == null) {
+            event.getHook().editOriginal("⏭️ Skipped: " + title + "\nNo more tracks in the queue.").queue();
+            return;
+        }
+        String newTitle = newTrack.getInfo().title;
+        event.getHook().editOriginal("⏭️ Skipped: " + title + "\nNow playing: " + newTitle).queue();
     }
 
     private void handleLoopCommand(SlashCommandInteractionEvent event) {
         safeDefer(event);
-        MusicBot.isCancelled = false;
         bot.toggleLoop();
         String status = bot.isLoopEnabled() ? "enabled" : "disabled";
         event.getHook().editOriginal("🔁 Queue loop " + status).queue();
     }
 
     private void handleShuffleCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
 
         if (MusicBot.trackQueue.size() <= 0) {
             event.reply("❌ Queue is empty.").setEphemeral(true).queue();
@@ -344,7 +341,6 @@ public class SlashCommands {
     }
 
     private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
         Guild guild = event.getGuild();
         Member member = event.getMember();
         int hour = event.getOption("hour").getAsInt();
@@ -385,29 +381,32 @@ public class SlashCommands {
         event.reply("❌ Could not set playhead position!").setEphemeral(true).queue();
     }
 
-    private void handlePreloadCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
-
-        if (!Config.isPreloadedEnabled()) {
-            event.reply("❌ Pre-loaded tracks are not enabled").setEphemeral(true).queue();
+    private void handleSaveCommand(SlashCommandInteractionEvent event) {
+        if (!Config.isAudioSavingEnabled()) {
+            event.reply("❌ Saving tracks is not enabled").setEphemeral(true).queue();
             return;
         }
 
         String url = event.getOption("url").getAsString();
         String name = event.getOption("name").getAsString();
 
+//        if (url.contains("playlist") || url.contains("list=")) {
+//            event.reply("❌ Playlists are not supported, please provide a single track URL").setEphemeral(true).queue();
+//            return;
+//        }
+
+        if (!url.contains("youtube") && !url.contains("youtu.be") && !url.contains("youtube.pl")) {
+            event.reply("❌ Only YouTube URLs are supported for saving.").setEphemeral(true).queue();
+            return;
+        }
+
         if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
             event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
             return;
         }
 
-        if (url.contains("playlist") || url.contains("list=")) {
-            event.reply("❌ Playlists are not supported, please provide a single track URL").setEphemeral(true).queue();
-            return;
-        }
-
-        if (!url.contains("youtube") && !url.contains("youtu.be")) {
-            event.reply("❌ Only YouTube URLs are supported for pre-loading").setEphemeral(true).queue();
+        if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
+            event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
             return;
         }
 
@@ -421,26 +420,12 @@ public class SlashCommands {
             return;
         }
 
-        for (File file : new File(Config.getPreloadedDirectory()).listFiles()) {
-            String fileName = file.getName();
-            int dotIndex = fileName.lastIndexOf('.');
-            String baseName = (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
-            int idIndex = baseName.indexOf(" [(");
-            String shortName = (idIndex > 0) ? baseName.substring(0, idIndex) : baseName;
-            if (shortName.equalsIgnoreCase(name)) {
-                event.reply("❌ A pre-loaded track with that name already exists").setEphemeral(true).queue();
-                return;
-            }
-        }
-
-        bot.preload(event);
+        bot.save(event);
     }
 
     private void handleAddCommand(SlashCommandInteractionEvent event) {
-        MusicBot.isCancelled = false;
-
-        if (!Config.isPreloadedEnabled()) {
-            event.reply("❌ Pre-loaded tracks are not enabled").setEphemeral(true).queue();
+        if (!Config.isAudioSavingEnabled()) {
+            event.reply("❌ Saving tracks is not enabled").setEphemeral(true).queue();
             return;
         }
 
@@ -454,7 +439,7 @@ public class SlashCommands {
 
         joinAndWait(event);
 
-        bot.addPreloaded(event);
+        bot.addSaved(event);
     }
 
    private void handleRpsChallengeCommand(SlashCommandInteractionEvent event) {
