@@ -55,7 +55,7 @@ public class MusicBot {
                 .setAllowSearch(true)
                 .setAllowDirectVideoIds(true)
                 .setAllowDirectPlaylistIds(true);
-        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Tv(), new TvHtml5Embedded(), new TvHtml5EmbeddedWithThumbnail(), new Web()});
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Music(), new Web(), new Ios(), new TvHtml5EmbeddedWithThumbnail(), new TvHtml5Embedded(), new Tv()});
         if (Config.getGoogleOAuth2Token() != null && !Config.getGoogleOAuth2Token().isEmpty() && !Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
             yt.useOauth2(Config.getGoogleOAuth2Token(), true);
         } else {
@@ -79,10 +79,22 @@ public class MusicBot {
 
         player.addListener(new AudioEventAdapter() {
             @Override
+            public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+                if (BotSettings.isDebug()) {
+                    System.out.println("[player] Track exception for " + track.getInfo().title + ": " + exception.getMessage());
+                }
+                Object userData = track.getUserData();
+                if (userData instanceof InteractionHook) {
+                    InteractionHook hook = (InteractionHook) userData;
+                    hook.editOriginal("❌ Playback failed for `" + track.getInfo().title + "`: " + exception.getMessage()).queue();
+                }
+            }
+
+            @Override
             public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
                 currentTrack = null;
                 if (endReason.mayStartNext) {
-                    if (loopEnabled && track != null) {
+                    if (loopEnabled && track != null && endReason != AudioTrackEndReason.LOAD_FAILED) {
                         trackQueue.offer(track.makeClone());
                     }
                     MusicBot.playNextTrack();
@@ -284,13 +296,19 @@ public class MusicBot {
                     if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + track.getInfo().title + " from URL: " + url);
                     return;
                 }
-                trackQueue.offer(track);
-                String msg = player.getPlayingTrack() == null
-                        ? "✅ Now playing: " + track.getInfo().title
-                        : "✅ Queued: " + track.getInfo().title;
-                hook.editOriginal(msg).queue();
-                if (player.getPlayingTrack() == null) playNextTrack();
-                if (BotSettings.isDebug()) System.out.println("[queue] Loaded track: " + track.getInfo().title + " from URL: " + url);
+                try {
+                    track.setUserData(hook);
+                    trackQueue.offer(track);
+                    String msg = player.getPlayingTrack() == null
+                            ? "✅ Now playing: " + track.getInfo().title
+                            : "✅ Queued: " + track.getInfo().title;
+                    hook.editOriginal(msg).queue();
+                    if (player.getPlayingTrack() == null) playNextTrack();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Loaded track: " + track.getInfo().title + " from URL: " + url);
+                } catch (Exception e) {
+                    hook.editOriginal("❌ Error queuing track: " + e.getMessage()).queue();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Exception while queuing track from URL: " + url + " Error: " + e.getMessage());
+                }
             }
 
             @Override
@@ -307,10 +325,18 @@ public class MusicBot {
                         return;
                     }
                 }
-                playlist.getTracks().forEach(trackQueue::offer);
-                hook.editOriginal("✅ Added " + playlist.getTracks().size() + " tracks").queue();
-                if (BotSettings.isDebug()) System.out.println("[queue] Loaded playlist: " + playlist.getName() + " with " + playlist.getTracks().size() + " tracks from URL: " + url);
-                if (player.getPlayingTrack() == null) playNextTrack();
+                try {
+                    playlist.getTracks().forEach(track -> {
+                        track.setUserData(hook);
+                        trackQueue.offer(track);
+                    });
+                    hook.editOriginal("✅ Added " + playlist.getTracks().size() + " tracks").queue();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Loaded playlist: " + playlist.getName() + " with " + playlist.getTracks().size() + " tracks from URL: " + url);
+                    if (player.getPlayingTrack() == null) playNextTrack();
+                } catch (Exception e) {
+                    hook.editOriginal("❌ Error queuing playlist: " + e.getMessage()).queue();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Exception while queuing playlist from URL: " + url + " Error: " + e.getMessage());
+                }
             }
 
             @Override
@@ -342,13 +368,19 @@ public class MusicBot {
                     if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + track.getInfo().title + " from search.");
                     return;
                 }
-                trackQueue.offer(track);
-                String msg = player.getPlayingTrack() == null
-                        ? "✅ Now playing: " + track.getInfo().title
-                        : "✅ Queued: " + track.getInfo().title;
-                hook.editOriginal(msg).queue();
-                if (player.getPlayingTrack() == null) playNextTrack();
-                if (BotSettings.isDebug()) System.out.println("[search] Loaded track: " + track.getInfo().title + " for query: " + query);
+                try {
+                    track.setUserData(hook);
+                    trackQueue.offer(track);
+                    String msg = player.getPlayingTrack() == null
+                            ? "✅ Now playing: " + track.getInfo().title
+                            : "✅ Queued: " + track.getInfo().title;
+                    hook.editOriginal(msg).queue();
+                    if (player.getPlayingTrack() == null) playNextTrack();
+                    if (BotSettings.isDebug()) System.out.println("[search] Loaded track: " + track.getInfo().title + " for query: " + query);
+                } catch (Exception e) {
+                    hook.editOriginal("❌ Error queuing track: " + e.getMessage()).queue();
+                    if (BotSettings.isDebug()) System.out.println("[search] Exception while queuing track for query: " + query + " Error: " + e.getMessage());
+                }
             }
 
             @Override
@@ -365,19 +397,25 @@ public class MusicBot {
                         return;
                     }
                 }
-                AudioTrack firstTrack = playlist.getTracks().get(0);
-                if (containsAsmr(firstTrack)) {
-                    hook.editOriginal("❌ ASMR content is blocked.").queue();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
-                    return;
+                try {
+                    AudioTrack firstTrack = playlist.getTracks().get(0);
+                    if (containsAsmr(firstTrack)) {
+                        hook.editOriginal("❌ ASMR content is blocked.").queue();
+                        if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
+                        return;
+                    }
+                    firstTrack.setUserData(hook);
+                    trackQueue.offer(firstTrack);
+                    String msg = player.getPlayingTrack() == null
+                            ? "✅ Now playing: " + firstTrack.getInfo().title
+                            : "✅ Queued: " + firstTrack.getInfo().title;
+                    hook.editOriginal(msg).queue();
+                    if (player.getPlayingTrack() == null) playNextTrack();
+                    if (BotSettings.isDebug()) System.out.println("[search] Loaded first track from playlist: " + playlist.getName() + " for query: " + query);
+                } catch (Exception e) {
+                    hook.editOriginal("❌ Error queuing track: " + e.getMessage()).queue();
+                    if (BotSettings.isDebug()) System.out.println("[search] Exception while queuing track from playlist for query: " + query + " Error: " + e.getMessage());
                 }
-                trackQueue.offer(firstTrack);
-                String msg = player.getPlayingTrack() == null
-                        ? "✅ Now playing: " + firstTrack.getInfo().title
-                        : "✅ Queued: " + firstTrack.getInfo().title;
-                hook.editOriginal(msg).queue();
-                if (player.getPlayingTrack() == null) playNextTrack();
-                if (BotSettings.isDebug()) System.out.println("[search] Loaded first track from playlist: " + playlist.getName() + " for query: " + query);
             }
 
             @Override
