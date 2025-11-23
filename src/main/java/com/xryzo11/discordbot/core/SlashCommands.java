@@ -133,32 +133,18 @@ public class SlashCommands {
     }
 
     private boolean checkVoiceConnection(SlashCommandInteractionEvent event) {
-        Member member = event.getMember();
-
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return true;
-        }
-
-        return isInVoiceChannel(event);
+        return !isUserInVoice(event);
     }
 
     private boolean isInVoiceChannel(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
 
         if (guild.getAudioManager().isConnected()) {
-            event.reply("❌ Bot is already in a voice channel!").setEphemeral(true).queue();
             return true;
         }
 
-        boolean isConnectedAnywhere = BotHolder.getJDA().getGuilds().stream()
+        return BotHolder.getJDA().getGuilds().stream()
                 .anyMatch(g -> g.getAudioManager().isConnected());
-        if (isConnectedAnywhere) {
-            event.reply("❌ Bot is already in a voice channel in another server!").setEphemeral(true).queue();
-            return true;
-        }
-
-        return false;
     }
 
     private void joinChannel(SlashCommandInteractionEvent event) {
@@ -175,9 +161,34 @@ public class SlashCommands {
         event.getHook().editOriginal("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
     }
 
-    private void joinAndWait(SlashCommandInteractionEvent event) {
+    private boolean isUserInVoice(SlashCommandInteractionEvent event) {
+        Member member = event.getMember();
+        if (member == null || !member.getVoiceState().inAudioChannel()) {
+            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+            return false;
+        }
+
         Guild guild = event.getGuild();
-        if (!guild.getAudioManager().isConnected()) {
+        boolean isConnected = guild.getAudioManager().isConnected();
+        boolean isConnectedAnywhere = BotHolder.getJDA().getGuilds().stream()
+                .anyMatch(g -> g.getAudioManager().isConnected());
+
+        if (isConnected) {
+            if (!member.getVoiceState().getChannel().asVoiceChannel().equals(guild.getAudioManager().getConnectedChannel())) {
+                event.reply("❌ You must be in the same voice channel as the bot!").setEphemeral(true).queue();
+                return false;
+            }
+        } else if (isConnectedAnywhere) {
+            event.reply("❌ Bot is already in a voice channel in another server!").setEphemeral(true).queue();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void joinAndWait(SlashCommandInteractionEvent event) {
+        boolean isConnected = isInVoiceChannel(event);
+        if (!isConnected) {
             joinChannel(event);
             try {
                 Thread.sleep(1000);
@@ -189,13 +200,10 @@ public class SlashCommands {
 
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
         String track = event.getOption("track").getAsString();
-        Member member = event.getMember();
 
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+        if (!isUserInVoice(event)) {
             return;
         }
-
         joinAndWait(event);
 
         if (!track.contains("youtube.com") && !track.contains("youtu.be") && !track.contains("youtube.pl") && !track.contains("spotify.com")) {
@@ -226,16 +234,8 @@ public class SlashCommands {
     private void handleDequeueCommand(SlashCommandInteractionEvent event) {
         int position = event.getOption("position").getAsInt();
         int queueSize = MusicBot.trackQueue.size();
-        Guild guild = event.getGuild();
-        Member member = event.getMember();
 
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
-        }
-
-        if (!guild.getAudioManager().isConnected()) {
-            event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+        if (!isUserInVoice(event)) {
             return;
         }
 
@@ -277,6 +277,10 @@ public class SlashCommands {
     }
 
     private void handleSkipCommand(SlashCommandInteractionEvent event) {
+        if (!isUserInVoice(event)) {
+            return;
+        }
+
         if (bot.player.getPlayingTrack() == null) {
             event.reply("❌ No track is currently playing").setEphemeral(true).queue();
             return;
@@ -297,6 +301,9 @@ public class SlashCommands {
     }
 
     private void handleLoopCommand(SlashCommandInteractionEvent event) {
+        if (!isUserInVoice(event)) {
+            return;
+        }
         safeDefer(event);
         bot.toggleLoop();
         String status = bot.isLoopEnabled() ? "enabled" : "disabled";
@@ -304,6 +311,9 @@ public class SlashCommands {
     }
 
     private void handleShuffleCommand(SlashCommandInteractionEvent event) {
+        if (!isUserInVoice(event)) {
+            return;
+        }
 
         if (MusicBot.trackQueue.size() <= 0) {
             event.reply("❌ Queue is empty.").setEphemeral(true).queue();
@@ -317,20 +327,12 @@ public class SlashCommands {
     }
 
     private void handlePlayheadCommand(SlashCommandInteractionEvent event) {
-        Guild guild = event.getGuild();
-        Member member = event.getMember();
         int hour = event.getOption("hour").getAsInt();
         int minute = event.getOption("minute").getAsInt();
         int second = event.getOption("second").getAsInt();
         int totalSeconds = hour * 3600 + minute * 60 + second;
 
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
-        }
-
-        if (!guild.getAudioManager().isConnected()) {
-            event.reply("❌ Bot is not in a voice channel! Use /join first").setEphemeral(true).queue();
+        if (!isUserInVoice(event)) {
             return;
         }
 
@@ -405,14 +407,9 @@ public class SlashCommands {
             return;
         }
 
-        Member member = event.getMember();
-        Guild guild = event.getGuild();
-
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
+        if (!isUserInVoice(event)) {
             return;
         }
-
         joinAndWait(event);
 
         bot.addSaved(event);
