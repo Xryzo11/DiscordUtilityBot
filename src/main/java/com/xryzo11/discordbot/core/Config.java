@@ -48,18 +48,9 @@ public class Config {
                                     boolean autoRestartEnabled,
                                     int autoRestartHour,
                                     boolean configUpdate,
-                                    int audioPort,
-                                    String audioDirectory,
-                                    boolean audioPreloaded,
-                                    String audioPreloadedDirectory,
-                                    boolean audioPreloadedCopy,
-                                    boolean audioCleanup,
+                                    String audioGoogleOAuth2,
+                                    boolean audioSavingEnabled,
                                     boolean audioBlockAsmr,
-                                    boolean audioYtCookies,
-                                    String audioYtCookiesSource,
-                                    String audioYtCookiesPath,
-                                    String audioYtCookiesBrowser,
-                                    boolean updateYtDlp,
                                     String spotifyClientId,
                                     String spotifyClientSecret,
                                     boolean limitPlaylist,
@@ -98,41 +89,14 @@ public class Config {
             writer.write("# MUSIC BOT SETTINGS\n");
             writer.write("#################################\n\n");
 
-            writer.write("# Http audio player port (doesn't have to be open) [int]\n");
-            writer.write("audio.port=" + audioPort + "\n\n");
+            writer.write("# Use OAuth2 to access content on youtube [String]\n");
+            writer.write("audio.google.oauth2=" + audioGoogleOAuth2 + "\n\n");
 
-            writer.write("# Audio directory [string]\n");
-            writer.write("audio.directory=" + audioDirectory + "\n\n");
-
-            writer.write("# Enable pre-loaded tracks [true/false]\n");
-            writer.write("audio.preloaded=" + audioPreloaded + "\n\n");
-
-            writer.write("# Pre-loaded directory (requires audio.preloaded) [string]\n");
-            writer.write("audio.preloaded.directory=" + audioPreloadedDirectory + "\n\n");
-
-            writer.write("# Copy tracks from preloaded dir to audio dir on startup (faster playback, requires audio.preloaded) [true/false]\n");
-            writer.write("audio.preloaded.copy=" + audioPreloadedCopy + "\n\n");
-
-            writer.write("# Automatically remove non-preloaded audio files on startup [true/false]\n");
-            writer.write("audio.cleanup=" + audioCleanup + "\n\n");
+            writer.write("# Enable saving tracks for easier playback ('/save' and '/add' commands) [true/false]\n");
+            writer.write("audio.saving.enabled=" + audioSavingEnabled + "\n\n");
 
             writer.write("# Block ASMR content [true/false]\n");
             writer.write("audio.block.asmr=" + audioBlockAsmr + "\n\n");
-
-            writer.write("# Use browser cookies for age restricted/private content on YouTube [true/false]\n");
-            writer.write("audio.yt.cookies=" + audioYtCookies + "\n\n");
-
-            writer.write("# Where to source cookies from (requires audio.yt.cookies) [file/browser]\n");
-            writer.write("audio.yt.cookies.source=" + audioYtCookiesSource + "\n\n");
-
-            writer.write("# Path to cookies file (requires audio.yt.cookies and audio.yt.cookies.source=file) [string]\n");
-            writer.write("audio.yt.cookies.file=" + audioYtCookiesPath + "\n\n");
-
-            writer.write("# Which browser to use for cookies (requires audio.yt.cookies and audio.yt.cookies.source=browser) [brave/chrome/chromium/edge/firefox/opera/safari/vivaldi/whale]\n");
-            writer.write("audio.yt.cookies.browser=" + audioYtCookiesBrowser + "\n\n");
-
-            writer.write("# Automatically update yt-dlp using pip (only set to true if yt-dlp was installed using pip, uses 'yt-dlp -U' otherwise) [true/false]\n");
-            writer.write("update.yt-dlp=" + updateYtDlp + "\n\n");
 
             writer.write("# Spotify Client ID (required for Spotify playlist support) [string]\n");
             writer.write("spotify.client.id=" + spotifyClientId + "\n\n");
@@ -140,7 +104,7 @@ public class Config {
             writer.write("# Spotify Client Secret (required for Spotify playlist support) [string]\n");
             writer.write("spotify.client.secret=" + spotifyClientSecret + "\n\n");
 
-            writer.write("# Limit max Youtube/Spotify playlist size to 250 (doesn't limit queue size | false = infinite) [true/false]\n");
+            writer.write("# Limit max Youtube/Spotify playlist size to 500 (doesn't limit queue size | false = infinite) [true/false]\n");
             writer.write("audio.limit.playlist=" + limitPlaylist + "\n\n");
 
             writer.write("\n\n#################################\n");
@@ -176,18 +140,9 @@ public class Config {
                 true,
                 6,
                 true,
-                21378,
-                "/tmp/discord_audio/",
-                true,
-                "/tmp/discord_audio_preloaded/",
+                "YOUR_OAUTH2_TOKEN_HERE",
                 true,
                 true,
-                false,
-                false,
-                "browser",
-                "YOUR_YT_COOKIES_FILE_PATH_HERE",
-                "chrome",
-                false,
                 "YOUR_SPOTIFY_CLIENT_ID_HERE",
                 "YOUR_SPOTIFY_CLIENT_SECRET_HERE",
                 true,
@@ -242,18 +197,9 @@ public class Config {
                 isAutoRestartEnabled(),
                 getAutoRestartHour(),
                 isConfigUpdateEnabled(),
-                getAudioPort(),
-                getAudioDirectory(),
-                isPreloadedEnabled(),
-                getPreloadedDirectory(),
-                isPreloadedCopyEnabled(),
-                isAudioCleanupEnabled(),
+                getGoogleOAuth2Token(),
+                isAudioSavingEnabled(),
                 isAsmrBlockEnabled(),
-                isYtCookiesEnabled(),
-                getYtCookiesSource(),
-                getYtCookiesPathRaw(),
-                getYtCookiesBrowser(),
-                isYtDlpUpdateEnabled(),
                 getSpotifyClientId(),
                 getSpotifyClientSecret(),
                 isLimitPlaylistEnabled(),
@@ -301,76 +247,16 @@ public class Config {
         return Integer.parseInt(properties.getProperty("web.port", "21379"));
     }
 
-    public static int getAudioPort() {
-        return Integer.parseInt(properties.getProperty("audio.port", "21378"));
+    public static String getGoogleOAuth2Token() {
+        return properties.getProperty("audio.google.oauth2", "YOUR_OAUTH2_TOKEN_HERE");
     }
 
-    public static String getAudioDirectory() {
-        String dir = properties.getProperty("audio.directory", "/tmp/discord_audio/");
-        if (dir == null || dir.trim().isEmpty()) {
-            throw new IllegalStateException("Audio directory not configured in config.properties");
-        }
-        if (!dir.endsWith(File.separator)) {
-            dir += File.separator;
-        }
-        return dir;
-    }
-
-    public static boolean isPreloadedEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("audio.preloaded", "true"));
-    }
-
-    public static String getPreloadedDirectory() {
-        String dir = properties.getProperty("audio.preloaded.directory", "/tmp/discord_audio_preloaded/");
-        if (dir == null || dir.trim().isEmpty()) {
-            throw new IllegalStateException("Pre-loaded directory not configured in config.properties");
-        }
-        if (!dir.endsWith(File.separator)) {
-            dir += File.separator;
-        }
-        return dir;
-    }
-
-    public static boolean isPreloadedCopyEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("audio.preloaded.copy", "true"));
+    public static boolean isAudioSavingEnabled() {
+        return Boolean.parseBoolean(properties.getProperty("audio.saving.enabled", "true"));
     }
 
     public static boolean isAsmrBlockEnabled() {
         return Boolean.parseBoolean(properties.getProperty("audio.block.asmr", "false"));
-    }
-
-    public static boolean isYtCookiesEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("audio.yt.cookies", "false"));
-    }
-
-    public static String getYtCookiesSource() {
-        return properties.getProperty("audio.yt.cookies.source", "file").toLowerCase();
-    }
-
-    private static String getYtCookiesPathRaw() {
-        return properties.getProperty("audio.yt.cookies.file", "YOUR_YT_COOKIES_FILE_PATH_HERE");
-    }
-
-    public static String getYtCookiesPath() {
-        String path = properties.getProperty("audio.yt.cookies.file", "YOUR_YT_COOKIES_FILE_PATH_HERE");
-        if (path == null || path.trim().isEmpty() || path.equals("YOUR_YT_COOKIES_FILE_PATH_HERE")) {
-            throw new IllegalStateException("YouTube cookies file path not configured in config.properties");
-        }
-        return path;
-    }
-
-    public static String getYtCookiesBrowser() {
-        return properties.getProperty("audio.yt.cookies.browser", "chrome").toLowerCase();
-    }
-
-    public static String getYtCookies() {
-        if (getYtCookiesSource().equals("file")) {
-            return getYtCookiesPath();
-        } else if (getYtCookiesSource().equals("browser")) {
-            return getYtCookiesBrowser();
-        } else {
-            throw new IllegalStateException("Invalid YouTube cookies source configured in config.properties");
-        }
     }
 
     public static boolean isAutoKickEnabled() {
@@ -393,10 +279,6 @@ public class Config {
         return Boolean.parseBoolean(properties.getProperty("debug.enabled", "false"));
     }
 
-    public static boolean isYtDlpUpdateEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("update.yt-dlp", "false"));
-    }
-
     public static String getSpotifyClientId() {
         return properties.getProperty("spotify.client.id", "YOUR_SPOTIFY_CLIENT_ID_HERE");
     }
@@ -407,10 +289,6 @@ public class Config {
 
     public static boolean isLimitPlaylistEnabled() {
         return Boolean.parseBoolean(properties.getProperty("audio.limit.playlist", "true"));
-    }
-
-    public static boolean isAudioCleanupEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("audio.cleanup", "true"));
     }
 
     public static boolean isAutoRestartEnabled() {

@@ -21,6 +21,24 @@
             <name>m2-dv8tion</name>
             <url>https://m2.dv8tion.net/releases</url>
         </repository>
+        <repository>
+            <id>arbjergDev-releases</id>
+            <name>Lavalink Repository</name>
+            <url>https://maven.lavalink.dev/releases</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
+            <id>topi314-lavalyrics</id>
+            <url>https://maven.topi.wtf/releases</url>
+        </repository>
+        <repository>
+            <id>TopiWTF-releases</id>
+            <name>Topis Maven Repo</name>
+            <url>https://maven.topi.wtf/releases</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -39,10 +57,46 @@
             <artifactId>gson</artifactId>
             <version>2.13.2</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.sedmelluq</groupId>-->
+<!--            <artifactId>lavaplayer</artifactId>-->
+<!--            <version>1.3.78</version>-->
+<!--        </dependency>-->
         <dependency>
-            <groupId>com.sedmelluq</groupId>
+            <groupId>dev.lavalink.youtube</groupId>
+            <artifactId>v2</artifactId>
+            <version>1.16.0</version>
+            <!-- <scope>runtime</scope> -->
+        </dependency>
+        <dependency>
+            <groupId>com.github.topi314.lavasrc</groupId>
+            <artifactId>lavasrc-plugin</artifactId>
+            <version>4.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.topi314.lavalyrics</groupId>
+            <artifactId>lavalyrics</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.topi314.lavasrc</groupId>
+            <artifactId>lavasrc</artifactId>
+            <version>4.8.1</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.github.topi314.lavasrc</groupId>-->
+<!--            <artifactId>lavasrc-protocol-jvm</artifactId>-->
+<!--            <version>4.8.1</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>com.github.topi314.lavalyrics</groupId>
+            <artifactId>lavalyrics-plugin-api</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.arbjerg</groupId>
             <artifactId>lavaplayer</artifactId>
-            <version>1.3.78</version>
+            <version>2.2.4</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

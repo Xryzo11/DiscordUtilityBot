@@ -5,7 +5,6 @@ import com.xryzo11.discordbot.leaderboard.LeaderboardManager;
 import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.utils.listeners.*;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
-import com.xryzo11.discordbot.musicBot.AudioProcessor;
 import com.xryzo11.discordbot.musicBot.MusicBot;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
@@ -59,7 +58,6 @@ public class DiscordBot {
             System.out.println("\n");
         }
         ScriptGenerator.createNewScripts(libsDirectory + File.separator);
-        if (Config.isAudioCleanupEnabled()) AudioProcessor.cleanupAudioDirectory();
         if (Config.isAutoRestartEnabled()) {
             restart(() -> {
                 try {
@@ -125,12 +123,11 @@ public class DiscordBot {
                             .addOption(OptionType.INTEGER, "hour", "Hour timestamp", true)
                             .addOption(OptionType.INTEGER, "minute", "Minute timestamp", true)
                             .addOption(OptionType.INTEGER, "second", "Seconds timestamp", true),
-                    Commands.slash("preload", "Pre-download a track for later use")
+                    Commands.slash("save", "Save tracks for easy playback later")
                             .addOption(OptionType.STRING, "url", "YouTube URL", true)
                             .addOption(OptionType.STRING, "name", "Short track name", true),
-                    Commands.slash("add", "Add pre-downloaded track to the queue")
+                    Commands.slash("add", "Add saved track to the queue")
                             .addOptions(preloadedTracks),
-                    Commands.slash("cancel", "Cancel current playlist processing"),
                     Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
                             .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")

@@ -1,40 +1,39 @@
 package com.xryzo11.discordbot.musicBot;
 
+import com.github.topi314.lavasrc.spotify.SpotifySourceManager;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
-import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
-import com.sedmelluq.discord.lavaplayer.source.local.LocalAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.xryzo11.discordbot.core.Config;
+import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
 import com.xryzo11.discordbot.core.BotSettings;
-import com.xryzo11.discordbot.core.Config;
 import com.xryzo11.discordbot.core.SlashCommands;
 import com.xryzo11.discordbot.utils.listeners.ReactionListener;
+import dev.lavalink.youtube.YoutubeSourceOptions;
+import dev.lavalink.youtube.clients.*;
+import dev.lavalink.youtube.clients.skeleton.Client;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MusicBot {
     public final AudioPlayerManager playerManager;
@@ -42,64 +41,41 @@ public class MusicBot {
     public static final LinkedBlockingQueue<AudioTrack> trackQueue = new LinkedBlockingQueue<>();
     public AudioTrack currentTrack;
     private boolean loopEnabled = false;
-    private final ExecutorService executor = Executors.newFixedThreadPool(10);
-    public static boolean isCancelled = false;
     public AtomicBoolean dequeueTimedOut = new AtomicBoolean(false);
+    private static final File SAVEDTRACKS_FILE = new File(DiscordBot.configDirectory + "saved_tracks.json");
+    public static ArrayList<SavedTrack> savedTracks = new ArrayList<>();
+    private static final Gson gson = new Gson();
 
     public MusicBot() {
-        File audioDir = new File(Config.getAudioDirectory());
-        File preloadedDir = new File(Config.getPreloadedDirectory());
-        if (!audioDir.exists()) {
-            audioDir.mkdirs();
-        }
-        if (!preloadedDir.exists()) {
-            preloadedDir.mkdirs();
+        playerManager = new DefaultAudioPlayerManager();
+        AudioSourceManagers.registerLocalSource(playerManager);
+
+        YoutubeSourceOptions options = new YoutubeSourceOptions()
+                .setRemoteCipher("https://cipher.kikkia.dev/", null, "xryzo11")
+                .setAllowSearch(true)
+                .setAllowDirectVideoIds(true)
+                .setAllowDirectPlaylistIds(true);
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Tv(), new TvHtml5Embedded(), new TvHtml5EmbeddedWithThumbnail(), new Web()});
+        if (Config.getGoogleOAuth2Token() != null && !Config.getGoogleOAuth2Token().isEmpty() && !Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
+            yt.useOauth2(Config.getGoogleOAuth2Token(), true);
+        } else {
+            yt.useOauth2(null, false);
         }
 
-        playerManager = new DefaultAudioPlayerManager();
-        playerManager.registerSourceManager(new HttpAudioSourceManager());
-        playerManager.registerSourceManager(new LocalAudioSourceManager());
+        playerManager.registerSourceManager(new SpotifySourceManager(
+                null,
+                Config.getSpotifyClientId(),
+                Config.getSpotifyClientSecret(),
+                "US",
+                playerManager
+        ));
+
+        playerManager.registerSourceManager(yt);
+        AudioSourceManagers.registerRemoteSources(playerManager);
         player = playerManager.createPlayer();
         playerManager.getConfiguration().setFilterHotSwapEnabled(true);
 
-        AudioProcessor.startHttpServer();
-        AudioProcessor.cleanupAudioDirectory();
-
-        if (Config.isPreloadedCopyEnabled()) {
-            for (File file : preloadedDir.listFiles()) {
-                if (file.isFile() && file.getName().endsWith(".webm")) {
-                    String fileName = file.getName();
-                    String videoId = fileName.substring(fileName.indexOf("[(") + 2, fileName.indexOf(")].webm"));
-                    File targetFile = new File(audioDir, videoId + ".webm");
-                    if (!targetFile.exists()) {
-                        try {
-                            java.nio.file.Files.copy(
-                                    file.toPath(),
-                                    targetFile.toPath()
-                            );
-                            File jsonSource = new File(file.getParent(), fileName + ".info.json");
-                            if (!jsonSource.exists()) {
-                                String fileNameNoExt = fileName.split("\\.")[0];
-                                jsonSource = new File(file.getParent(), fileNameNoExt + ".info.json");
-                                if (!jsonSource.exists()) {
-                                    if (BotSettings.isDebug()) System.out.println("[MusicBot] No JSON metadata found for preloaded track: " + fileName);
-                                    continue;
-                                }
-                            }
-//                            File jsonTarget = new File(audioDir, videoId + ".webm.info.json");
-                            File jsonTarget = new File(audioDir, videoId + ".info.json");
-                            if (jsonSource.exists() && !jsonTarget.exists()) {
-                                java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
-                            }
-                        } catch (IOException e) {
-                            if (BotSettings.isDebug()) System.out.println("[MusicBot] Failed to copy preloaded track: " + e.getMessage());
-                        }
-                    } else {
-                        if (BotSettings.isDebug()) System.out.println("[MusicBot] File already exists, skipping copy: " + targetFile.getName());
-                    }
-                }
-            }
-        }
+        loadFromFile();
 
         player.addListener(new AudioEventAdapter() {
             @Override
@@ -118,134 +94,15 @@ public class MusicBot {
                 currentTrack = track;
             }
         });
-
-        try {
-            if (BotSettings.isDebug()) System.out.println("[MusicBot] Attempting yt-dlp update...");
-            updateYtdlp();
-        } catch (IOException e) {
-            if (BotSettings.isDebug()) System.out.println("[MusicBot] Failed to update yt-dlp: " + e.getMessage());
-        }
-    }
-
-    private static String toLocalFileUri(AudioTrackInfo info) {
-        String last = info.uri.substring(info.uri.lastIndexOf('/') + 1);
-        String videoId = last.replace(".webm", "");
-        File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
-        return audioFile.toURI().toString();
-    }
-
-    public static String whichYtDlp() {
-        List<String> command = new ArrayList<>();
-
-        String os = System.getProperty("os.name").toLowerCase();
-        if (os.contains("win")) {
-            command.add("where");
-        } else {
-            command.add("which");
-        }
-        command.add("yt-dlp");
-
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        Map<String, String> env = processBuilder.environment();
-        String path = env.getOrDefault("PATH", System.getenv("PATH"));
-        String home = System.getProperty("user.home");
-        String localBin = home + "/.local/bin";
-        if (!path.contains(localBin)) {
-            path = localBin + ":" + path;
-        }
-        env.put("PATH", path);
-        processBuilder.redirectErrorStream(true);
-        try {
-            Process process = processBuilder.start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                if ((line = reader.readLine()) != null) {
-                    return line.trim();
-                }
-            }
-            process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            if (BotSettings.isDebug()) System.out.println("[whichYtDlp] Failed to locate yt-dlp: " + e.getMessage());
-        }
-        if (BotSettings.isDebug()) System.out.println("[whichYtDlp] Failed to locate yt-dlp. Returned null.");
-        return null;
-    }
-
-    public static void setPath(ProcessBuilder processBuilder) {
-        Map<String, String> env = processBuilder.environment();
-
-        env.put("HOME", System.getProperty("user.home"));
-        env.put("LANG", "en_US.UTF-8");
-        env.put("LC_ALL", "en_US.UTF-8");
-
-        String path = env.getOrDefault("PATH", System.getenv("PATH"));
-        String home = System.getProperty("user.home");
-        String localBin = home + "/.local/bin";
-        String ffmpegBin = "/usr/bin";
-        String usrLocalBin = "/usr/local/bin";
-        env.put("PATH", String.join(":", List.of(localBin, ffmpegBin, usrLocalBin, path)));
-        env.put("TERM", "xterm");
-    }
-
-
-    public static void updateYtdlp() throws IOException {
-        ProcessBuilder ytdlpNightly;
-        ProcessBuilder ytdlpUpdate;
-        String whichResult = whichYtDlp();
-        if (whichResult == null) {
-            if (BotSettings.isDebug()) System.out.println("[yt-dlp update] yt-dlp not found in PATH. Skipping update.");
-            return;
-        } else {
-            if (BotSettings.isDebug()) {
-                System.out.println("[yt-dlp update] yt-dlp located at: " + whichResult);
-            }
-        }
-        if (Config.isYtDlpUpdateEnabled()) {
-            ProcessBuilder ytdlpNightlyPipx;
-            ProcessBuilder ytdlpUpdatePipx;
-            ytdlpNightly = new ProcessBuilder("python3", "-m", "pip", "install", "-U", "--pre", "yt-dlp[default]");
-            ytdlpNightlyPipx = new ProcessBuilder("pipx", "upgrade", "yt-dlp", "--pip-args=--pre");
-            ytdlpUpdate = new ProcessBuilder("pip", "install", "--upgrade", "yt-dlp");
-            ytdlpUpdatePipx = new ProcessBuilder("pipx", "upgrade", "yt-dlp", "--pip-args=--pre");
-            setPath(ytdlpNightly);
-            setPath(ytdlpNightlyPipx);
-            setPath(ytdlpUpdate);
-            setPath(ytdlpUpdatePipx);
-            ytdlpNightly.start();
-            ytdlpNightlyPipx.start();
-            ytdlpUpdate.start();
-            ytdlpUpdatePipx.start();
-        }
-        ytdlpNightly = new ProcessBuilder(whichYtDlp(), "--update-to", "nightly");
-        ytdlpUpdate = new ProcessBuilder(whichYtDlp(), "-U");
-        setPath(ytdlpNightly);
-        setPath(ytdlpUpdate);
-        ytdlpNightly.start();
-        ytdlpUpdate.start();
-        List<String> command = new ArrayList<>();
-        command.add(whichYtDlp());
-        command.add("--version");
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        setPath(processBuilder);
-        processBuilder.redirectErrorStream(true);
-        Process versionProcess = processBuilder.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(versionProcess.getInputStream()))) {
-            String line;
-            if ((line = reader.readLine()) != null) {
-                if (BotSettings.isDebug()) {
-                    System.out.println("[yt-dlp update] Version: " + line);
-                }
-            }
-        }
-//        try {
-//            testDownload(whichResult);
-//        } catch (Exception e) {
-//            if (BotSettings.isDebug()) System.out.println("[yt-dlp update] yt-dlp test download failed: " + e.getMessage());
-//        }
     }
 
     public static void playNextTrack() {
         AudioTrack nextTrack = trackQueue.poll();
+        if (containsAsmr(nextTrack)) {
+            if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + nextTrack.getInfo().title + " from queue.");
+            playNextTrack();
+            return;
+        }
         if (nextTrack != null) {
             player.playTrack(nextTrack);
             DiscordBot.presenceManager.forcedUpdatePresence();
@@ -365,11 +222,9 @@ public class MusicBot {
     }
 
     public static String formatTrackInfo(AudioTrack track) {
-        AudioTrackInfo info = track.getInfo();
+        String title = track.getInfo().title;
+        String youtubeUrl = track.getInfo().uri;
         long durationMs = track.getDuration();
-
-        String uri = info.uri;
-        String youtubeId = uri.substring(uri.lastIndexOf('/') + 1).replace(".webm", "");
 
         String durationStr;
         if (durationMs < 0 || durationMs >= TimeUnit.HOURS.toMillis(50)) {
@@ -379,9 +234,6 @@ public class MusicBot {
             long seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60;
             durationStr = String.format("%d:%02d", minutes, seconds);
         }
-
-        String youtubeUrl = "https://www.youtube.com/watch?v=" + youtubeId;
-        String title = track.getUserData() != null ? track.getUserData().toString() : youtubeId;
 
         return String.format("[%s](<%s>) `[%s]`",
                 title,
@@ -418,489 +270,199 @@ public class MusicBot {
 
     public void queue(SlashCommandInteractionEvent event, String url) {
         SlashCommands.safeDefer(event);
-        queue(event.getHook(), url, false);
+        queue(event.getHook(), url);
     }
 
-    public void queueSilent(InteractionHook hook, String url) {
-        queue(hook, url, true);
-    }
+    public void queue(InteractionHook hook, String url) {
+        hook.editOriginal("⏳ Loading...").queue();
 
-
-    public void queue(InteractionHook hook, String url, boolean silent) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                boolean isPlaylist = url.contains("playlist?list=") || url.contains("&list=");
-
-                if (isPlaylist) {
-                    if (BotSettings.isDebug()) System.out.println("[queue] Processing playlist URL: " + url);
-                    if (!silent) hook.editOriginal("⏳ Processing playlist...").queue();
-                    AudioProcessor.processYouTubePlaylist(url).thenAccept(videoUrls -> {
-                        final int totalTracks = videoUrls.size();
-                        if (totalTracks == 0) {
-                            if (!silent) hook.editOriginal("❌ No tracks found in playlist").queue();
-                            if (BotSettings.isDebug()) System.out.println("[queue] No tracks found in playlist");
-                            return;
-                        }
-
-                        if (Config.isLimitPlaylistEnabled()) {
-                            if (totalTracks > 250) {
-                                if (!silent) hook.editOriginal("❗ Playlist has " + totalTracks + " tracks, which exceeds the limit of 250.").queue();
-                                if (BotSettings.isDebug()) System.out.println("[queue] Playlist too long: " + totalTracks + " tracks");
-                                return;
-                            }
-                        }
-
-                        if (!silent) {
-                            hook.editOriginal("✅ Found " + totalTracks + " tracks. Downloading & queuing...").queue();
-                        }
-
-                        final AtomicInteger converted = new AtomicInteger(0);
-                        final AtomicInteger failed = new AtomicInteger(0);
-                        final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
-                        AtomicBoolean wasCancelled = new AtomicBoolean(false);
-
-                        for (String videoUrl : videoUrls) {
-                            if (isCancelled) {
-                                wasCancelled.set(true);
-                                break;
-                            }
-
-                            CompletableFuture<?> future = CompletableFuture.runAsync(() -> {
-                                if (isCancelled) {
-                                    wasCancelled.set(true);
-                                    return;
-                                }
-
-                                try {
-                                    AudioTrackInfo processedTrack = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
-                                    if (isCancelled) {
-                                        wasCancelled.set(true);
-                                        return;
-                                    }
-                                    loadTrack(processedTrack, hook, converted, failed, totalTracks, silent);
-                                } catch (Exception e) {
-                                    failed.incrementAndGet();
-                                    if (BotSettings.isDebug()) System.out.println("[queue] Failed to process track: " + e.getMessage());
-                                }
-                            }, executor);
-
-                            futures.add(future);
-                        }
-
-                        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                                .whenComplete((v, ex) -> {
-                                    if (wasCancelled.get() || isCancelled) {
-                                        if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
-                                        if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing cancelled");
-                                    } else {
-                                        if (!silent) {
-                                            String finalMsg = "✅ Finished processing playlist. Converted: " + converted.get() +
-                                                    "/" + totalTracks + " | ❌ Failed: " + failed.get();
-                                            hook.editOriginal(finalMsg).queue();
-                                        }
-                                        if (BotSettings.isDebug()) System.out.println("[queue] Playlist processing complete");
-                                    }
-                                });
-
-                    }).exceptionally(e -> {
-                        if (!silent) hook.editOriginal("❌ Failed to process playlist: " + e.getMessage()).queue();
-                        if (BotSettings.isDebug()) System.out.println("[queue] Failed to process playlist: " + e.getMessage());
-                        return null;
-                    });
-                } else {
-                    if (!silent) hook.editOriginal("⏳ Processing YouTube URL...").queue();
-
-                    String videoUrl = url;
-                    if (videoUrl.contains("/shorts/")) {
-                        videoUrl = videoUrl.replace("/shorts/", "/watch?v=");
-                    }
-                    String videoId = AudioProcessor.extractVideoId(videoUrl);
-                    File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
-//                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm.info.json");
-                    File infoFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".info.json");
-
-                    if (BotSettings.isDebug()) System.out.println("[queue] Attempting to queue video ID: " + videoId);
-
-                    if (audioFile.exists() && audioFile.length() > 0 && infoFile.exists()) {
-                        if (!silent) hook.editOriginal("🔍 Fetching metadata...").queue();
-                    } else {
-                        if (!silent) hook.editOriginal("📥 Downloading audio...").queue();
-                    }
-
-                    AudioTrackInfo trackInfo = AudioProcessor.processYouTubeAudio(videoUrl, true).get();
-
-                    if (!audioFile.exists() || !audioFile.canRead()) {
-                        if (!silent) hook.editOriginal("❌ Audio file not ready. Please try again.").queue();
-                        return;
-                    }
-
-                    if (Config.isAsmrBlockEnabled()) {
-                        if (trackInfo.title.contains("ASMR") || trackInfo.title.contains("F4A") || trackInfo.title.contains("F4M") || trackInfo.title.contains("F4F") || trackInfo.title.contains("M4A") || trackInfo.title.contains("M4M") || trackInfo.title.contains("M4F")) {
-                            if (!silent) hook.editOriginal("❌ ASMR content is blocked.").queue();
-                            return;
-                        }
-                    }
-
-                    if (!silent) hook.editOriginal("🎵 Loading track into player...").queue();
-
-                    int retries = 0;
-                    while (retries < 10) {
-                        try (FileInputStream fis = new FileInputStream(audioFile)) {
-                            if (audioFile.length() > 0) break;
-                        } catch (Exception ignored) {}
-                        Thread.sleep(200);
-                        retries++;
-                    }
-
-                    if (MusicBot.isCancelled) {
-                        if (!silent) hook.editOriginal("❗ Track processing cancelled").queue();
-                        if (BotSettings.isDebug()) System.out.println("[queue] Track processing cancelled");
-                        return;
-                    }
-
-                    String filePath = audioFile.getAbsolutePath();
-                    playerManager.loadItem(filePath, new AudioLoadResultHandler() {
-                        @Override
-                        public void trackLoaded(AudioTrack track) {
-                            track.setUserData(trackInfo.title);
-                            trackQueue.offer(track);
-                            String message = player.getPlayingTrack() == null
-                                    ? "✅ Added and playing: " + trackInfo.title
-                                    : "✅ Added to queue: " + trackInfo.title;
-                            if (!silent) hook.editOriginal(message).queue();
-                            if (BotSettings.isDebug()) System.out.println("[queue] Queued track: " + trackInfo.title);
-                            if (player.getPlayingTrack() == null) {
-                                playNextTrack();
-                            }
-                        }
-                        @Override
-                        public void playlistLoaded(AudioPlaylist playlist) {}
-                        @Override
-                        public void noMatches() {
-                            if (!silent) hook.editOriginal("❌ No matching audio found").queue();
-                            if (BotSettings.isDebug()) System.out.println("[queue] No matches found for ID: " + videoId);
-                        }
-                        @Override
-                        public void loadFailed(FriendlyException exception) {
-                            if (!silent) hook.editOriginal("❌ Failed to load track: " + exception.getMessage()).queue();
-                            if (BotSettings.isDebug()) System.out.println("[queue] Failed to load track: " + exception.getMessage());
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                if (!silent) hook.editOriginal("❌ Error processing track: " + e.getMessage()).queue();
-                if (BotSettings.isDebug()) System.out.println("[queue] Error processing track: " + e.getMessage());
-                if (BotSettings.isDebug()) {
-                    e.printStackTrace();
-                }
-            }
-        }, executor);
-    }
-
-    public void search(SlashCommandInteractionEvent event, String query, Guild guild, Member member) {
-        event.deferReply().queue(hook -> {
-            CompletableFuture.runAsync(() -> {
-                try {
-                    hook.editOriginal("⏳ Processing YouTube search...").queue();
-                    if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
-
-                    List<String> command = new ArrayList<>();
-                    command.add(whichYtDlp());
-                    command.add("--get-id");
-                    command.add("--ignore-errors");
-                    command.add("--no-warnings");
-                    command.add("-q");
-                    command.add("ytsearch1:" + query);
-                    if (Config.isYtCookiesEnabled()) {
-                        switch (Config.getYtCookiesSource()) {
-                            case "file" -> command.add("--cookies");
-                            case "browser" -> command.add("--cookies-from-browser");
-                        }
-                        command.add(Config.getYtCookies());
-                    }
-                    command.add("--remote-components");
-                    command.add("ejs:github");
-
-                    ProcessBuilder processBuilder = new ProcessBuilder(command);
-                    setPath(processBuilder);
-
-                    processBuilder.redirectErrorStream(true);
-                    Process process = processBuilder.start();
-
-                    String videoId = null;
-                    Pattern errorPattern = Pattern.compile("ERROR: \\[youtube\\] ([^:]+):");
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            if (BotSettings.isDebug()) System.out.println("[yt-dlp] " + line);
-
-                            if (line.contains("Deprecated Feature") || line.contains("WARNING") || line.isBlank()) {
-                                continue;
-                            }
-
-                            Matcher matcher = errorPattern.matcher(line);
-                            if (matcher.find()) {
-                                videoId = matcher.group(1);
-                                break;
-                            }
-
-                            if (line.matches("^[a-zA-Z0-9_-]{11}$")) {
-                                videoId = line.trim();
-                                break;
-                            }
-                        }
-                        if (BotSettings.isDebug()) System.out.println("[search] Video ID: " + videoId);
-                    }
-
-                    int exitCode = process.waitFor();
-                    if (exitCode != 0) {
-                        updateYtdlp();
-                        hook.editOriginal("❌ Failed to search for video").queue();
-                        if (BotSettings.isDebug()) System.out.println("[search] yt-dlp exited with code: " + exitCode);
-                        return;
-                    }
-
-                    if (videoId == null || videoId.isEmpty() || videoId.contains("ERROR") || videoId.trim().isEmpty()) {
-                        updateYtdlp();
-                        hook.editOriginal("❌ No results found").queue();
-                        if (BotSettings.isDebug()) System.out.println("[search] No video ID found in search results");
-                        return;
-                    }
-
-                    String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                    queue(event.getHook(), videoUrl, false);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    try {
-                        updateYtdlp();
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                    hook.editOriginal("❌ An error occurred while searching").queue();
-                    if (BotSettings.isDebug()) System.out.println("[search] Error during search: " + e.getMessage());
-                }
-            });
-        });
-    }
-
-    private static String resolveExecutable(String... candidates) {
-        for (String c : candidates) {
-            if (c != null && new File(c).canExecute()) return c;
-        }
-        return null;
-    }
-
-    public void preload(SlashCommandInteractionEvent event) {
-        event.deferReply().queue();
-
-        String url = event.getOption("url").getAsString();
-        String videoId = AudioProcessor.extractVideoId(url);
-        String name = event.getOption("name").getAsString();
-
-        if (BotSettings.isDebug()) System.out.println("[preload] Preloading URL: " + url + " with name: " + name);
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                String baseName = name + " [(" + videoId + ")]";
-                String preloadedDir = Config.getPreloadedDirectory();
-
-                List<String> command = new ArrayList<>();
-                command.add(whichYtDlp());
-                command.add("-f");
-                command.add("249/bestaudio/best");
-                command.add("--audio-format"); command.add("opus");
-                command.add("-o");
-                command.add(preloadedDir + baseName + ".%(ext)s");
-                command.add("--write-info-json");
-                command.add("--force-ipv4");
-                command.add("--no-check-certificate");
-                command.add("--geo-bypass");
-                if (Config.isYtCookiesEnabled()) {
-                    switch (Config.getYtCookiesSource()) {
-                        case "file" -> command.add("--cookies");
-                        case "browser" -> command.add("--cookies-from-browser");
-                    }
-                    command.add(Config.getYtCookies());
-                }
-                command.add("--extractor-args");
-                command.add("youtube:player_client=android,web");
-                command.add("--extractor-args");
-                command.add("youtube:player_skip=configs,webpage");
-                command.add(url);
-                command.add("--remote-components");
-                command.add("ejs:github");
-
-                ProcessBuilder processBuilder = new ProcessBuilder(command);
-                setPath(processBuilder);
-                processBuilder.redirectErrorStream(true);
-                Process process = processBuilder.start();
-
-                if (!process.waitFor(2, TimeUnit.MINUTES)) {
-                    cleanupPreloadCrash(videoId);
-                    process.destroyForcibly();
-                    event.getHook().sendMessage("❌ Download timed out").queue();
-                    if (BotSettings.isDebug()) System.out.println("[preload] Download timed out for URL: " + url);
-                    return;
-                }
-
-                if (process.exitValue() != 0) {
-                    cleanupPreloadCrash(videoId);
-                    event.getHook().sendMessage("❌ Failed to download track").queue();
-                    if (BotSettings.isDebug()) System.out.println("[preload] yt-dlp exited with code: " + process.exitValue());
-                    return;
-                }
-
-                event.getHook().sendMessage("✅ Track pre-loaded as: " + name).queue();
-                if (BotSettings.isDebug()) System.out.println("[preload] Successfully preloaded track: " + name);
-
-            } catch (Exception e) {
-                cleanupPreloadCrash(videoId);
-                event.getHook().sendMessage("❌ Error: " + e.getMessage()).queue();
-                if (BotSettings.isDebug()) System.out.println("[preload] Error during preload: " + e.getMessage());
-            }
-        });
-    }
-
-    private void cleanupPreloadCrash(String videoId) {
-        try {
-            updateYtdlp();
-            Path preloadedDir = Paths.get(Config.getPreloadedDirectory());
-            for (File file : Objects.requireNonNull(preloadedDir.toFile().listFiles())) {
-                if (file.getName().endsWith(".part")) {
-                    Files.deleteIfExists(file.toPath());
-                    if (BotSettings.isDebug()) System.out.println("[preload] Deleted incomplete file: " + file.getName());
-                }
-                if (file.getName().contains(videoId)) {
-                    Files.deleteIfExists(file.toPath());
-                    if (BotSettings.isDebug()) System.out.println("[preload] Deleted file after crash: " + file.getName());
-                }
-            }
-        } catch (IOException e) {
-            if (BotSettings.isDebug()) System.out.println("[preload] Failed to update yt-dlp after crash: " + e.getMessage());
-        }
-    }
-
-    public void addPreloaded(SlashCommandInteractionEvent event) {
-        event.deferReply().queue();
-        event.getHook().editOriginal("⏳ Adding preloaded track...").queue();
-        if (BotSettings.isDebug()) System.out.println("[addPreloaded] Adding preloaded track...");
-
-        String name = event.getOption("track").getAsString();
-        File dir = new File(Config.getPreloadedDirectory());
-        File[] matchingFiles = dir.listFiles((d, f) -> f.startsWith(name + " [(") && f.endsWith(")].webm"));
-
-        if (matchingFiles == null || matchingFiles.length == 0) {
-            event.getHook().editOriginal("❌ No preloaded track found with that name").queue();
-            if (BotSettings.isDebug()) System.out.println("[addPreloaded] No matching preloaded track found for name: " + name);
-            return;
-        }
-
-        File audioFile = matchingFiles[0];
-        String fileName = audioFile.getName();
-        String videoId = fileName.substring(fileName.indexOf("[(") + 2, fileName.indexOf(")].webm"));
-        String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-
-        try {
-            File targetDir = new File(Config.getAudioDirectory());
-            if (!targetDir.exists()) {
-                targetDir.mkdirs();
-            }
-            File targetFile = new File(targetDir, videoId + ".webm");
-            if (!targetFile.exists()) {
-                java.nio.file.Files.copy(
-                        audioFile.toPath(),
-                        targetFile.toPath()
-                );
-                File jsonSource = new File(audioFile.getParent(), name + " [(" + videoId + ")].info.json");
-//                File jsonTarget = new File(targetDir, videoId + ".webm.info.json");
-                File jsonTarget = new File(targetDir, videoId + ".info.json");
-                if (jsonSource.exists() && !jsonTarget.exists()) {
-                    java.nio.file.Files.copy(jsonSource.toPath(), jsonTarget.toPath());
-                }
-            } else {
-                System.out.println("[addPreloaded] File already exists, skipping copy: " + targetFile.getName());
-            }
-        } catch (IOException e) {
-            event.getHook().editOriginal("⚠️ Failed to copy preloaded track: " + e.getMessage()).queue();
-            if (BotSettings.isDebug()) System.out.println("[addPreloaded] Failed to copy preloaded track: " + e.getMessage());
-            return;
-        }
-
-        queue(event.getHook(), videoUrl, false);
-    }
-
-    private static String toLocalFilePath(AudioTrackInfo info) {
-        String last = info.uri.substring(info.uri.lastIndexOf('/') + 1);
-        String videoId = last.replace(".webm", "");
-        File audioFile = new File(AudioProcessor.AUDIO_DIR + videoId + ".webm");
-        return audioFile.getAbsolutePath();
-    }
-
-    private void loadTrack(AudioTrackInfo processedTrack, InteractionHook hook, AtomicInteger converted,
-                           AtomicInteger failed, int totalTracks, boolean silent) {
-        if (isCancelled) {
-            if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
-            if (BotSettings.isDebug()) System.out.println("[loadTrack] Playlist processing cancelled");
-            return;
-        }
-        String filePath = toLocalFilePath(processedTrack);
-        playerManager.loadItem(filePath, new AudioLoadResultHandler() {
+        playerManager.loadItem(url, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
-                track.setUserData(processedTrack.title);
-                if (isCancelled) {
-                    if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
-                    if (BotSettings.isDebug()) System.out.println("[trackLoaded] Playlist processing cancelled");
+                if (containsAsmr(track)) {
+                    hook.editOriginal("❌ ASMR content is blocked.").queue();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + track.getInfo().title + " from URL: " + url);
                     return;
                 }
                 trackQueue.offer(track);
-                int c = converted.incrementAndGet();
-                int f = failed.get();
-                int done = c + f;
-                if (!silent && (done == 1 || done % 5 == 0 || done == totalTracks)) {
-                    String summary = "🎵 Converted: " + c + "/" + totalTracks +
-                            " | ❌ Failed: " + f;
-                    hook.editOriginal(summary).queue();
-                }
-                if (BotSettings.isDebug()) System.out.println("[loadTrack] Queued track: " + processedTrack.title);
-                if (player.getPlayingTrack() == null) {
-                    playNextTrack();
-                }
+                String msg = player.getPlayingTrack() == null
+                        ? "✅ Now playing: " + track.getInfo().title
+                        : "✅ Queued: " + track.getInfo().title;
+                hook.editOriginal(msg).queue();
+                if (player.getPlayingTrack() == null) playNextTrack();
+                if (BotSettings.isDebug()) System.out.println("[queue] Loaded track: " + track.getInfo().title + " from URL: " + url);
             }
-            @Override public void playlistLoaded(AudioPlaylist playlist) {}
-            @Override public void noMatches() {
-                if (isCancelled) {
-                    if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
-                    if (BotSettings.isDebug()) System.out.println("[noMatches] Playlist processing cancelled");
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+                if (playlist.getTracks().isEmpty()) {
+                    hook.editOriginal("❌ Cannot queue an empty playlist").queue();
+                    if (BotSettings.isDebug()) System.out.println("[search] Cannot queue an empty playlist: " + url);
                     return;
                 }
-                int f = failed.incrementAndGet();
-                int c = converted.get();
-                int done = c + f;
-                if (!silent && (done == 1 || done % 5 == 0 || done == totalTracks)) {
-                    String summary = "🎵 Converted: " + c + "/" + totalTracks +
-                            " | ❌ Failed: " + f;
-                    hook.editOriginal(summary).queue();
+                if (Config.isLimitPlaylistEnabled()) {
+                    if (playlist.getTracks().size() > 500) {
+                        hook.editOriginal("❌ Playlist exceeds maximum allowed size of " + 500 + " tracks. (" + playlist.getTracks().size() + " tracks)").queue();
+                        if (BotSettings.isDebug()) System.out.println("[search] Playlist size " + playlist.getTracks().size() + " exceeds limit for query: " + url);
+                        return;
+                    }
                 }
-                if (BotSettings.isDebug()) System.out.println("[loadTrack] No matches found for track: " + processedTrack.title);
+                playlist.getTracks().forEach(trackQueue::offer);
+                hook.editOriginal("✅ Added " + playlist.getTracks().size() + " tracks").queue();
+                if (BotSettings.isDebug()) System.out.println("[queue] Loaded playlist: " + playlist.getName() + " with " + playlist.getTracks().size() + " tracks from URL: " + url);
+                if (player.getPlayingTrack() == null) playNextTrack();
             }
-            @Override public void loadFailed(FriendlyException exception) {
-                if (isCancelled) {
-                    if (!silent) hook.editOriginal("❌ Playlist processing cancelled.").queue();
-                    if (BotSettings.isDebug()) System.out.println("[loadFailed] Playlist processing cancelled");
-                    return;
-                }
-                int f = failed.incrementAndGet();
-                int c = converted.get();
-                int done = c + f;
-                if (!silent && (done == 1 || done % 5 == 0 || done == totalTracks)) {
-                    String summary = "🎵 Converted: " + c + "/" + totalTracks +
-                            " | ❌ Failed: " + f;
-                    hook.editOriginal(summary).queue();
-                }
-                if (BotSettings.isDebug()) System.out.println("[loadTrack] Failed to load track: " + exception.getMessage());
+
+            @Override
+            public void noMatches() {
+                hook.editOriginal("❌ Not found").queue();
+                if (BotSettings.isDebug()) System.out.println("[queue] No matches found for URL: " + url);
+            }
+
+            @Override
+            public void loadFailed(FriendlyException e) {
+                hook.editOriginal("❌ Failed: " + e.getMessage()).queue();
+                if (BotSettings.isDebug()) System.out.println("[queue] Load failed for URL: " + url + " Error: " + e.getMessage());
             }
         });
+    }
+
+
+    public void search(SlashCommandInteractionEvent event, String query) {
+        SlashCommands.safeDefer(event);
+        InteractionHook hook = event.getHook();
+        hook.editOriginal("⏳ Searching for: " + query).queue();
+        if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
+
+        playerManager.loadItem("ytsearch:" + query, new AudioLoadResultHandler() {
+            @Override
+            public void trackLoaded(AudioTrack track) {
+                if (containsAsmr(track)) {
+                    hook.editOriginal("❌ ASMR content is blocked.").queue();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + track.getInfo().title + " from search.");
+                    return;
+                }
+                trackQueue.offer(track);
+                String msg = player.getPlayingTrack() == null
+                        ? "✅ Now playing: " + track.getInfo().title
+                        : "✅ Queued: " + track.getInfo().title;
+                hook.editOriginal(msg).queue();
+                if (player.getPlayingTrack() == null) playNextTrack();
+                if (BotSettings.isDebug()) System.out.println("[search] Loaded track: " + track.getInfo().title + " for query: " + query);
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+                if (playlist.getTracks().isEmpty()) {
+                    hook.editOriginal("❌ No results found for: " + query).queue();
+                    if (BotSettings.isDebug()) System.out.println("[search] No matches found for query: " + query);
+                    return;
+                }
+                if (Config.isLimitPlaylistEnabled()) {
+                    if (playlist.getTracks().size() > 500) {
+                        hook.editOriginal("❌ Playlist exceeds maximum allowed size of " + 500 + " tracks. (" + playlist.getTracks().size() + " tracks)").queue();
+                        if (BotSettings.isDebug()) System.out.println("[search] Playlist size " + playlist.getTracks().size() + " exceeds limit for query: " + query);
+                        return;
+                    }
+                }
+                AudioTrack firstTrack = playlist.getTracks().get(0);
+                if (containsAsmr(firstTrack)) {
+                    hook.editOriginal("❌ ASMR content is blocked.").queue();
+                    if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
+                    return;
+                }
+                trackQueue.offer(firstTrack);
+                String msg = player.getPlayingTrack() == null
+                        ? "✅ Now playing: " + firstTrack.getInfo().title
+                        : "✅ Queued: " + firstTrack.getInfo().title;
+                hook.editOriginal(msg).queue();
+                if (player.getPlayingTrack() == null) playNextTrack();
+                if (BotSettings.isDebug()) System.out.println("[search] Loaded first track from playlist: " + playlist.getName() + " for query: " + query);
+            }
+
+            @Override
+            public void noMatches() {
+                hook.editOriginal("❌ No results found for: " + query).queue();
+                if (BotSettings.isDebug()) System.out.println("[search] No matches found for query: " + query);
+            }
+
+            @Override
+            public void loadFailed(FriendlyException e) {
+                hook.editOriginal("❌ Search failed: " + e.getMessage()).queue();
+                if (BotSettings.isDebug()) System.out.println("[search] Load failed for query: " + query + " Error: " + e.getMessage());
+            }
+        });
+    }
+
+    public void save(SlashCommandInteractionEvent event) {
+        event.deferReply().queue();
+
+        String url = event.getOption("url").getAsString();
+        String name = event.getOption("name").getAsString();
+
+        event.getHook().editOriginal("⏳ Saving track...").queue();
+        if (BotSettings.isDebug()) System.out.println("[save] Saving URL: " + url + " with name: " + name);
+
+        for (SavedTrack track : savedTracks) {
+            if (track.getName().equalsIgnoreCase(name)) {
+                event.getHook().editOriginal("❌ A saved track with that name already exists: " + name).queue();
+                if (BotSettings.isDebug()) System.out.println("[save] Duplicate saved track name: " + name);
+                return;
+            }
+        }
+        try {
+            SavedTrack newTrack = new SavedTrack(name, url);
+            savedTracks.add(newTrack);
+            saveToFile();
+            event.getHook().editOriginal("✅ Saved track: " + name).queue();
+            if (BotSettings.isDebug()) System.out.println("[save] Successfully saved track: " + name + " with URL: " + url);
+        } catch (Exception e) {
+            event.getHook().editOriginal("❌ Failed to save track: " + e.getMessage()).queue();
+            if (BotSettings.isDebug()) System.out.println("[save] Exception while saving track: " + e.getMessage());
+            return;
+        }
+    }
+
+    public void addSaved(SlashCommandInteractionEvent event) {
+        event.deferReply().queue();
+        event.getHook().editOriginal("⏳ Adding saved track...").queue();
+        if (BotSettings.isDebug()) System.out.println("[addSaved] Adding saved track...");
+
+        String name = event.getOption("track").getAsString();
+        for (SavedTrack track : savedTracks) {
+            if (track.getName().equalsIgnoreCase(name)) {
+                if (BotSettings.isDebug()) System.out.println("[addSaved] Found saved track: " + name + " with URL: " + track.getUrl());
+                queue(event.getHook(), track.getUrl());
+                return;
+            }
+        }
+        event.getHook().editOriginal("❌ Saved track not found: " + name).queue();
+        if (BotSettings.isDebug()) System.out.println("[addSaved] Saved track not found: " + name);
+    }
+
+    public void saveToFile() {
+        try {
+            File file = SAVEDTRACKS_FILE;
+            File parent = file.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            try (Writer writer = new FileWriter(file)) {
+                gson.toJson(savedTracks, writer);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadFromFile() {
+        try (Reader reader = new FileReader(SAVEDTRACKS_FILE)) {
+            Type listType = new TypeToken<List<SavedTrack>>(){}.getType();
+            savedTracks = gson.fromJson(reader, listType);
+            if (savedTracks == null) savedTracks = new ArrayList<>();
+        } catch (IOException e) {
+            savedTracks = new ArrayList<>();
+        }
     }
 
     public void dequeueTrack(SlashCommandInteractionEvent event, int position) {
@@ -964,65 +526,14 @@ public class MusicBot {
         }
     }
 
-    private static void testDownload(String whichResult) throws IOException, InterruptedException {
-            ProcessBuilder test = new ProcessBuilder(
-                whichResult,
-                "-f", "251/250/249",
-                "--audio-quality", "0",
-                "--no-restrict-filenames",
-                "-o", "/home/DiscordBot/discord_audio/YJdCpltq-_k.webm",
-                "--write-info-json",
-                "--print-json",
-                "--quiet",
-                "--no-warnings",
-                "--force-ipv4",
-                "--no-check-certificate",
-                "--geo-bypass",
-                "--cookies", "/home/serwer/DiscordBot/config/cookies.txt",
-                "--extractor-args", "youtube:player_client=tv",
-                "--extractor-args", "youtube:player_skip=configs,webpage",
-                "https://www.youtube.com/watch?v=YJdCpltq-_k",
-                "--remote-components", "ejs:github"
-        );
-        setPath(test);
-        test.redirectErrorStream(true);
-        Process testProcess = test.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(testProcess.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (BotSettings.isDebug()) {
-                    System.out.println("[yt-dlp] " + line);
-                }
-            }
+    public static boolean containsAsmr(AudioTrack track) {
+        if (track == null || !Config.isAsmrBlockEnabled()) {
+            return false;
         }
-        ProcessBuilder test2 = new ProcessBuilder(
-                whichResult,
-                "--list-formats",
-                "-f", "251/250/249",
-                "--audio-quality", "0",
-                "--no-restrict-filenames",
-                "-o", "/home/DiscordBot/discord_audio/YJdCpltq-_k.webm",
-                "--quiet",
-                "--no-warnings",
-                "--force-ipv4",
-                "--no-check-certificate",
-                "--geo-bypass",
-                "--cookies", "/home/serwer/DiscordBot/config/cookies.txt",
-                "--extractor-args", "youtube:player_client=tv",
-                "--extractor-args", "youtube:player_skip=configs,webpage",
-                "https://www.youtube.com/watch?v=YJdCpltq-_k",
-                "--remote-components", "ejs:github"
-        );
-        setPath(test2);
-        test2.redirectErrorStream(true);
-        Process testProcess2 = test2.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(testProcess2.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (BotSettings.isDebug()) {
-                    System.out.println("[yt-dlp] " + line);
-                }
-            }
+        String titleLower = track.getInfo().title.toLowerCase();
+        if (titleLower.contains("asmr") || titleLower.contains("f4f") || titleLower.contains("f4m") || titleLower.contains("f4a") || titleLower.contains("m4f") || titleLower.contains("m4m") || titleLower.contains("m4a") || titleLower.contains("a4f") || titleLower.contains("a4m") || titleLower.contains("a4a")) {
+            return true;
         }
+        return false;
     }
 }

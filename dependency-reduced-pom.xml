@@ -77,6 +77,24 @@
       <name>m2-dv8tion</name>
       <url>https://m2.dv8tion.net/releases</url>
     </repository>
+    <repository>
+      <id>arbjergDev-releases</id>
+      <name>Lavalink Repository</name>
+      <url>https://maven.lavalink.dev/releases</url>
+    </repository>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+    <repository>
+      <id>topi314-lavalyrics</id>
+      <url>https://maven.topi.wtf/releases</url>
+    </repository>
+    <repository>
+      <id>TopiWTF-releases</id>
+      <name>Topis Maven Repo</name>
+      <url>https://maven.topi.wtf/releases</url>
+    </repository>
   </repositories>
   <properties>
     <maven.compiler.release>24</maven.compiler.release>
