@@ -14,7 +14,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.managers.AudioManager;
 
-import java.io.File;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,9 +47,6 @@ public class SlashCommands {
                 break;
             case "dequeue":
                 handleDequeueCommand(event);
-                break;
-            case "search":
-                handleSearchCommand(event);
                 break;
             case "pause":
                 safeDefer(event);
@@ -192,7 +188,7 @@ public class SlashCommands {
     }
 
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
-        String url = event.getOption("url").getAsString();
+        String track = event.getOption("track").getAsString();
         Member member = event.getMember();
 
         if (member == null || !member.getVoiceState().inAudioChannel()) {
@@ -202,24 +198,29 @@ public class SlashCommands {
 
         joinAndWait(event);
 
-        if (!url.contains("youtube.com") && !url.contains("youtu.be") && !url.contains("youtube.pl") && !url.contains("spotify.com")) {
-            event.reply("❌ URL must contain a youtube or a spotify link!").setEphemeral(true).queue();
+        if (!track.contains("youtube.com") && !track.contains("youtu.be") && !track.contains("youtube.pl") && !track.contains("spotify.com")) {
+            if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
+                event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
+                return;
+            }
+
+            bot.search(event, track);
             return;
         }
 
-        if (url.contains("youtube.com") || url.contains("youtu.be") || url.contains("youtube.pl")) {
+        if (track.contains("youtube.com") || track.contains("youtu.be") || track.contains("youtube.pl")) {
             if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
                 event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
                 return;
             }
         }
 
-        if (url.contains("radio") || url.contains("stream") || url.contains("live")) {
+        if (track.contains("radio") || track.contains("stream") || track.contains("live")) {
             event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
             return;
         }
 
-        bot.queue(event, url);
+        bot.queue(event, track);
     }
 
     private void handleDequeueCommand(SlashCommandInteractionEvent event) {
@@ -249,31 +250,6 @@ public class SlashCommands {
         }
 
         bot.dequeueTrack(event, position);
-    }
-
-    private void handleSearchCommand(SlashCommandInteractionEvent event) {
-        String query = event.getOption("query").getAsString();
-        Guild guild = event.getGuild();
-        Member member = event.getMember();
-
-        if (member == null || !member.getVoiceState().inAudioChannel()) {
-            event.reply("❌ You must be in a voice channel!").setEphemeral(true).queue();
-            return;
-        }
-
-        joinAndWait(event);
-
-        if (query.contains("youtube.com") || query.contains("youtu.be") || query.contains("youtube.pl")) {
-            event.reply("❌ Please use /play or /queue for direct URLs").setEphemeral(true).queue();
-            return;
-        }
-
-        if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
-            event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
-            return;
-        }
-
-        bot.search(event, query);
     }
 
     private void handleListCommand(SlashCommandInteractionEvent event) {

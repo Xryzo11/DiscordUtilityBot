@@ -104,13 +104,11 @@ public class DiscordBot {
             guild.updateCommands().addCommands(
                     Commands.slash("join", "Join voice channel"),
                     Commands.slash("play", "Queue YouTube/Spotify audio by url")
-                            .addOption(OptionType.STRING, "url", "YouTube/Spotify URL", true),
+                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL", true),
                     Commands.slash("queue", "Queue YouTube/Spotify audio by url")
-                            .addOption(OptionType.STRING, "url", "YouTube/Spotify URL", true),
+                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL", true),
                     Commands.slash("dequeue", "Remove a track from the queue")
                             .addOption(OptionType.INTEGER, "position", "Track position in the queue", true),
-                    Commands.slash("search", "Queue YouTube audio by title")
-                            .addOption(OptionType.STRING, "query", "Search query", true),
                     Commands.slash("pause", "Pause current playback"),
                     Commands.slash("resume", "Resume playback"),
                     Commands.slash("clear", "Clear the queue"),
