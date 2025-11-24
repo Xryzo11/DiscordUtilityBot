@@ -158,7 +158,6 @@ public class SlashCommands {
         bot.clearQueue();
         bot.stopPlayer();
         bot.resumePlayer();
-        event.getHook().editOriginal("🔊 Joined voice channel: " + voiceChannel.getName()).queue();
     }
 
     private boolean isUserInVoice(SlashCommandInteractionEvent event) {
@@ -186,7 +185,7 @@ public class SlashCommands {
         return true;
     }
 
-    private void joinAndWait(SlashCommandInteractionEvent event) {
+    private boolean joinIfNeeded(SlashCommandInteractionEvent event) {
         boolean isConnected = isInVoiceChannel(event);
         if (!isConnected) {
             joinChannel(event);
@@ -195,7 +194,9 @@ public class SlashCommands {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            return true;
         }
+        return false;
     }
 
     private void handleQueueCommand(SlashCommandInteractionEvent event) {
@@ -204,7 +205,6 @@ public class SlashCommands {
         if (!isUserInVoice(event)) {
             return;
         }
-        joinAndWait(event);
 
         if (!track.contains("youtube.com") && !track.contains("youtu.be") && !track.contains("youtube.pl") && !track.contains("spotify.com")) {
             if (track.contains("http://") || track.contains("https://") || track.contains("www.")) {
@@ -221,6 +221,7 @@ public class SlashCommands {
                 return;
             }
 
+            joinIfNeeded(event);
             bot.search(event, track);
             return;
         }
@@ -246,6 +247,7 @@ public class SlashCommands {
             return;
         }
 
+        joinIfNeeded(event);
         bot.queue(event, track);
     }
 
@@ -428,7 +430,9 @@ public class SlashCommands {
         if (!isUserInVoice(event)) {
             return;
         }
-        joinAndWait(event);
+        if (joinIfNeeded(event)) {
+            event.getHook().editOriginal("🔊 Joined voice channel: " + event.getMember().getVoiceState().getChannel().asVoiceChannel().getName()).queue();
+        }
 
         bot.addSaved(event);
     }
