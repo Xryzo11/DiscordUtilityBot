@@ -112,7 +112,7 @@ public class DiscordBot {
                     Commands.slash("pause", "Pause current playback"),
                     Commands.slash("resume", "Resume playback"),
                     Commands.slash("clear", "Clear the queue"),
-                    Commands.slash("stop", "Stop playback and disconnect"),
+                    Commands.slash("leave", "Stop playback and disconnect"),
                     Commands.slash("list", "List current queue"),
                     Commands.slash("skip", "Skip the current track"),
                     Commands.slash("loop", "Toggle track looping"),
