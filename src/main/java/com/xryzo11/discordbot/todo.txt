@@ -5,3 +5,4 @@ Toggle bot keyword blocking from web panel
 Implement levels for leaderboard system
 Shuffle on /queue
 Playlist add confirmation
+XP increment check for video
