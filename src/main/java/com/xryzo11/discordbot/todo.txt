@@ -5,4 +5,9 @@ Toggle bot keyword blocking from web panel
 Implement levels for leaderboard system
 Shuffle on /queue
 Playlist add confirmation
+Cancel confirmations early
 XP increment check for video
+TTS command
+Gpt command
+Queue - remember who queued
+Owner bypass restrictions
