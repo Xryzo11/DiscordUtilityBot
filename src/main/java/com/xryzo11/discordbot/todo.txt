@@ -11,3 +11,4 @@ TTS command
 Gpt command
 Queue - remember who queued
 Owner bypass restrictions
+Time in timezone and converter command
