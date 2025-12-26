@@ -239,12 +239,16 @@ public class SlashCommands {
                 if (BotSettings.isDebug()) System.out.println("[handleQueue] YouTube OAuth2 token not configured.");
                 return;
             }
-        }
-
-        if (track.contains("radio") || track.contains("stream") || track.contains("live")) {
-            event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
-            if (BotSettings.isDebug()) System.out.println("[handleQueue] Radio/stream URL detected, rejecting: " + track);
-            return;
+            if (track.contains("/shorts/")) {
+                if (BotSettings.isDebug()) System.out.println("[handleQueue] Detected YouTube Shorts URL, converting: " + track);
+                track = track.replace("/shorts/", "/watch?v=");
+                if (BotSettings.isDebug()) System.out.println("[handleQueue] Converted Shorts URL to standard URL: " + track);
+            }
+            if (track.contains("radio") || track.contains("stream") || track.contains("live")) {
+                event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
+                if (BotSettings.isDebug()) System.out.println("[handleQueue] Radio/stream URL detected, rejecting: " + track);
+                return;
+            }
         }
 
         joinIfNeeded(event);
