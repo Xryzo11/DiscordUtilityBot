@@ -46,7 +46,16 @@ public class MusicBot {
     public static ArrayList<SavedTrack> savedTracks = new ArrayList<>();
     private static final Gson gson = new Gson();
 
+    private static final int MAX_RETRIES = 3;
+    private static final long INITIAL_RETRY_DELAY_MS = 1000;
+    private static final double RETRY_DELAY_MULTIPLIER = 2.0;
+
     public MusicBot() {
+        System.setProperty("http.keepAlive", "true");
+        System.setProperty("http.maxConnections", "10");
+        System.setProperty("sun.net.client.defaultConnectTimeout", "15000");
+        System.setProperty("sun.net.client.defaultReadTimeout", "15000");
+
         playerManager = new DefaultAudioPlayerManager();
         AudioSourceManagers.registerLocalSource(playerManager);
 
@@ -62,13 +71,24 @@ public class MusicBot {
             yt.useOauth2(null, false);
         }
 
-        playerManager.registerSourceManager(new SpotifySourceManager(
-                null,
-                Config.getSpotifyClientId(),
-                Config.getSpotifyClientSecret(),
-                "US",
-                playerManager
-        ));
+        try {
+            SpotifySourceManager spotifyManager = new SpotifySourceManager(
+                    null,
+                    Config.getSpotifyClientId(),
+                    Config.getSpotifyClientSecret(),
+                    "US",
+                    playerManager
+            );
+            playerManager.registerSourceManager(spotifyManager);
+            if (BotSettings.isDebug()) {
+                System.out.println("[MusicBot] Spotify source manager initialized successfully");
+            }
+        } catch (Exception e) {
+            System.err.println("[MusicBot] Failed to initialize Spotify: " + e.getMessage());
+            if (BotSettings.isDebug()) {
+                e.printStackTrace();
+            }
+        }
 
         playerManager.registerSourceManager(yt);
         AudioSourceManagers.registerRemoteSources(playerManager);
@@ -287,7 +307,10 @@ public class MusicBot {
 
     public void queue(InteractionHook hook, String url) {
         hook.editOriginal("⏳ Loading...").queue();
+        queueWithRetry(hook, url, 0);
+    }
 
+    private void queueWithRetry(InteractionHook hook, String url, int attemptNumber) {
         playerManager.loadItem(url, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
@@ -347,8 +370,45 @@ public class MusicBot {
 
             @Override
             public void loadFailed(FriendlyException e) {
-                hook.editOriginal("❌ Failed: " + e.getMessage()).queue();
-                if (BotSettings.isDebug()) System.out.println("[queue] Load failed for URL: " + url + " Error: " + e.getMessage());
+                boolean isTimeout = e.getCause() instanceof java.net.SocketTimeoutException;
+                boolean isSpotify = url.contains("spotify.com");
+
+                if (attemptNumber < MAX_RETRIES - 1 && isTimeout) {
+                    long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, attemptNumber));
+
+                    if (BotSettings.isDebug()) {
+                        System.out.println("[queue] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
+                                         " for URL: " + url + " after " + delay + "ms due to timeout");
+                    }
+
+                    String retryMsg = isSpotify
+                        ? "⏳ Spotify is slow to respond, retrying... (attempt " + (attemptNumber + 2) + "/" + MAX_RETRIES + ")"
+                        : "⏳ Retrying... (attempt " + (attemptNumber + 2) + "/" + MAX_RETRIES + ")";
+                    hook.editOriginal(retryMsg).queue();
+
+                    CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(() -> {
+                        queueWithRetry(hook, url, attemptNumber + 1);
+                    });
+                } else {
+                    String errorMsg;
+                    if (isTimeout && isSpotify) {
+                        errorMsg = attemptNumber > 0
+                            ? "❌ Spotify timed out after " + (attemptNumber + 1) + " attempts. Their API may be slow/down. Try again later or use a YouTube link instead."
+                            : "❌ Spotify connection timed out. Try again or use a YouTube link instead.";
+                    } else {
+                        errorMsg = attemptNumber > 0
+                            ? "❌ Failed after " + (attemptNumber + 1) + " attempts: " + e.getMessage()
+                            : "❌ Failed: " + e.getMessage();
+                    }
+                    hook.editOriginal(errorMsg).queue();
+
+                    if (BotSettings.isDebug()) {
+                        System.out.println("[queue] Load failed for URL: " + url + " Error: " + e.getMessage());
+                        if (e.getCause() != null) {
+                            System.out.println("[queue] Cause: " + e.getCause().getClass().getSimpleName() + " - " + e.getCause().getMessage());
+                        }
+                    }
+                }
             }
         });
     }
@@ -359,7 +419,10 @@ public class MusicBot {
         InteractionHook hook = event.getHook();
         hook.editOriginal("⏳ Searching for: " + query).queue();
         if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
+        searchWithRetry(hook, query, 0);
+    }
 
+    private void searchWithRetry(InteractionHook hook, String query, int attemptNumber) {
         playerManager.loadItem("ytsearch:" + query, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
@@ -426,8 +489,31 @@ public class MusicBot {
 
             @Override
             public void loadFailed(FriendlyException e) {
-                hook.editOriginal("❌ Search failed: " + e.getMessage()).queue();
-                if (BotSettings.isDebug()) System.out.println("[search] Load failed for query: " + query + " Error: " + e.getMessage());
+                boolean isTimeout = e.getCause() instanceof java.net.SocketTimeoutException;
+
+                if (attemptNumber < MAX_RETRIES - 1 && isTimeout) {
+                    long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, attemptNumber));
+
+                    if (BotSettings.isDebug()) {
+                        System.out.println("[search] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
+                                         " for query: " + query + " after " + delay + "ms due to timeout");
+                    }
+
+                    hook.editOriginal("⏳ Retrying search... (attempt " + (attemptNumber + 2) + "/" + MAX_RETRIES + ")").queue();
+
+                    CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(() -> {
+                        searchWithRetry(hook, query, attemptNumber + 1);
+                    });
+                } else {
+                    String errorMsg = attemptNumber > 0
+                        ? "❌ Search failed after " + (attemptNumber + 1) + " attempts: " + e.getMessage()
+                        : "❌ Search failed: " + e.getMessage();
+                    hook.editOriginal(errorMsg).queue();
+
+                    if (BotSettings.isDebug()) {
+                        System.out.println("[search] Load failed for query: " + query + " Error: " + e.getMessage());
+                    }
+                }
             }
         });
     }
