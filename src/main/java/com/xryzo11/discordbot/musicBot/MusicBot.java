@@ -53,8 +53,8 @@ public class MusicBot {
     public MusicBot() {
         System.setProperty("http.keepAlive", "true");
         System.setProperty("http.maxConnections", "10");
-        System.setProperty("sun.net.client.defaultConnectTimeout", "15000");
-        System.setProperty("sun.net.client.defaultReadTimeout", "15000");
+        System.setProperty("sun.net.client.defaultConnectTimeout", "30000");
+        System.setProperty("sun.net.client.defaultReadTimeout", "30000");
 
         playerManager = new DefaultAudioPlayerManager();
         AudioSourceManagers.registerLocalSource(playerManager);
@@ -100,14 +100,23 @@ public class MusicBot {
         player.addListener(new AudioEventAdapter() {
             @Override
             public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-                if (BotSettings.isDebug()) {
-                    System.out.println("[player] Track exception for " + track.getInfo().title + ": " + exception.getMessage());
+                boolean isTimeout = exception.getCause() instanceof java.net.SocketTimeoutException;
+
+                if (isTimeout) {
+                    Integer retryCount = (Integer) track.getUserData(Integer.class);
+                    if (retryCount == null) retryCount = 0;
+
+                    if (retryCount < 2) {
+                        track.setUserData(retryCount + 1);
+                        player.playTrack(track.makeClone());
+                        if (BotSettings.isDebug()) {
+                            System.out.println("[player] Retrying track due to timeout (attempt " + (retryCount + 1) + ")");
+                        }
+                        return;
+                    }
                 }
-                Object userData = track.getUserData();
-                if (userData instanceof InteractionHook) {
-                    InteractionHook hook = (InteractionHook) userData;
-                    hook.editOriginal("❌ Playback failed for `" + track.getInfo().title + "`: " + exception.getMessage()).queue();
-                }
+
+                playNextTrack();
             }
 
             @Override
