@@ -233,7 +233,7 @@ public class SlashCommands {
         }
         if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Link detected: " + track);
 
-        if (track.contains("playlist") || track.contains("list=") && isPlayNext) {
+        if ((track.contains("playlist") || track.contains("list=")) && isPlayNext) {
             event.reply("❌ Playlists cannot be played next, please use the regular queue command").setEphemeral(true).queue();
             return;
         }
