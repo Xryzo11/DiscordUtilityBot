@@ -4,8 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotSettings;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 
 import java.io.*;
@@ -97,6 +99,15 @@ public class TempRoleManager {
     public static void execute(GuildVoiceUpdateEvent event, long userId, String user, String channel, boolean isJoining) {
         Member member = event.getGuild().getMemberById(userId);
         Guild guild = event.getGuild();
+        List<Role> roles = member.getRoles();
+        for (Role r : roles) {
+            if (r.hasPermission(Permission.ADMINISTRATOR)) {
+                if (BotSettings.isDebug()) {
+                    System.out.println("[tempRoleManager] Skipping temp role assignment/removal for admin " + user + " in channel " + channel);
+                }
+                return;
+            }
+        }
         if (member != null && guild != null) {
             if (isJoining) {
                 for (TempRoleManager.TempRole r : tempRoles) {
