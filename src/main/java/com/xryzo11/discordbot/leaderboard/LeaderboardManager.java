@@ -64,7 +64,7 @@ public class LeaderboardManager {
         }
         String userId = member.getId();
         if (leaderboardUserList.stream().noneMatch(user -> user.getUserId().equals(userId))) {
-            if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Adding new user to leaderboard: " + member.getUser().getAsTag());
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[LeaderboardManager] Adding new user to leaderboard: " + member.getUser().getAsTag());
             leaderboardUserList.add(new LeaderboardUser(userId, 0));
         }
         Message message = event.getMessage();
@@ -103,7 +103,7 @@ public class LeaderboardManager {
                         xpGain += 15;
                     }
                     xpGain += rand.nextInt(0, 6);
-                    if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " (" + messageWithoutUrls.length() + " chars, link: " + containsLink + ", image: " + containsImage + ")");
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " (" + messageWithoutUrls.length() + " chars, link: " + containsLink + ", image: " + containsImage + ")");
                     user.incrementXp(xpGain);
                 }
                 user.incrementMessagesSent();
@@ -121,14 +121,14 @@ public class LeaderboardManager {
     public void commandExecuted(Member member) {
         String userId = member.getId();
         if (leaderboardUserList.stream().noneMatch(user -> user.getUserId().equals(userId))) {
-            if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Adding new user to leaderboard: " + member.getUser().getAsTag());
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[LeaderboardManager] Adding new user to leaderboard: " + member.getUser().getAsTag());
             leaderboardUserList.add(new LeaderboardUser(userId, 0));
         }
         for (LeaderboardUser user : leaderboardUserList) {
             if (user.getUserId().equals(userId)) {
                 if (!user.isDelayed()) {
                     int xpGain = rand.nextInt(3, 11);
-                    if (BotSettings.isDebug()) System.out.println("[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " for command execution");
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[LeaderboardManager] Awarding " + xpGain + " XP to " + member.getUser().getGlobalName() + " for command execution");
                     user.incrementXp(xpGain);
                 }
                 user.setDelayed(true);

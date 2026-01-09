@@ -618,7 +618,7 @@ public class MusicBot {
     public void dequeueTrack(SlashCommandInteractionEvent event, int position) {
         event.deferReply().queue();
         event.getHook().editOriginal("⏳ Finding track in queue...").queue();
-        if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Attempting to dequeue track at position: " + position);
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Attempting to dequeue track at position: " + position);
 
         AudioTrack toRemove = null;
         Iterator<AudioTrack> queueIterator = trackQueue.iterator();
@@ -626,7 +626,7 @@ public class MusicBot {
             AudioTrack track = queueIterator.next();
             if (i == position) {
                 toRemove = track;
-                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Found track to remove: " + formatTrackInfo(toRemove));
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Found track to remove: " + formatTrackInfo(toRemove));
                 break;
             }
         }
@@ -644,27 +644,27 @@ public class MusicBot {
                         case CONFIRMED:
                             if (!trackQueue.contains(trackToRemove)) {
                                 event.getHook().editOriginal("❗ Track was already removed from the queue.").queue();
-                                if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Track was already removed from the queue.");
+                                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Track was already removed from the queue.");
                                 return;
                             }
                             trackQueue.remove(trackToRemove);
                             event.getHook().editOriginal("✅ Removed track from queue: " + formatTrackInfo(trackToRemove)).queue();
-                            if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Successfully removed track: " + formatTrackInfo(trackToRemove));
+                            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Successfully removed track: " + formatTrackInfo(trackToRemove));
                             break;
                         case CANCELLED:
                             event.getHook().editOriginal("❌ Dequeue cancelled.").queue();
-                            if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Dequeue cancelled by user.");
+                            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Dequeue cancelled by user.");
                             break;
                         case TIMEOUT:
                             event.getHook().editOriginal("❗ Dequeue timed out. Track was not removed.").queue();
-                            if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Dequeue timed out.");
+                            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Dequeue timed out.");
                             break;
                     }
                 });
             });
         } else {
             event.getHook().editOriginal("❌ Invalid position").queue();
-            if (BotSettings.isDebug()) System.out.println("[dequeueTrack] Invalid position: " + position);
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Invalid position: " + position);
         }
     }
 
@@ -672,18 +672,18 @@ public class MusicBot {
     public void reorderTrack(SlashCommandInteractionEvent event, int fromPosition, int toPosition) {
         event.deferReply().queue();
         event.getHook().editOriginal("⏳ Finding track in queue...").queue();
-        if (BotSettings.isDebug()) System.out.println("[reorderTrack] Attempting to move track from position " + fromPosition + " to " + toPosition);
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Attempting to move track from position " + fromPosition + " to " + toPosition);
 
         if (fromPosition == toPosition) {
             event.getHook().editOriginal("❌ 'From' and 'To' positions are the same. No changes made.").queue();
-            if (BotSettings.isDebug()) System.out.println("[reorderTrack] 'From' and 'To' positions are the same.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] 'From' and 'To' positions are the same.");
             return;
         }
 
         List<AudioTrack> trackList = new ArrayList<>(trackQueue);
         if (fromPosition < 1 || fromPosition > trackList.size() || toPosition < 1 || toPosition > trackList.size()) {
             event.getHook().editOriginal("❌ Invalid 'From' or 'To' position.").queue();
-            if (BotSettings.isDebug()) System.out.println("[reorderTrack] Invalid 'From' or 'To' position.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Invalid 'From' or 'To' position.");
             return;
         }
 
@@ -700,7 +700,7 @@ public class MusicBot {
                         List<AudioTrack> currentTrackList = new ArrayList<>(trackQueue);
                         if (fromPosition > currentTrackList.size() || toPosition > currentTrackList.size()) {
                             event.getHook().editOriginal("❗ Queue has changed. Please try again.").queue();
-                            if (BotSettings.isDebug()) System.out.println("[reorderTrack] Queue changed during confirmation.");
+                            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Queue changed during confirmation.");
                             return;
                         }
 
@@ -712,15 +712,15 @@ public class MusicBot {
                         trackQueue.addAll(currentTrackList);
 
                         event.getHook().editOriginal("✅ Moved track to position " + toPosition + ": " + formatTrackInfo(track)).queue();
-                        if (BotSettings.isDebug()) System.out.println("[reorderTrack] Successfully moved track to position " + toPosition + ": " + formatTrackInfo(track));
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Successfully moved track to position " + toPosition + ": " + formatTrackInfo(track));
                         break;
                     case CANCELLED:
                         event.getHook().editOriginal("❌ Reorder cancelled.").queue();
-                        if (BotSettings.isDebug()) System.out.println("[reorderTrack] Reorder cancelled by user.");
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Reorder cancelled by user.");
                         break;
                     case TIMEOUT:
                         event.getHook().editOriginal("❗ Reorder timed out. Track was not moved.").queue();
-                        if (BotSettings.isDebug()) System.out.println("[reorderTrack] Reorder timed out.");
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Reorder timed out.");
                         break;
                 }
             });
