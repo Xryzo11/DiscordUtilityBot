@@ -705,8 +705,7 @@ public class MusicBot {
                         }
 
                         AudioTrack track = currentTrackList.remove(fromPosition - 1);
-                        int insertIndex = toPosition > fromPosition ? toPosition - 2 : toPosition - 1;
-                        currentTrackList.add(insertIndex, track);
+                        currentTrackList.add(toPosition - 1, track);
 
                         trackQueue.clear();
                         trackQueue.addAll(currentTrackList);
