@@ -191,4 +191,8 @@ public class DiscordBot {
         ProcessBuilder process = new ProcessBuilder("./libs/restart.sh");
         process.start();
     }
+
+    public static String getTimestamp() {
+        return "[" + Calendar.getInstance().getTime().toString() + "] ";
+    }
 }

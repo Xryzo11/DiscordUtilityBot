@@ -63,7 +63,7 @@ public class TempRoleManager {
         r.enabled = true;
         tempRoles.add(r);
         if (BotSettings.isDebug()) {
-            System.out.println("[tempRoleManager] Added temp role: " + r.roleId + ", " + r.channelId);
+            System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Added temp role: " + r.roleId + ", " + r.channelId);
         }
         saveTempRoles();
     }
@@ -71,7 +71,7 @@ public class TempRoleManager {
     public static void removeTempRole(long roleId, long channelId) {
         tempRoles.removeIf(r -> r.roleId == roleId && r.channelId == channelId);
         if (BotSettings.isDebug()) {
-            System.out.println("[tempRoleManager] Removed temp role: " + roleId + ", " + channelId);
+            System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Removed temp role: " + roleId + ", " + channelId);
         }
         saveTempRoles();
     }
@@ -86,12 +86,12 @@ public class TempRoleManager {
             if (r.roleId == roleId && r.channelId == channelId) {
                 r.enabled = enabled;
                 found = true;
-                if (BotSettings.isDebug()) System.out.println("[tempRoleManager] Updated role: " + r.roleId + ", " + r.channelId + ", enabled=" + r.enabled);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Updated role: " + r.roleId + ", " + r.channelId + ", enabled=" + r.enabled);
                 break;
             }
         }
         if (!found) {
-            if (BotSettings.isDebug()) System.out.println("[tempRoleManager] No matching role found to update!");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] No matching role found to update!");
         }
         saveTempRoles();
     }
@@ -103,7 +103,7 @@ public class TempRoleManager {
         for (Role r : roles) {
             if (r.hasPermission(Permission.ADMINISTRATOR)) {
                 if (BotSettings.isDebug()) {
-                    System.out.println("[tempRoleManager] Skipping temp role assignment/removal for admin " + user + " in channel " + channel);
+                    System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Skipping temp role assignment/removal for admin " + user + " in channel " + channel);
                 }
                 return;
             }
@@ -115,7 +115,7 @@ public class TempRoleManager {
                         guild.addRoleToMember(member, guild.getRoleById(r.roleId)).queueAfter(1, TimeUnit.SECONDS);
                         String roleName = guild.getRoleById(r.roleId).getName();
                         if (BotSettings.isDebug()) {
-                            System.out.println("[tempRoleManager] Assigned temp role (" + roleName + ") to " + user + " in channel " + channel);
+                            System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Assigned temp role (" + roleName + ") to " + user + " in channel " + channel);
                         }
                     }
                 }
@@ -125,13 +125,13 @@ public class TempRoleManager {
                         guild.removeRoleFromMember(member, guild.getRoleById(r.roleId)).queue();
                         String roleName = guild.getRoleById(r.roleId).getName();
                         if (BotSettings.isDebug()) {
-                            System.out.println("[tempRoleManager] Removed temp role (" + roleName + ") from " + user + " in channel " + channel);
+                            System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Removed temp role (" + roleName + ") from " + user + " in channel " + channel);
                         }
                     }
                 }
             }
         } else {
-            System.out.println("[tempRoleManager] Error executing temp role on " + user + " in channel " + channel);
+            System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Error executing temp role on " + user + " in channel " + channel);
         }
     }
 }

@@ -81,7 +81,7 @@ public class MusicBot {
             );
             playerManager.registerSourceManager(spotifyManager);
             if (BotSettings.isDebug()) {
-                System.out.println("[MusicBot] Spotify source manager initialized successfully");
+                System.out.println(DiscordBot.getTimestamp() + "[MusicBot] Spotify source manager initialized successfully");
             }
         } catch (Exception e) {
             System.err.println("[MusicBot] Failed to initialize Spotify: " + e.getMessage());
@@ -110,7 +110,7 @@ public class MusicBot {
                         track.setUserData(retryCount + 1);
                         player.playTrack(track.makeClone());
                         if (BotSettings.isDebug()) {
-                            System.out.println("[player] Retrying track due to timeout (attempt " + (retryCount + 1) + ")");
+                            System.out.println(DiscordBot.getTimestamp() + "[player] Retrying track due to timeout (attempt " + (retryCount + 1) + ")");
                         }
                         return;
                     }
@@ -140,7 +140,7 @@ public class MusicBot {
     public static void playNextTrack() {
         AudioTrack nextTrack = trackQueue.poll();
         if (containsAsmr(nextTrack)) {
-            if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + nextTrack.getInfo().title + " from queue.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Blocked ASMR track: " + nextTrack.getInfo().title + " from queue.");
             playNextTrack();
             return;
         }
@@ -325,7 +325,7 @@ public class MusicBot {
             public void trackLoaded(AudioTrack track) {
                 if (containsAsmr(track)) {
                     hook.editOriginal("❌ ASMR content is blocked.").queue();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + track.getInfo().title + " from URL: " + url);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Blocked ASMR track: " + track.getInfo().title + " from URL: " + url);
                     return;
                 }
                 try {
@@ -336,10 +336,10 @@ public class MusicBot {
                             : "✅ Queued: " + track.getInfo().title;
                     hook.editOriginal(msg).queue();
                     if (player.getPlayingTrack() == null) playNextTrack();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Loaded track: " + track.getInfo().title + " from URL: " + url);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Loaded track: " + track.getInfo().title + " from URL: " + url);
                 } catch (Exception e) {
                     hook.editOriginal("❌ Error queuing track: " + e.getMessage()).queue();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Exception while queuing track from URL: " + url + " Error: " + e.getMessage());
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Exception while queuing track from URL: " + url + " Error: " + e.getMessage());
                 }
             }
 
@@ -347,13 +347,13 @@ public class MusicBot {
             public void playlistLoaded(AudioPlaylist playlist) {
                 if (playlist.getTracks().isEmpty()) {
                     hook.editOriginal("❌ Cannot queue an empty playlist").queue();
-                    if (BotSettings.isDebug()) System.out.println("[search] Cannot queue an empty playlist: " + url);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Cannot queue an empty playlist: " + url);
                     return;
                 }
                 if (Config.isLimitPlaylistEnabled()) {
                     if (playlist.getTracks().size() > 500) {
                         hook.editOriginal("❌ Playlist exceeds maximum allowed size of " + 500 + " tracks. (" + playlist.getTracks().size() + " tracks)").queue();
-                        if (BotSettings.isDebug()) System.out.println("[search] Playlist size " + playlist.getTracks().size() + " exceeds limit for query: " + url);
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Playlist size " + playlist.getTracks().size() + " exceeds limit for query: " + url);
                         return;
                     }
                 }
@@ -363,18 +363,18 @@ public class MusicBot {
                         trackQueue.offer(track);
                     });
                     hook.editOriginal("✅ Added " + playlist.getTracks().size() + " tracks").queue();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Loaded playlist: " + playlist.getName() + " with " + playlist.getTracks().size() + " tracks from URL: " + url);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Loaded playlist: " + playlist.getName() + " with " + playlist.getTracks().size() + " tracks from URL: " + url);
                     if (player.getPlayingTrack() == null) playNextTrack();
                 } catch (Exception e) {
                     hook.editOriginal("❌ Error queuing playlist: " + e.getMessage()).queue();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Exception while queuing playlist from URL: " + url + " Error: " + e.getMessage());
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Exception while queuing playlist from URL: " + url + " Error: " + e.getMessage());
                 }
             }
 
             @Override
             public void noMatches() {
                 hook.editOriginal("❌ Not found").queue();
-                if (BotSettings.isDebug()) System.out.println("[queue] No matches found for URL: " + url);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] No matches found for URL: " + url);
             }
 
             @Override
@@ -386,7 +386,7 @@ public class MusicBot {
                     long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, attemptNumber));
 
                     if (BotSettings.isDebug()) {
-                        System.out.println("[queue] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
+                        System.out.println(DiscordBot.getTimestamp() + "[queue] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
                                          " for URL: " + url + " after " + delay + "ms due to timeout");
                     }
 
@@ -412,9 +412,9 @@ public class MusicBot {
                     hook.editOriginal(errorMsg).queue();
 
                     if (BotSettings.isDebug()) {
-                        System.out.println("[queue] Load failed for URL: " + url + " Error: " + e.getMessage());
+                        System.out.println(DiscordBot.getTimestamp() + "[queue] Load failed for URL: " + url + " Error: " + e.getMessage());
                         if (e.getCause() != null) {
-                            System.out.println("[queue] Cause: " + e.getCause().getClass().getSimpleName() + " - " + e.getCause().getMessage());
+                            System.out.println(DiscordBot.getTimestamp() + "[queue] Cause: " + e.getCause().getClass().getSimpleName() + " - " + e.getCause().getMessage());
                         }
                     }
                 }
@@ -427,7 +427,7 @@ public class MusicBot {
         SlashCommands.safeDefer(event);
         InteractionHook hook = event.getHook();
         hook.editOriginal("⏳ Searching for: " + query).queue();
-        if (BotSettings.isDebug()) System.out.println("[search] Searching for query: " + query);
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Searching for query: " + query);
         searchWithRetry(hook, query, 0);
     }
 
@@ -437,7 +437,7 @@ public class MusicBot {
             public void trackLoaded(AudioTrack track) {
                 if (containsAsmr(track)) {
                     hook.editOriginal("❌ ASMR content is blocked.").queue();
-                    if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + track.getInfo().title + " from search.");
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Blocked ASMR track: " + track.getInfo().title + " from search.");
                     return;
                 }
                 try {
@@ -448,10 +448,10 @@ public class MusicBot {
                             : "✅ Queued: " + track.getInfo().title;
                     hook.editOriginal(msg).queue();
                     if (player.getPlayingTrack() == null) playNextTrack();
-                    if (BotSettings.isDebug()) System.out.println("[search] Loaded track: " + track.getInfo().title + " for query: " + query);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Loaded track: " + track.getInfo().title + " for query: " + query);
                 } catch (Exception e) {
                     hook.editOriginal("❌ Error queuing track: " + e.getMessage()).queue();
-                    if (BotSettings.isDebug()) System.out.println("[search] Exception while queuing track for query: " + query + " Error: " + e.getMessage());
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Exception while queuing track for query: " + query + " Error: " + e.getMessage());
                 }
             }
 
@@ -459,13 +459,13 @@ public class MusicBot {
             public void playlistLoaded(AudioPlaylist playlist) {
                 if (playlist.getTracks().isEmpty()) {
                     hook.editOriginal("❌ No results found for: " + query).queue();
-                    if (BotSettings.isDebug()) System.out.println("[search] No matches found for query: " + query);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] No matches found for query: " + query);
                     return;
                 }
                 if (Config.isLimitPlaylistEnabled()) {
                     if (playlist.getTracks().size() > 500) {
                         hook.editOriginal("❌ Playlist exceeds maximum allowed size of " + 500 + " tracks. (" + playlist.getTracks().size() + " tracks)").queue();
-                        if (BotSettings.isDebug()) System.out.println("[search] Playlist size " + playlist.getTracks().size() + " exceeds limit for query: " + query);
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Playlist size " + playlist.getTracks().size() + " exceeds limit for query: " + query);
                         return;
                     }
                 }
@@ -473,7 +473,7 @@ public class MusicBot {
                     AudioTrack firstTrack = playlist.getTracks().get(0);
                     if (containsAsmr(firstTrack)) {
                         hook.editOriginal("❌ ASMR content is blocked.").queue();
-                        if (BotSettings.isDebug()) System.out.println("[queue] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
                         return;
                     }
                     firstTrack.setUserData(hook);
@@ -483,17 +483,17 @@ public class MusicBot {
                             : "✅ Queued: " + firstTrack.getInfo().title;
                     hook.editOriginal(msg).queue();
                     if (player.getPlayingTrack() == null) playNextTrack();
-                    if (BotSettings.isDebug()) System.out.println("[search] Loaded first track from playlist: " + playlist.getName() + " for query: " + query);
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Loaded first track from playlist: " + playlist.getName() + " for query: " + query);
                 } catch (Exception e) {
                     hook.editOriginal("❌ Error queuing track: " + e.getMessage()).queue();
-                    if (BotSettings.isDebug()) System.out.println("[search] Exception while queuing track from playlist for query: " + query + " Error: " + e.getMessage());
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Exception while queuing track from playlist for query: " + query + " Error: " + e.getMessage());
                 }
             }
 
             @Override
             public void noMatches() {
                 hook.editOriginal("❌ No results found for: " + query).queue();
-                if (BotSettings.isDebug()) System.out.println("[search] No matches found for query: " + query);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] No matches found for query: " + query);
             }
 
             @Override
@@ -504,7 +504,7 @@ public class MusicBot {
                     long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, attemptNumber));
 
                     if (BotSettings.isDebug()) {
-                        System.out.println("[search] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
+                        System.out.println(DiscordBot.getTimestamp() + "[search] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
                                          " for query: " + query + " after " + delay + "ms due to timeout");
                     }
 
@@ -520,7 +520,7 @@ public class MusicBot {
                     hook.editOriginal(errorMsg).queue();
 
                     if (BotSettings.isDebug()) {
-                        System.out.println("[search] Load failed for query: " + query + " Error: " + e.getMessage());
+                        System.out.println(DiscordBot.getTimestamp() + "[search] Load failed for query: " + query + " Error: " + e.getMessage());
                     }
                 }
             }
@@ -534,12 +534,12 @@ public class MusicBot {
         String name = event.getOption("name").getAsString();
 
         event.getHook().editOriginal("⏳ Saving track...").queue();
-        if (BotSettings.isDebug()) System.out.println("[save] Saving URL: " + url + " with name: " + name);
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[save] Saving URL: " + url + " with name: " + name);
 
         for (SavedTrack track : savedTracks) {
             if (track.getName().equalsIgnoreCase(name)) {
                 event.getHook().editOriginal("❌ A saved track with that name already exists: " + name).queue();
-                if (BotSettings.isDebug()) System.out.println("[save] Duplicate saved track name: " + name);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[save] Duplicate saved track name: " + name);
                 return;
             }
         }
@@ -548,10 +548,10 @@ public class MusicBot {
             savedTracks.add(newTrack);
             saveToFile();
             event.getHook().editOriginal("✅ Saved track: " + name).queue();
-            if (BotSettings.isDebug()) System.out.println("[save] Successfully saved track: " + name + " with URL: " + url);
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[save] Successfully saved track: " + name + " with URL: " + url);
         } catch (Exception e) {
             event.getHook().editOriginal("❌ Failed to save track: " + e.getMessage()).queue();
-            if (BotSettings.isDebug()) System.out.println("[save] Exception while saving track: " + e.getMessage());
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[save] Exception while saving track: " + e.getMessage());
             return;
         }
     }
@@ -559,18 +559,18 @@ public class MusicBot {
     public void addSaved(SlashCommandInteractionEvent event) {
         event.deferReply().queue();
         event.getHook().editOriginal("⏳ Adding saved track...").queue();
-        if (BotSettings.isDebug()) System.out.println("[addSaved] Adding saved track...");
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[addSaved] Adding saved track...");
 
         String name = event.getOption("track").getAsString();
         for (SavedTrack track : savedTracks) {
             if (track.getName().equalsIgnoreCase(name)) {
-                if (BotSettings.isDebug()) System.out.println("[addSaved] Found saved track: " + name + " with URL: " + track.getUrl());
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[addSaved] Found saved track: " + name + " with URL: " + track.getUrl());
                 queue(event.getHook(), track.getUrl());
                 return;
             }
         }
         event.getHook().editOriginal("❌ Saved track not found: " + name).queue();
-        if (BotSettings.isDebug()) System.out.println("[addSaved] Saved track not found: " + name);
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[addSaved] Saved track not found: " + name);
     }
 
     public void saveToFile() {

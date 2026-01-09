@@ -1,5 +1,6 @@
 package com.xryzo11.discordbot.misc;
 
+import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
 import com.xryzo11.discordbot.core.BotSettings;
 import com.xryzo11.discordbot.core.Config;
@@ -38,39 +39,39 @@ public class RoleRestorer {
         Member member = event.getMember();
         Member memberOld = guildOld.retrieveMemberById(member.getId()).complete();
         if (memberOld == null) {
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
             return;
         }
         if (!member.getRoles().isEmpty()) {
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " already has a role in the new server. Skipping role assignment.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " already has a role in the new server. Skipping role assignment.");
             return;
         }
         if (memberOld.getRoles().contains(kozakOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
         } else if (memberOld.getRoles().contains(dalnOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
         } else if (memberOld.getRoles().contains(lamusyOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
         } else if (memberOld.getRoles().contains(noobgiOld)) {
             guildNew.addRoleToMember(member, noobgiNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Noobgi");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Noobgi");
         } else if (memberOld.getRoles().contains(kurwyOld)) {
             guildNew.addRoleToMember(member, kurwyNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Kurwy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Kurwy");
         } else if (memberOld.getRoles().contains(smolppOld)) {
             guildNew.addRoleToMember(member, smolppNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Smolpp");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Smolpp");
         } else if (memberOld.getRoles().contains(kartapedalaOld)) {
             guildNew.addRoleToMember(member, kartapedalaNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Karta Pedala");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Karta Pedala");
         } else if (memberOld.getRoles().contains(gejeOld)) {
             guildNew.addRoleToMember(member, gejeNew).queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
         } else {
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " has no matching roles to assign.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " has no matching roles to assign.");
         }
     }
 
@@ -80,49 +81,49 @@ public class RoleRestorer {
         Member memberOld = guildOld.retrieveMemberById(member.getId()).complete();
         if (memberOld == null) {
             event.getHook().editOriginal("You are not found in the old server. Cannot restore roles.").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " not found in old server.");
             return;
         }
         if (!member.getRoles().isEmpty()) {
             event.getHook().editOriginal("You already have a role in the new server. Skipping role assignment.").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " already has a role in the new server. Skipping role assignment.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " already has a role in the new server. Skipping role assignment.");
             return;
         }
         if (memberOld.getRoles().contains(kozakOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Lamusy").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
         } else if (memberOld.getRoles().contains(dalnOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Lamusy").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
         } else if (memberOld.getRoles().contains(lamusyOld)) {
             guildNew.addRoleToMember(member, lamusyNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Lamusy").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Lamusy");
         } else if (memberOld.getRoles().contains(noobgiOld)) {
             guildNew.addRoleToMember(member, noobgiNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Noobgi").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Noobgi");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Noobgi");
         } else if (memberOld.getRoles().contains(kurwyOld)) {
             guildNew.addRoleToMember(member, kurwyNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Kurwy").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Kurwy");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Kurwy");
         } else if (memberOld.getRoles().contains(smolppOld)) {
             guildNew.addRoleToMember(member, smolppNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Smolpp").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Smolpp");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Smolpp");
         } else if (memberOld.getRoles().contains(kartapedalaOld)) {
             guildNew.addRoleToMember(member, kartapedalaNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Karta Pedala").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Karta Pedala");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Karta Pedala");
         } else if (memberOld.getRoles().contains(gejeOld)) {
             guildNew.addRoleToMember(member, gejeNew).queue();
             event.getHook().editOriginal("Assigned highest owned role: Geje").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " assigned role: Geje");
         } else {
             event.getHook().editOriginal("You have no matching roles to assign.").queue();
-            if (BotSettings.isDebug()) System.out.println("[RoleRestorer] User " + member.getUser().getAsTag() + " has no matching roles to assign.");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[RoleRestorer] User " + member.getUser().getAsTag() + " has no matching roles to assign.");
         }
     }
 }

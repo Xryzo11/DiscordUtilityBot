@@ -59,7 +59,7 @@ public class WywozBindingManager {
         b.enabled = true;
         bindings.add(b);
         if (BotSettings.isDebug()) {
-            System.out.println("[wywozBindingManager] Added binding: userId=" + userId + ", channelId=" + channelId);
+            System.out.println(DiscordBot.getTimestamp() + "[wywozBindingManager] Added binding: userId=" + userId + ", channelId=" + channelId);
         }
         saveBindings();
     }
@@ -67,7 +67,7 @@ public class WywozBindingManager {
     public static void removeBinding(long userId, long channelId) {
         bindings.removeIf(b -> b.userId == userId && b.channelId == channelId);
         if (BotSettings.isDebug()) {
-            System.out.println("[wywozBindingManager] Removed binding: userId=" + userId + ", channelId=" + channelId);
+            System.out.println(DiscordBot.getTimestamp() + "[wywozBindingManager] Removed binding: userId=" + userId + ", channelId=" + channelId);
         }
         saveBindings();
     }
@@ -82,12 +82,12 @@ public class WywozBindingManager {
             if (b.userId == userId && b.channelId == channelId) {
                 b.enabled = enabled;
                 found = true;
-                if (BotSettings.isDebug()) System.out.println("[wywozBindingManager] Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[wywozBindingManager] Updated binding: " + b.userId + ", " + b.channelId + ", enabled=" + b.enabled);
                 break;
             }
         }
         if (!found) {
-            if (BotSettings.isDebug()) System.out.println("[wywozBindingManager] No matching binding found to update!");
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[wywozBindingManager] No matching binding found to update!");
         }
         saveBindings();
     }
@@ -97,9 +97,9 @@ public class WywozBindingManager {
         Guild guild = event.getGuild();
         if (member != null && guild != null) {
             guild.kickVoiceMember(member).queue();
-            System.out.println("[wywozBindingManager] Wywoz smieci (" + user + " | " + channel + ")");
+            System.out.println(DiscordBot.getTimestamp() + "[wywozBindingManager] Wywoz smieci (" + user + " | " + channel + ")");
         } else {
-            System.out.println("[wywozBindingManager] Blad z wywozem smieci  (" + user + " | " + channel + ")");
+            System.out.println(DiscordBot.getTimestamp() + "[wywozBindingManager] Blad z wywozem smieci  (" + user + " | " + channel + ")");
         }
     }
 }

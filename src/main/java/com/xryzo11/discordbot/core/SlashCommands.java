@@ -209,15 +209,15 @@ public class SlashCommands {
         if (!track.contains("youtube.com") && !track.contains("youtu.be") && !track.contains("youtube.pl") && !track.contains("spotify.com")) {
             if (track.contains("http://") || track.contains("https://") || track.contains("www.")) {
                 event.reply("❌ Only YouTube and Spotify links are supported").setEphemeral(true).queue();
-                if (BotSettings.isDebug()) System.out.println("[handleQueue] Unsupported link detected, rejecting: " + track);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Unsupported link detected, rejecting: " + track);
                 return;
             }
 
-            if (BotSettings.isDebug()) System.out.println("[handleQueue] No link detected, searching: " + track);
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] No link detected, searching: " + track);
 
             if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
                 event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
-                if (BotSettings.isDebug()) System.out.println("[handleQueue] YouTube OAuth2 token not configured.");
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] YouTube OAuth2 token not configured.");
                 return;
             }
 
@@ -225,28 +225,28 @@ public class SlashCommands {
             bot.search(event, track);
             return;
         }
-        if (BotSettings.isDebug()) System.out.println("[handleQueue] Link detected: " + track);
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Link detected: " + track);
 
         if (track.contains(" ")) {
             event.reply("❌ Track URL cannot contain spaces").setEphemeral(true).queue();
-            if (BotSettings.isDebug()) System.out.println("[handleQueue] Track URL contains spaces, rejecting: " + track);
+            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Track URL contains spaces, rejecting: " + track);
             return;
         }
 
         if (track.contains("youtube.com") || track.contains("youtu.be") || track.contains("youtube.pl")) {
             if (Config.getGoogleOAuth2Token() == null || Config.getGoogleOAuth2Token().isEmpty() || Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
                 event.reply("❌ YouTube OAuth2 token is not configured. Please set it in the config file to play YouTube links.").setEphemeral(true).queue();
-                if (BotSettings.isDebug()) System.out.println("[handleQueue] YouTube OAuth2 token not configured.");
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] YouTube OAuth2 token not configured.");
                 return;
             }
             if (track.contains("/shorts/")) {
-                if (BotSettings.isDebug()) System.out.println("[handleQueue] Detected YouTube Shorts URL, converting: " + track);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Detected YouTube Shorts URL, converting: " + track);
                 track = track.replace("/shorts/", "/watch?v=");
-                if (BotSettings.isDebug()) System.out.println("[handleQueue] Converted Shorts URL to standard URL: " + track);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Converted Shorts URL to standard URL: " + track);
             }
             if (track.contains("radio") || track.contains("stream") || track.contains("live")) {
                 event.reply("❌ Radio or stream URLs are not supported").setEphemeral(true).queue();
-                if (BotSettings.isDebug()) System.out.println("[handleQueue] Radio/stream URL detected, rejecting: " + track);
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Radio/stream URL detected, rejecting: " + track);
                 return;
             }
         }

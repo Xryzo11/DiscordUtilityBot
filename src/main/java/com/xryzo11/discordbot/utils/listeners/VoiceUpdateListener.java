@@ -1,5 +1,6 @@
 package com.xryzo11.discordbot.utils.listeners;
 
+import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.core.BotSettings;
@@ -18,7 +19,7 @@ public class VoiceUpdateListener extends ListenerAdapter {
             long userId = event.getMember().getUser().getIdLong();
 
             if (BotSettings.isDebug()) {
-                System.out.println("[VoiceUpdateListener] " + user + " joined voice channel: " + channel);
+                System.out.println(DiscordBot.getTimestamp() + "[VoiceUpdateListener] " + user + " joined voice channel: " + channel);
             }
 
             if (BotSettings.isWywozSmieci()) {
@@ -41,7 +42,7 @@ public class VoiceUpdateListener extends ListenerAdapter {
             long userId = event.getMember().getUser().getIdLong();
 
             if (BotSettings.isDebug()) {
-                System.out.println("[VoiceUpdateListener] " + user + " left voice channel: " + channel);
+                System.out.println(DiscordBot.getTimestamp() + "[VoiceUpdateListener] " + user + " left voice channel: " + channel);
             }
 
             if (BotSettings.isTempRole()) {
