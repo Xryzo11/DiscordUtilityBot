@@ -104,10 +104,10 @@ public class DiscordBot {
         for (Guild guild : jda.getGuilds()) {
             guild.updateCommands().addCommands(
                     Commands.slash("join", "Join voice channel"),
-                    Commands.slash("play", "Queue YouTube/Spotify audio by url")
-                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL", true),
-                    Commands.slash("queue", "Queue YouTube/Spotify audio by url")
-                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL", true),
+                    Commands.slash("play", "Queue YouTube/Spotify audio")
+                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL/search query", true),
+                    Commands.slash("queue", "Queue YouTube/Spotify audio")
+                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL/search query", true),
                     Commands.slash("dequeue", "Remove a track from the queue")
                             .addOption(OptionType.INTEGER, "position", "Track position in the queue", true),
                     Commands.slash("pause", "Pause current playback"),
@@ -127,6 +127,11 @@ public class DiscordBot {
                             .addOption(OptionType.STRING, "name", "Short track name", true),
                     Commands.slash("add", "Add saved track to the queue")
                             .addOptions(preloadedTracks),
+                    Commands.slash("playnext", "Queue Youtube/Spotify audio on the first position")
+                            .addOption(OptionType.STRING, "track", "YouTube/Spotify URL/search query", true),
+                    Commands.slash("reorder", "Reorder the queue")
+                            .addOption(OptionType.INTEGER, "from", "Current track position", true)
+                            .addOption(OptionType.INTEGER, "to", "New track position", true),
                     Commands.slash("rps-challenge", "Challenge a user to Rock-Paper-Scissors")
                             .addOption(OptionType.USER, "user", "User to challenge", true),
                     Commands.slash("rps-choose", "Rock-Paper-Scissors choice")

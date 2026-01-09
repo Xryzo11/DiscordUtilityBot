@@ -43,7 +43,7 @@ public class SlashCommands {
                 break;
             case "play":
             case "queue":
-                handleQueueCommand(event);
+                handleQueueCommand(event, false);
                 break;
             case "dequeue":
                 handleDequeueCommand(event);
@@ -84,6 +84,12 @@ public class SlashCommands {
                 break;
             case "playhead":
                 handlePlayheadCommand(event);
+                break;
+            case "playnext":
+                handleQueueCommand(event, true);
+                break;
+            case "reorder":
+                handleReorderCommand(event);
                 break;
             case "save":
                 handleSaveCommand(event);
@@ -199,7 +205,7 @@ public class SlashCommands {
         return false;
     }
 
-    private void handleQueueCommand(SlashCommandInteractionEvent event) {
+    private void handleQueueCommand(SlashCommandInteractionEvent event, boolean isPlayNext) {
         String track = event.getOption("track").getAsString();
 
         if (!isUserInVoice(event)) {
@@ -227,6 +233,11 @@ public class SlashCommands {
         }
         if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Link detected: " + track);
 
+        if (track.contains("playlist") || track.contains("list=") && isPlayNext) {
+            event.reply("❌ Playlists cannot be played next, please use the regular queue command").setEphemeral(true).queue();
+            return;
+        }
+
         if (track.contains(" ")) {
             event.reply("❌ Track URL cannot contain spaces").setEphemeral(true).queue();
             if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Track URL contains spaces, rejecting: " + track);
@@ -252,7 +263,7 @@ public class SlashCommands {
         }
 
         joinIfNeeded(event);
-        bot.queue(event, track);
+        bot.queue(event, track, isPlayNext);
     }
 
     private void handleDequeueCommand(SlashCommandInteractionEvent event) {
@@ -432,6 +443,7 @@ public class SlashCommands {
         }
 
         if (!isUserInVoice(event)) {
+            event.getHook().editOriginal("❌ You must be in a voice channel to add a saved track").queue();
             return;
         }
         if (joinIfNeeded(event)) {
@@ -439,6 +451,28 @@ public class SlashCommands {
         }
 
         bot.addSaved(event);
+    }
+
+    private void handleReorderCommand(SlashCommandInteractionEvent event) {
+        int fromPosition = event.getOption("from").getAsInt();
+        int toPosition = event.getOption("to").getAsInt();
+        int queueSize = MusicBot.trackQueue.size();
+
+        if (!isUserInVoice(event)) {
+            return;
+        }
+
+        if (fromPosition < 1 || toPosition < 1) {
+            event.reply("❌ Positions must be positive integers").setEphemeral(true).queue();
+            return;
+        }
+
+        if (fromPosition > queueSize || toPosition > queueSize) {
+            event.reply("❌ Positions exceed queue size").setEphemeral(true).queue();
+            return;
+        }
+
+        bot.reorderTrack(event, fromPosition, toPosition);
     }
 
    private void handleRpsChallengeCommand(SlashCommandInteractionEvent event) {
