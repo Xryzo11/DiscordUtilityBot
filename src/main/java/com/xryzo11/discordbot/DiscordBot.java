@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -193,6 +194,7 @@ public class DiscordBot {
     }
 
     public static String getTimestamp() {
-        return "[" + Calendar.getInstance().getTime().toString() + "] ";
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        return "[" + sdf.format(Calendar.getInstance().getTime()) + "] ";
     }
 }
