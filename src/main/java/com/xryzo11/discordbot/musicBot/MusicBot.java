@@ -183,7 +183,7 @@ public class MusicBot {
         }
     }
 
-    private String formatTime(long input) {
+    public static String formatTime(long input) {
         long hours = (long) TimeUnit.SECONDS.toHours(input);
         long minutes = (long) (TimeUnit.SECONDS.toMinutes(input) % 60);
         long seconds = (long) (TimeUnit.SECONDS.toSeconds(input) % 60);
@@ -193,7 +193,7 @@ public class MusicBot {
                 : String.format("%02d:%02d", minutes, seconds);
     }
 
-    private String totalQueueDuration() {
+    public String totalQueueDuration() {
         long totalDuration = 0;
         for (AudioTrack track : trackQueue) {
             long trackDuration = track.getDuration();

@@ -19,6 +19,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -34,14 +35,17 @@ public class DiscordBot {
     public static String version = pkg.getImplementationVersion();
     public static String fullVersion = artifactId + "-" + version + "-shaded.jar";
     public static String lastRestart = Calendar.getInstance().getTime().toString();
+    public static long lastRestartMillis = System.currentTimeMillis();
     public static String workingDirectory = System.getProperty("user.dir");
     public static MusicBot musicBot;
     public static PresenceManager presenceManager;
     public static LeaderboardManager leaderboardManager;
     public static String configDirectory = workingDirectory + File.separator + "config" + File.separator;
     public static String libsDirectory = workingDirectory + File.separator + "libs" + File.separator;
+    public static UiManager uiManager;
 
     public static void main(String[] args) throws Exception {
+        uiManager = UiManager.getInstance();
         System.out.print("\n");
         System.out.println("File: " + fullVersion);
         System.out.println("Last restart: " + lastRestart);
@@ -148,6 +152,7 @@ public class DiscordBot {
         TempRoleManager.loadTempRoles();
         WywozBindingManager.loadBindings();
         Dashboard.start();
+        uiManager.startInfoUpdater();
     }
 
     public static void restart(Runnable task) {
@@ -201,5 +206,18 @@ public class DiscordBot {
     public static String getTimestamp() {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         return "[" + sdf.format(Calendar.getInstance().getTime()) + "] ";
+    }
+
+    public static String getUptime() {
+        long currentTime = System.currentTimeMillis();
+        long startTime = lastRestartMillis;
+        long diff = currentTime - startTime;
+
+        long seconds = (diff / 1000) % 60;
+        long minutes = (diff / (1000 * 60)) % 60;
+        long hours = (diff / (1000 * 60 * 60)) % 24;
+        long days = diff / (1000 * 60 * 60 * 24);
+
+        return String.format("%dd, %02dh %02dm %02ds", days, hours, minutes, seconds);
     }
 }
