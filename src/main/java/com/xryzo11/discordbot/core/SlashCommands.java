@@ -442,12 +442,13 @@ public class SlashCommands {
             return;
         }
 
-        safeDefer(event);
-
         if (!isUserInVoice(event)) {
-            event.getHook().editOriginal("❌ You must be in a voice channel to add a saved track").queue();
+            event.reply("❌ You must be in a voice channel to add a saved track").setEphemeral(true).queue();
             return;
         }
+
+        safeDefer(event);
+
         if (joinIfNeeded(event)) {
             event.getHook().editOriginal("🔊 Joined voice channel: " + event.getMember().getVoiceState().getChannel().asVoiceChannel().getName()).queue();
         }
