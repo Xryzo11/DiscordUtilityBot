@@ -442,6 +442,8 @@ public class SlashCommands {
             return;
         }
 
+        safeDefer(event);
+
         if (!isUserInVoice(event)) {
             event.getHook().editOriginal("❌ You must be in a voice channel to add a saved track").queue();
             return;

@@ -574,7 +574,7 @@ public class MusicBot {
     }
 
     public void addSaved(SlashCommandInteractionEvent event) {
-        event.deferReply().queue();
+        SlashCommands.safeDefer(event);
         event.getHook().editOriginal("⏳ Adding saved track...").queue();
         if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[addSaved] Adding saved track...");
 
