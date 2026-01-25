@@ -45,7 +45,8 @@
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>6.0.0-rc.5</version>
+            <version>6.3.0</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.sparkjava</groupId>
