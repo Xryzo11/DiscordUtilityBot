@@ -9,12 +9,15 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import static com.xryzo11.discordbot.musicBot.MusicBot.formatTime;
 
 public class UiManager {
     private static UiManager instance = null;
     private UiWindow uiWindow;
+    private static final PrintStream originalOut = System.out;
+    private static final PrintStream originalErr = System.err;
 
     private UiManager() {
         uiWindow = new UiWindow();
@@ -22,9 +25,15 @@ public class UiManager {
     }
 
     private void enableConsoleRedirect() {
-        PrintStream printStream = new PrintStream(new TextAreaOutputStream(uiWindow.logTextPane));
-        System.setOut(printStream);
-        System.setErr(printStream);
+        TextAreaOutputStream textAreaStream = new TextAreaOutputStream(uiWindow.logTextPane);
+        TeeOutputStream teeOut = new TeeOutputStream(originalOut, textAreaStream);
+        TeeOutputStream teeErr = new TeeOutputStream(originalErr, textAreaStream);
+
+        PrintStream printStreamOut = new PrintStream(teeOut, true, StandardCharsets.UTF_8);
+        PrintStream printStreamErr = new PrintStream(teeErr, true, StandardCharsets.UTF_8);
+
+        System.setOut(printStreamOut);
+        System.setErr(printStreamErr);
     }
 
     public void startInfoUpdater() {
@@ -186,9 +195,45 @@ class UiWindow extends JFrame {
     }
 }
 
+class TeeOutputStream extends OutputStream {
+    private final OutputStream[] streams;
+
+    public TeeOutputStream(OutputStream... streams) {
+        this.streams = streams;
+    }
+
+    @Override
+    public void write(int b) throws java.io.IOException {
+        for (OutputStream stream : streams) {
+            stream.write(b);
+        }
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) throws java.io.IOException {
+        for (OutputStream stream : streams) {
+            stream.write(b, off, len);
+        }
+    }
+
+    @Override
+    public void flush() throws java.io.IOException {
+        for (OutputStream stream : streams) {
+            stream.flush();
+        }
+    }
+
+    @Override
+    public void close() throws java.io.IOException {
+        for (OutputStream stream : streams) {
+            stream.close();
+        }
+    }
+}
+
 class TextAreaOutputStream extends OutputStream {
-    private JTextPane textPane;
-    private StringBuilder lineBuffer = new StringBuilder();
+    private final JTextPane textPane;
+    private final java.io.ByteArrayOutputStream byteBuffer = new java.io.ByteArrayOutputStream();
 
     public TextAreaOutputStream(JTextPane textPane) {
         this.textPane = textPane;
@@ -196,13 +241,48 @@ class TextAreaOutputStream extends OutputStream {
 
     @Override
     public void write(int b) {
-        char c = (char) b;
-        lineBuffer.append(c);
+        byteBuffer.write(b);
 
-        if (c == '\n') {
-            String line = lineBuffer.toString();
+        if (b == '\n') {
+            String line = byteBuffer.toString(StandardCharsets.UTF_8);
             appendColoredText(line);
-            lineBuffer.setLength(0);
+            byteBuffer.reset();
+        }
+    }
+
+    @Override
+    public void write(byte[] b, int off, int len) {
+        try {
+            byteBuffer.write(b, off, len);
+
+            String text = byteBuffer.toString(StandardCharsets.UTF_8);
+            int lastNewline = text.lastIndexOf('\n');
+
+            if (lastNewline != -1) {
+                String[] lines = text.substring(0, lastNewline + 1).split("(?<=\n)");
+                for (String line : lines) {
+                    appendColoredText(line);
+                }
+
+                byteBuffer.reset();
+                String remaining = text.substring(lastNewline + 1);
+                if (!remaining.isEmpty()) {
+                    byteBuffer.write(remaining.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void flush() {
+        if (byteBuffer.size() > 0) {
+            String remaining = byteBuffer.toString(StandardCharsets.UTF_8);
+            if (!remaining.isEmpty()) {
+                appendColoredText(remaining);
+            }
+            byteBuffer.reset();
         }
     }
 
