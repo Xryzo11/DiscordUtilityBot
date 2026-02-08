@@ -159,6 +159,27 @@ public class Dashboard {
             return "OK";
         });
 
+        get("/current-track", (req, res) -> {
+            res.type("application/json");
+
+            Map<String, Object> data = new HashMap<>();
+
+            if (DiscordBot.musicBot != null && DiscordBot.musicBot.currentTrack != null) {
+                var track = DiscordBot.musicBot.currentTrack;
+                data.put("playing", true);
+                data.put("title", track.getInfo().title);
+                data.put("author", track.getInfo().author);
+                data.put("uri", track.getInfo().uri);
+                data.put("position", track.getPosition());
+                data.put("duration", track.getDuration());
+                data.put("isStream", track.getInfo().isStream);
+            } else {
+                data.put("playing", false);
+            }
+
+            return data;
+        }, gson::toJson);
+
         post("/force-restart", (req, res) -> {
             try {
                 res.redirect("/");

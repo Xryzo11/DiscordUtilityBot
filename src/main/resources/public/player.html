@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Now Playing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: transparent;
+            padding: 0;
+        }
+
+        .player-container {
+            max-width: 500px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .player-container.hidden {
+            display: none;
+        }
+
+        .track-display {
+            color: white;
+        }
+
+        .scroll-container {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .scroll-wrapper {
+            display: inline-block;
+            animation: scroll-left 20s linear infinite;
+        }
+
+        .scroll-wrapper.short {
+            animation: none;
+        }
+
+        .scroll-text {
+            display: inline-block;
+        }
+
+        .scroll-text:not(:last-child) {
+            padding-right: 50px;
+        }
+
+        @keyframes scroll-left {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .track-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .track-author {
+            font-size: 14px;
+            opacity: 0.85;
+            margin-bottom: 8px;
+        }
+
+        .track-time {
+            font-size: 13px;
+            opacity: 0.75;
+            white-space: nowrap;
+        }
+
+        .stream-badge {
+            display: inline-block;
+            background: rgba(252, 129, 129, 0.9);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="player-container hidden" id="playerContainer">
+    <div class="track-display" id="trackDisplay"></div>
+</div>
+
+<script>
+    let updateInterval;
+    let currentTrackKey = "";
+    const UPDATE_RATE = 1000;
+
+    function formatTime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        const hours = Math.floor(mins / 60);
+        const displayMins = mins % 60;
+
+        if (hours > 0) {
+            return `${hours}:${displayMins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${displayMins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function shouldScroll(text, fontSize) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = `${fontSize}px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
+        const width = context.measureText(text).width;
+        return width > 476;
+    }
+
+    async function updateTrackDisplay() {
+        try {
+            const response = await fetch('/current-track');
+            const data = await response.json();
+
+            const container = document.getElementById('playerContainer');
+            const display = document.getElementById('trackDisplay');
+
+            if (data.playing) {
+                container.classList.remove('hidden');
+
+                const trackKey = `${data.title}-${data.author}-${data.isStream}`;
+
+                if (trackKey !== currentTrackKey) {
+                    currentTrackKey = trackKey;
+
+                    const titleNeedsScroll = shouldScroll(data.title, 18);
+                    const authorNeedsScroll = shouldScroll(data.author, 14);
+                    const titleHtml = escapeHtml(data.title);
+                    const authorHtml = escapeHtml(data.author);
+
+                    display.innerHTML = `
+                            ${data.isStream ? '<div class="stream-badge">🔴 LIVE</div>' : ''}
+                            <div class="scroll-container">
+                                <div class="scroll-wrapper ${titleNeedsScroll ? '' : 'short'}">
+                                    <span class="track-title scroll-text">${titleHtml}</span>
+                                    ${titleNeedsScroll ? `<span class="track-title scroll-text">${titleHtml}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="scroll-container">
+                                <div class="scroll-wrapper ${authorNeedsScroll ? '' : 'short'}">
+                                    <span class="track-author scroll-text">${authorHtml}</span>
+                                    ${authorNeedsScroll ? `<span class="track-author scroll-text">${authorHtml}</span>` : ''}
+                                </div>
+                            </div>
+                            <div id="timeDisplay" class="track-time"></div>
+                        `;
+                }
+
+                const timeElement = document.getElementById('timeDisplay');
+                if (timeElement) {
+                    const currentTime = formatTime(data.position);
+                    const totalTime = data.isStream ? 'LIVE' : formatTime(data.duration);
+                    timeElement.textContent = `${currentTime} / ${totalTime}`;
+                }
+            } else {
+                container.classList.add('hidden');
+                currentTrackKey = "";
+            }
+        } catch (error) {
+            console.error(error);
+            document.getElementById('playerContainer').classList.add('hidden');
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    updateTrackDisplay();
+    updateInterval = setInterval(updateTrackDisplay, UPDATE_RATE);
+
+    window.addEventListener('beforeunload', () => {
+        if (updateInterval) clearInterval(updateInterval);
+    });
+</script>
+</body>
+</html>
