@@ -1,5 +1,7 @@
 package com.xryzo11.discordbot;
 
+import club.minnced.discord.jdave.ffi.LibDave;
+import club.minnced.discord.jdave.interop.JDaveSessionFactory;
 import com.xryzo11.discordbot.core.*;
 import com.xryzo11.discordbot.leaderboard.LeaderboardManager;
 import com.xryzo11.discordbot.misc.TempRoleManager;
@@ -7,6 +9,7 @@ import com.xryzo11.discordbot.utils.listeners.*;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import com.xryzo11.discordbot.musicBot.MusicBot;
 import net.dv8tion.jda.api.*;
+import net.dv8tion.jda.api.audio.AudioModuleConfig;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -93,6 +96,10 @@ public class DiscordBot {
                 )
                 .setChunkingFilter(ChunkingFilter.ALL)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
+                .setAudioModuleConfig(
+                        new AudioModuleConfig()
+                                .withDaveSessionFactory(new JDaveSessionFactory())
+                )
                 .build();
         presenceManager = new PresenceManager(jda);
         jda.addEventListener(presenceManager);
