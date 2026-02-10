@@ -173,6 +173,7 @@ public class Dashboard {
                 data.put("position", track.getPosition());
                 data.put("duration", track.getDuration());
                 data.put("isStream", track.getInfo().isStream);
+                data.put("artworkUrl", track.getInfo().artworkUrl);
             } else {
                 data.put("playing", false);
             }
