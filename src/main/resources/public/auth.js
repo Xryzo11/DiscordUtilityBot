@@ -24,7 +24,7 @@ function checkAuth() {
         hashedPassword = 'hashedPassword';
         hashedInput = 'hashedInput';
         alert('Access denied.');
-        window.location.href = 'index.html';
+        window.location.href = 'access.html';
         document.write('<h1 style="font-size:100px">Access Denied</h1>');
         document.write('<input type="button" value="Reload" style="background-color: #3498db; color: #fff; width:250px; height:100px; margin:auto; font-size:50px;" onclick="window.location.reload()">');
         window.stop();

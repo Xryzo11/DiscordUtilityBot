@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/js-sha512@0.8.0/src/sha512.min.js"></script>
+<script src="../auth.js"></script>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Bot Control Panel</title>
+        <link rel="stylesheet" href="../style.css">
+        <link rel="icon" type="image/x-icon" href="../favicon.ico">
+    </head>
+    <body>
+        <h1>Toggle Features</h1>
+
+        <form id="wywozForm" action="/toggle-wywoz" method="post">
+            <label>
+                <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
+                       id="wywozSmieciToggle">
+                Toggle "Auto-Kick"
+            </label>
+        </form>
+
+        <form id="tempRoleForm" action="/toggle-temp-role-status" method="post">
+            <label>
+                <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
+                       id="tempRoleToggle">
+                Toggle "Temp Role"
+            </label>
+        </form>
+
+        <form id="debugForm" action="/toggle-debug" method="post">
+            <label>
+                <input type="checkbox" name="status" value="true" onchange="this.form.submit()"
+                       id="debugToggle">
+                Toggle "Debug"
+            </label>
+        </form>
+
+        <h2>Auto-Kick Manager</h2>
+        <table border="1" id="bindingsTable">
+            <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Channel ID</th>
+                <th>Enabled</th>
+                <th>Remove</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h3 id="newBindingTxt">New Auto-Kick</h3>
+        <form id="addBindingForm">
+            <input type="text" name="userId" placeholder="User ID" required>
+            <input type="text" name="channelId" placeholder="Channel ID" required>
+            <button type="submit">Add</button>
+        </form>
+
+        <h2>Temporary Role Manager</h2>
+        <table border="1" id="rolesTable">
+            <thead>
+            <tr>
+                <th>Role ID</th>
+                <th>Channel ID</th>
+                <th>Enabled</th>
+                <th>Remove</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h3 id="newRoleTxt">New Temporary Role</h3>
+        <form id="addRoleForm">
+            <input type="text" name="roleId" placeholder="Role ID" required>
+            <input type="text" name="channelId" placeholder="Channel ID" required>
+            <button type="submit">Add</button>
+        </form>
+
+        <h2>Force restart bot</h2>
+        <form action="/force-restart" method="post">
+            <button type="submit">Restart Bot</button>
+        </form>
+
+        <h2>Bot Information</h2>
+        <form>
+            <p><b>File name:</b> <span id="fileName"></span></p>
+            <p><b>Last restart:</b> <span id="lastRestart"></span></p>
+        </form>
+
+        <script src="../botSettings.js"></script>
+    </body>
+</html>
