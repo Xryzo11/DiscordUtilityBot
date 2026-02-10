@@ -169,7 +169,7 @@ class UiWindow extends JFrame {
                             + "</html>";
                     playlistInfoLabel.setText(playlistInfo);
                 } else {
-                    playlistInfoLabel.setText("<html>Length: 0<br>Tracks: 0</html>");
+                    playlistInfoLabel.setText("<html>Length: 00:00<br>Tracks: 0</html>");
                 }
             });
             timer.start();
