@@ -989,16 +989,21 @@
         function submitLogin() {
             const password = document.getElementById('passwordInput').value;
             const hashedInput = sha512(password);
+            const currentPage = encodeURIComponent(window.location.pathname);
 
             if (hashedInput === hashedPassword) {
                 isAuthenticated = true;
                 document.getElementById('loginModal').style.display = 'none';
                 unlockControls();
                 showToast('Successfully authenticated!');
+                fetch(`/log-auth?source=player&success=true&page=${currentPage}`, { method: 'POST' })
+                    .catch(err => console.error('Failed to log auth:', err));
             } else {
                 const errorDiv = document.getElementById('loginError');
                 errorDiv.textContent = 'Incorrect password';
                 errorDiv.style.display = 'block';
+                fetch(`/log-auth?source=player&success=false&page=${currentPage}`, { method: 'POST' })
+                    .catch(err => console.error('Failed to log auth:', err));
             }
         }
 

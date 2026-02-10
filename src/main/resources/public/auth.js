@@ -19,10 +19,12 @@ fetch('/web-auth')
         checkAuth();
     });
 function checkAuth() {
+    const currentPage = encodeURIComponent(window.location.pathname);
     if (authEnabled && hashedInput !== hashedPassword) {
         authEnabled = true;
         hashedPassword = 'hashedPassword';
         hashedInput = 'hashedInput';
+        fetch(`/log-auth?source=dashboard&success=false&page=${currentPage}`, { method: 'POST' }).catch(err => console.error('Failed to log auth:', err));
         alert('Access denied.');
         window.location.href = 'access.html';
         document.write('<h1 style="font-size:100px">Access Denied</h1>');
@@ -30,5 +32,7 @@ function checkAuth() {
         window.stop();
         document.execCommand('Stop');
         document.write('<style type="text/undefined">');
+    } else if (authEnabled && hashedInput === hashedPassword) {
+        fetch(`/log-auth?source=dashboard&success=true&page=${currentPage}`, { method: 'POST' }).catch(err => console.error('Failed to log auth:', err));
     }
 }

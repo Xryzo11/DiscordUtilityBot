@@ -63,6 +63,33 @@ public class Dashboard {
             return data;
         }, gson::toJson);
 
+        post("/log-auth", (req, res) -> {
+            res.type("application/json");
+            Map<String, Object> result = new HashMap<>();
+
+            try {
+                String source = req.queryParams("source");
+                String page = req.queryParams("page");
+                boolean success = Boolean.parseBoolean(req.queryParams("success"));
+                String clientIp = req.ip();
+
+                String pageInfo = (page != null && !page.isEmpty()) ? " on page: " + page : "";
+
+                if (success) {
+                    System.out.println(DiscordBot.getTimestamp() + "[" + source + "] Authentication successful from " + clientIp + pageInfo);
+                } else {
+                    System.err.println(DiscordBot.getTimestamp() + "[" + source + "] WARNING: Authentication failed from " + clientIp + pageInfo);
+                }
+
+                result.put("logged", true);
+            } catch (Exception e) {
+                result.put("logged", false);
+                result.put("error", e.getMessage());
+            }
+
+            return result;
+        }, gson::toJson);
+
         get("/get-info", (req, res) -> {
             res.type("application/json");
 
