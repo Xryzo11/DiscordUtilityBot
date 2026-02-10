@@ -36,7 +36,7 @@ public class DiscordBot {
     public static Package pkg = DiscordBot.class.getPackage();
     public static String artifactId = pkg.getImplementationTitle();
     public static String version = pkg.getImplementationVersion();
-    public static String fullVersion = artifactId + "-" + version + "-shaded.jar";
+    public static String fullVersion = artifactId + "-" + version + ".jar";
     public static String lastRestart = Calendar.getInstance().getTime().toString();
     public static long lastRestartMillis = System.currentTimeMillis();
     public static String workingDirectory = System.getProperty("user.dir");
@@ -198,7 +198,7 @@ public class DiscordBot {
 
     public static void tryRestart() throws IOException {
         if (isBeingUsed()) {
-            System.out.println("Skipping restart");
+            System.out.println("getTimestamp() + [DiscordBot] Restart failed: Bot is currently being used");
             return;
         }
         ProcessBuilder process = new ProcessBuilder("./libs/restart.sh");

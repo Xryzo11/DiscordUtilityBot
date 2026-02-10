@@ -4,6 +4,9 @@ import com.xryzo11.discordbot.DiscordBot;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,7 +14,25 @@ public class ScriptGenerator {
     private static final Logger LOGGER = Logger.getLogger(ScriptGenerator.class.getName());
 
     public static void main(String[] args) {
-        String libDirectory = "target" + File.separator + "libs" + File.separator;
+        String artifactId = System.getProperty("artifactId");
+        String version = System.getProperty("version");
+
+        if (artifactId == null || version == null || "null".equals(artifactId) || "null".equals(version)) {
+            Package pkg = DiscordBot.class.getPackage();
+            artifactId = pkg.getImplementationTitle();
+            version = pkg.getImplementationVersion();
+        }
+
+        String releaseDirectory = "target" + File.separator + version + File.separator;
+        File releaseDir = new File(releaseDirectory);
+        if (!releaseDir.exists()) {
+            if (!releaseDir.mkdirs()) {
+                LOGGER.log(Level.SEVERE, "Failed to create release directory: {0}", releaseDir);
+                return;
+            }
+        }
+
+        String libDirectory = releaseDirectory + "libs" + File.separator;
         File libDir = new File(libDirectory);
         if (!libDir.exists()) {
             if (!libDir.mkdirs()) {
@@ -19,18 +40,50 @@ public class ScriptGenerator {
                 return;
             }
         }
-        createNewScripts(libDirectory);
+
+        copyJarToRelease(artifactId, version, releaseDirectory);
+
+        createNewScripts(libDirectory, releaseDirectory, artifactId, version);
+    }
+
+    private static void copyJarToRelease(String artifactId, String version, String releaseDirectory) {
+        String sourceJarName = artifactId + "-" + version + "-shaded.jar";
+        String destJarName = artifactId + "-" + version + ".jar";
+        File sourceJar = new File("target" + File.separator + sourceJarName);
+        File destJar = new File(releaseDirectory + destJarName);
+
+        if (sourceJar.exists()) {
+            try {
+                Files.copy(sourceJar.toPath(), destJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                LOGGER.log(Level.INFO, "Copied {0} to release directory as {1}", new Object[]{sourceJarName, destJarName});
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Failed to copy JAR file to release directory", e);
+            }
+        } else {
+            LOGGER.log(Level.WARNING, "Source JAR not found: {0}", sourceJar.getAbsolutePath());
+        }
+    }
+
+    public static void createNewScripts(String libDirectory, String releaseDirectory, String artifactId, String version) {
+        String jarName = artifactId + "-" + version + ".jar";
+
+        createStartScriptWindows(releaseDirectory);
+        createStartScriptLinux(releaseDirectory);
+        createStartParamsScriptWindows(jarName, libDirectory);
+        createStartParamsScriptLinux(jarName, libDirectory);
+        createRestartScriptWindows(jarName, libDirectory);
+        createRestartScriptLinux(jarName, libDirectory);
     }
 
     public static void createNewScripts(String directory) {
         String artifactId = System.getProperty("artifactId");
         String version = System.getProperty("version");
-        String jarName = artifactId + "-" + version + "-shaded.jar";
-        if (jarName.equals("null-null-shaded.jar")) {
+        String jarName = artifactId + "-" + version + ".jar";
+        if (jarName.equals("null-null.jar")) {
             Package pkg = DiscordBot.class.getPackage();
             artifactId = pkg.getImplementationTitle();
             version = pkg.getImplementationVersion();
-            jarName = artifactId + "-" + version + "-shaded.jar";
+            jarName = artifactId + "-" + version + ".jar";
         }
 
         String targetDirectory = directory + File.separator + "..";
@@ -64,11 +117,11 @@ public class ScriptGenerator {
                 fw.write("  if [ -f \"./libs/start-params.sh\" ]; then\n");
                 fw.write("    ./libs/start-params.sh\n");
                 fw.write("  else\n");
-                fw.write("    JAR_FILE=$(ls ./*-shaded.jar 2>/dev/null | head -n 1)\n");
+                fw.write("    JAR_FILE=$(ls ./*.jar 2>/dev/null | head -n 1)\n");
                 fw.write("    if [ -n \"$JAR_FILE\" ]; then\n");
                 fw.write("      java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false --enable-native-access=ALL-UNNAMED -jar \"$JAR_FILE\"\n");
                 fw.write("    else\n");
-                fw.write("      echo \"No start-params.sh or *-shaded.jar found in ./libs\" >&2\n");
+                fw.write("      echo \"No start-params.sh or *.jar found in ./libs\" >&2\n");
                 fw.write("      sleep 5\n");
                 fw.write("    fi\n");
                 fw.write("  fi\n");
@@ -105,11 +158,11 @@ public class ScriptGenerator {
                 fw.write("if exist \"libs\\start-params.bat\" (\n");
                 fw.write("    call \"libs\\start-params.bat\"\n");
                 fw.write(") else (\n");
-                fw.write("    for %%f in (.\\*-shaded.jar) do (\n");
+                fw.write("    for %%f in (.\\*.jar) do (\n");
                 fw.write("        java -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false --enable-native-access=ALL-UNNAMED -jar \"%%f\"\n");
                 fw.write("        goto loop_end\n");
                 fw.write("    )\n");
-                fw.write("    echo No start-params.bat or *-shaded.jar found in .\\libs >&2\n");
+                fw.write("    echo No start-params.bat or *.jar found in .\\libs >&2\n");
                 fw.write("    timeout /t 5 >nul\n");
                 fw.write(")\n");
                 fw.write(":loop_end\n");
