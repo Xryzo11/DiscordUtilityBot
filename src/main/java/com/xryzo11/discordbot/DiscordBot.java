@@ -198,7 +198,15 @@ public class DiscordBot {
 
     public static void tryRestart() throws IOException {
         if (isBeingUsed()) {
-            System.out.println("getTimestamp() + [DiscordBot] Restart failed: Bot is currently being used");
+            System.out.println("getTimestamp() + [DiscordBot] Restart failed: Bot is currently being used. Retrying in 1 hour.");
+            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+            scheduler.schedule(() -> {
+                try {
+                    tryRestart();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, 1, TimeUnit.HOURS);
             return;
         }
         ProcessBuilder process = new ProcessBuilder("./libs/restart.sh");
@@ -225,6 +233,6 @@ public class DiscordBot {
         long hours = (diff / (1000 * 60 * 60)) % 24;
         long days = diff / (1000 * 60 * 60 * 24);
 
-        return String.format("%dd, %02dh %02dm %02ds", days, hours, minutes, seconds);
+        return String.format("%dd %02dh %02dm %02ds", days, hours, minutes, seconds);
     }
 }
