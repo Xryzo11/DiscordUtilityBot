@@ -519,6 +519,48 @@ public class Dashboard {
             return result;
         }, gson::toJson);
 
+        post("/music/seek", (req, res) -> {
+            res.type("application/json");
+            Map<String, Object> result = new HashMap<>();
+
+            if (DiscordBot.musicBot == null) {
+                result.put("success", false);
+                result.put("message", "Music bot not initialized");
+                System.out.println(DiscordBot.getTimestamp() + "[web-player] Seek failed: Music bot not initialized");
+                return result;
+            }
+
+            try {
+                long position = Long.parseLong(req.queryParams("position"));
+
+                if (DiscordBot.musicBot.currentTrack == null) {
+                    result.put("success", false);
+                    result.put("message", "No track is currently playing");
+                    System.out.println(DiscordBot.getTimestamp() + "[web-player] Seek failed: No track playing");
+                    return result;
+                }
+
+                long duration = DiscordBot.musicBot.currentTrack.getDuration();
+                if (position < 0 || position > duration) {
+                    result.put("success", false);
+                    result.put("message", "Invalid position");
+                    System.out.println(DiscordBot.getTimestamp() + "[web-player] Seek failed: Invalid position (" + position + "ms)");
+                    return result;
+                }
+
+                DiscordBot.musicBot.movePlayhead((int) position);
+                result.put("success", true);
+                result.put("position", position);
+                System.out.println(DiscordBot.getTimestamp() + "[web-player] Seeked to position: " + DiscordBot.musicBot.formatTime(position / 1000) + " in track \"" + DiscordBot.musicBot.currentTrack.getInfo().title + "\"");
+            } catch (Exception e) {
+                result.put("success", false);
+                result.put("message", e.getMessage());
+                System.out.println(DiscordBot.getTimestamp() + "[web-player] Seek exception: " + e.getMessage());
+            }
+
+            return result;
+        }, gson::toJson);
+
         post("/music/reorder", (req, res) -> {
             res.type("application/json");
             Map<String, Object> result = new HashMap<>();

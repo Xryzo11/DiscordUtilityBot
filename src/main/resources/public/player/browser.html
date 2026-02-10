@@ -113,7 +113,8 @@
             border-radius: 3px;
             margin: 12px 0 0 0;
             cursor: pointer;
-            overflow: hidden;
+            overflow: visible;
+            position: relative;
         }
 
         .progress-bar {
@@ -122,6 +123,27 @@
             border-radius: 3px;
             width: 0%;
             transition: width 0.3s ease;
+            pointer-events: none;
+        }
+
+        .progress-tooltip {
+            position: absolute;
+            bottom: 15px;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .progress-container:hover .progress-tooltip {
+            opacity: 1;
         }
 
         .controls {
@@ -427,6 +449,7 @@
             </div>
             <div class="progress-container" id="progressContainer">
                 <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-tooltip" id="progressTooltip">0:00</div>
             </div>
         </div>
 
@@ -516,6 +539,7 @@
         let authEnabled = false;
         let hashedPassword = '';
         let botInVoiceChannel = false;
+        let currentTrackData = null;
 
         fetch('/web-auth')
             .then(res => res.json())
@@ -619,6 +643,8 @@
         function updateCurrentTrack(data) {
             const nowPlaying = document.getElementById('nowPlaying');
             const progressBar = document.getElementById('progressBar');
+
+            currentTrackData = data;
 
             if (data.playing) {
                 const thumbnailUrl = getThumbnailUrl(data);
@@ -1103,6 +1129,64 @@
             });
         }
 
+        async function seek(position) {
+            if (!botInVoiceChannel) {
+                showToast('Bot is not in a voice channel', true);
+                return;
+            }
+
+            if (authEnabled && !isAuthenticated) {
+                showToast('You must be logged in to seek', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/music/seek?position=${position}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    updatePlayer();
+                } else {
+                    showToast(data.message || 'Failed to seek', true);
+                }
+            } catch (error) {
+                console.error('Error seeking:', error);
+                showToast('Failed to seek', true);
+            }
+        }
+
+        function initProgressBar() {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressTooltip = document.getElementById('progressTooltip');
+
+            progressContainer.addEventListener('mousemove', (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                const x = e.clientX - rect.left;
+
+                progressTooltip.style.left = `${x}px`;
+
+                if (currentTrackData && currentTrackData.duration > 0 && !currentTrackData.isStream) {
+                    const position = Math.floor(currentTrackData.duration * percent);
+                    progressTooltip.textContent = formatTime(position);
+                } else {
+                    progressTooltip.textContent = '0:00';
+                }
+            });
+
+            progressContainer.addEventListener('click', (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+
+                if (currentTrackData && currentTrackData.duration > 0 && !currentTrackData.isStream) {
+                    const position = Math.floor(currentTrackData.duration * percent);
+                    seek(position);
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const passwordInput = document.getElementById('passwordInput');
             if (passwordInput) {
@@ -1112,6 +1196,8 @@
                     }
                 });
             }
+
+            initProgressBar();
         });
 
         updatePlayer();
