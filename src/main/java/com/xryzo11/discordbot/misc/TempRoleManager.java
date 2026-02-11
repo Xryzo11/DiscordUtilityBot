@@ -102,9 +102,6 @@ public class TempRoleManager {
         List<Role> roles = member.getRoles();
         for (Role r : roles) {
             if (r.hasPermission(Permission.ADMINISTRATOR)) {
-                if (BotSettings.isDebug()) {
-                    System.out.println(DiscordBot.getTimestamp() + "[tempRoleManager] Skipping temp role assignment/removal for admin " + user + " in channel " + channel);
-                }
                 return;
             }
         }
