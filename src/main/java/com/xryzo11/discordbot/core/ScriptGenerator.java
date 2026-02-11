@@ -71,8 +71,8 @@ public class ScriptGenerator {
         createStartScriptLinux(releaseDirectory);
         createStartParamsScriptWindows(jarName, libDirectory);
         createStartParamsScriptLinux(jarName, libDirectory);
-        createRestartScriptWindows(jarName, libDirectory);
-        createRestartScriptLinux(jarName, libDirectory);
+        createRestartScriptWindows(libDirectory);
+        createRestartScriptLinux(libDirectory);
     }
 
     public static void createNewScripts(String directory) {
@@ -91,8 +91,8 @@ public class ScriptGenerator {
         createStartScriptLinux(targetDirectory);
         createStartParamsScriptWindows(jarName, directory);
         createStartParamsScriptLinux(jarName, directory);
-        createRestartScriptWindows(jarName, directory);
-        createRestartScriptLinux(jarName, directory);
+        createRestartScriptWindows(directory);
+        createRestartScriptLinux(directory);
     }
 
     private static void createStartScriptLinux(String directory) {
@@ -213,7 +213,7 @@ public class ScriptGenerator {
     }
 
 
-    private static void createRestartScriptLinux(String jarName, String directory) {
+    private static void createRestartScriptLinux(String directory) {
         try {
             File restartScript = new File(directory, "restart.sh");
             if (restartScript.exists()) {
@@ -223,7 +223,7 @@ public class ScriptGenerator {
             }
             try (FileWriter fw = new FileWriter(restartScript)) {
                 fw.write("#!/bin/bash\n");
-                fw.write("pkill -f \"" + jarName + "\"\n");
+                fw.write("pkill -f \"DiscordBot.*\\.jar\"\n");
                 fw.write("clear\n");
             }
             if (!restartScript.setExecutable(true)) {
@@ -234,7 +234,7 @@ public class ScriptGenerator {
         }
     }
 
-    private static void createRestartScriptWindows(String jarName, String directory) {
+    private static void createRestartScriptWindows(String directory) {
         try {
             File restartScript = new File(directory, "restart.bat");
             if (restartScript.exists()) {
@@ -244,7 +244,7 @@ public class ScriptGenerator {
             }
             try (FileWriter fw = new FileWriter(restartScript)) {
                 fw.write("@echo off\n");
-                fw.write("taskkill /F /FI \"IMAGENAME eq java.exe\" /FI \"WINDOWTITLE eq " + jarName + "\"\n");
+                fw.write("for /f \"tokens=2\" %%i in ('wmic process where \"commandline like '%%DiscordBot%%.jar%%' and name='java.exe'\" get processid ^| findstr /r \"[0-9]\"') do taskkill /F /PID %%i\n");
                 fw.write("cls\n");
             }
         } catch (Exception e) {
