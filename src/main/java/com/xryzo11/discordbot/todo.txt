@@ -1,4 +1,3 @@
-Guild id config
 Longer /list + pages
 Music bot keyword blocking (modify existing asmr blocking)
 Toggle bot keyword blocking from web panel
@@ -11,7 +10,6 @@ Gpt command
 Queue - remember who queued
 Owner bypass restrictions
 Time in timezone and converter command
-UI - playlist info: up next, always display time on length, restart bot button, in vc, consistent format in uptime
-Discord login auth instead of password
+UI - playlist info: up next, restart bot button, in vc
 Youtube/twitch notifications
 Leaderboard webpage
