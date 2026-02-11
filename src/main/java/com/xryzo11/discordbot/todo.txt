@@ -5,12 +5,13 @@ Toggle bot keyword blocking from web panel
 Implement levels for leaderboard system
 Shuffle on /queue
 Playlist add confirmation
-Cancel confirmations early
 XP increment check for video
 TTS command
 Gpt command
 Queue - remember who queued
 Owner bypass restrictions
 Time in timezone and converter command
-Fix restart script
 UI - playlist info: up next, always display time on length, restart bot button, in vc, consistent format in uptime
+Discord login auth instead of password
+Youtube/twitch notifications
+Leaderboard webpage
