@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Player</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha512/0.8.0/sha512.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -16,8 +16,52 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
             color: #333;
+        }
+
+        .top-bar {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-bar-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .top-bar button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+
+        .top-bar button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .auth-status {
+            font-size: 14px;
+            opacity: 0.9;
         }
 
         .container {
@@ -27,6 +71,7 @@
             grid-template-columns: 400px 1fr;
             grid-template-rows: auto auto auto;
             gap: 20px;
+            padding: 20px;
         }
 
         .player-card {
@@ -56,7 +101,7 @@
             grid-row: 1 / 4;
             display: flex;
             flex-direction: column;
-            max-height: calc(100vh - 60px);
+            max-height: calc(100vh - 100px);
         }
 
         .now-playing {
@@ -442,6 +487,17 @@
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <h1>🎵 Music Player</h1>
+        <div class="top-bar-actions">
+            <span class="auth-status" id="authStatusText">Checking auth...</span>
+            <button onclick="window.location.href='/'">← Home</button>
+            <button id="navLoginBtn" onclick="handleNavLogin()" style="display: none;">Login</button>
+            <button id="navLogoutBtn" onclick="handleLogout()" style="display: none;">Logout</button>
+            <button onclick="window.location.href='/dashboard.html'" id="navDashboardBtn" style="display: none;">Dashboard</button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="player-card now-playing-card">
             <div id="nowPlaying">
@@ -536,7 +592,8 @@
         const UPDATE_RATE = 1000;
         let draggedItem = null;
         let isAuthenticated = false;
-        let authEnabled = false;
+        let authType = 'none';
+        let sessionToken = localStorage.getItem('discordSessionToken');
         let hashedPassword = '';
         let botInVoiceChannel = false;
         let currentTrackData = null;
@@ -544,17 +601,88 @@
         fetch('/web-auth')
             .then(res => res.json())
             .then(data => {
-                authEnabled = data.enabled;
+                authType = data.type || 'none';
                 hashedPassword = data.password;
-                if (!authEnabled) {
+
+                console.log('Auth type:', authType);
+
+                if (authType === 'none') {
                     isAuthenticated = true;
+                    updateAuthUI(true);
+                } else if (sessionToken) {
+                    validateSession();
                 } else {
+                    isAuthenticated = false;
+                    updateAuthUI(false);
                     setTimeout(() => lockControls(), 100);
                 }
             })
             .catch(err => {
                 console.error('Error loading auth config:', err);
+                isAuthenticated = false;
+                updateAuthUI(false);
             });
+
+        function validateSession() {
+            fetch(`/auth/validate?sessionToken=${encodeURIComponent(sessionToken)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.valid) {
+                        isAuthenticated = true;
+                        updateAuthUI(true);
+                    } else {
+                        localStorage.removeItem('discordSessionToken');
+                        sessionToken = null;
+                        isAuthenticated = false;
+                        updateAuthUI(false);
+                        setTimeout(() => lockControls(), 100);
+                    }
+                })
+                .catch(err => {
+                    console.error('Session validation error:', err);
+                    isAuthenticated = false;
+                    updateAuthUI(false);
+                });
+        }
+
+        function updateAuthUI(authenticated) {
+            const authStatusText = document.getElementById('authStatusText');
+            const navLoginBtn = document.getElementById('navLoginBtn');
+            const navLogoutBtn = document.getElementById('navLogoutBtn');
+            const navDashboardBtn = document.getElementById('navDashboardBtn');
+
+            if (authType === 'none') {
+                authStatusText.textContent = 'Public Mode';
+                navLoginBtn.style.display = 'none';
+                navLogoutBtn.style.display = 'none';
+                navDashboardBtn.style.display = 'none';
+            } else if (authenticated) {
+                authStatusText.textContent = '✅ Authenticated';
+                navLoginBtn.style.display = 'none';
+                navLogoutBtn.style.display = 'block';
+                navDashboardBtn.style.display = 'block';
+            } else {
+                authStatusText.textContent = '❌ Not Logged In';
+                navLoginBtn.style.display = 'block';
+                navLogoutBtn.style.display = 'none';
+                navDashboardBtn.style.display = 'none';
+            }
+        }
+
+        function handleNavLogin() {
+            window.location.href = '/';
+        }
+
+        function handleLogout() {
+            if (sessionToken) {
+                fetch(`/auth/logout?sessionToken=${encodeURIComponent(sessionToken)}`, { method: 'POST' })
+                    .then(() => {
+                        localStorage.removeItem('discordSessionToken');
+                        sessionToken = null;
+                        window.location.reload();
+                    });
+            }
+        }
 
         function formatTime(ms) {
             if (!ms || ms < 0) return '0:00';
@@ -967,19 +1095,25 @@
         }
 
         function requireAuth(callback) {
-            if (!authEnabled || isAuthenticated) {
+            if (authType === 'none' || isAuthenticated) {
                 callback();
             } else {
+                showToast('You must be logged in to use controls', true);
                 showLoginModal();
             }
         }
 
         function showLoginModal() {
-            const modal = document.getElementById('loginModal');
-            modal.style.display = 'flex';
-            document.getElementById('passwordInput').focus();
-            document.getElementById('passwordInput').value = '';
-            document.getElementById('loginError').style.display = 'none';
+            if (authType === 'password') {
+                const modal = document.getElementById('loginModal');
+                modal.style.display = 'flex';
+                document.getElementById('passwordInput').focus();
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('loginError').style.display = 'none';
+            } else {
+                alert('Please login from the home page first');
+                window.location.href = '/';
+            }
         }
 
         function cancelLogin() {
@@ -988,16 +1122,35 @@
 
         function submitLogin() {
             const password = document.getElementById('passwordInput').value;
-            const hashedInput = sha512(password);
+            const hashedInput = CryptoJS.SHA512(password).toString();
             const currentPage = encodeURIComponent(window.location.pathname);
 
             if (hashedInput === hashedPassword) {
-                isAuthenticated = true;
-                document.getElementById('loginModal').style.display = 'none';
-                unlockControls();
-                showToast('Successfully authenticated!');
-                fetch(`/log-auth?source=player&success=true&page=${currentPage}`, { method: 'POST' })
-                    .catch(err => console.error('Failed to log auth:', err));
+                sessionToken = 'password-auth-' + Date.now() + '-' + Math.random();
+                localStorage.setItem('discordSessionToken', sessionToken);
+
+                fetch('/auth/password-login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `sessionToken=${encodeURIComponent(sessionToken)}&hashedPassword=${hashedInput}`
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        isAuthenticated = true;
+                        document.getElementById('loginModal').style.display = 'none';
+                        unlockControls();
+                        updateAuthUI(true);
+                        showToast('Successfully authenticated!');
+                        fetch(`/log-auth?source=player&success=true&page=${currentPage}`, { method: 'POST' })
+                            .catch(err => console.error('Failed to log auth:', err));
+                    } else {
+                        const errorDiv = document.getElementById('loginError');
+                        errorDiv.textContent = 'Authentication failed';
+                        errorDiv.style.display = 'block';
+                        localStorage.removeItem('discordSessionToken');
+                    }
+                });
             } else {
                 const errorDiv = document.getElementById('loginError');
                 errorDiv.textContent = 'Incorrect password';
@@ -1135,31 +1288,28 @@
         }
 
         async function seek(position) {
-            if (!botInVoiceChannel) {
-                showToast('Bot is not in a voice channel', true);
-                return;
-            }
-
-            if (authEnabled && !isAuthenticated) {
-                showToast('You must be logged in to seek', true);
-                return;
-            }
-
-            try {
-                const response = await fetch(`/music/seek?position=${position}`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    updatePlayer();
-                } else {
-                    showToast(data.message || 'Failed to seek', true);
+            requireAuth(async () => {
+                if (!botInVoiceChannel) {
+                    showToast('Bot is not in a voice channel', true);
+                    return;
                 }
-            } catch (error) {
-                console.error('Error seeking:', error);
-                showToast('Failed to seek', true);
-            }
+
+                try {
+                    const response = await fetch(`/music/seek?position=${position}`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        updatePlayer();
+                    } else {
+                        showToast(data.message || 'Failed to seek', true);
+                    }
+                } catch (error) {
+                    console.error('Error seeking:', error);
+                    showToast('Failed to seek', true);
+                }
+            });
         }
 
         function initProgressBar() {

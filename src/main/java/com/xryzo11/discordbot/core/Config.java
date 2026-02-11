@@ -30,7 +30,8 @@ public class Config {
             System.err.println("Failed to load config: " + e.getMessage());
         }
 
-        if (isWebAuthEnabled()) {
+        String authType = getWebAuthType();
+        if (authType.equals("password")) {
             String password = properties.getProperty("web.auth.password");
             if (password == null || password.equals("YOUR_PASSWORD_HERE")) {
                 throw new IllegalStateException("Web auth password not configured in config.properties");
@@ -42,8 +43,12 @@ public class Config {
 
     private static void writeConfig(File newConfigFile,
                                     String botToken,
-                                    boolean webAuthEnabled,
+                                    String guildId,
+                                    String webAuthType,
                                     String webAuthPassword,
+                                    String discordClientId,
+                                    String discordClientSecret,
+                                    String discordRedirectUri,
                                     int webPort,
                                     boolean autoRestartEnabled,
                                     int autoRestartHour,
@@ -64,14 +69,26 @@ public class Config {
             writer.write("# CORE SETTINGS\n");
             writer.write("#################################\n\n");
 
-            writer.write("# Discord bot token [token]\n");
+            writer.write("# Discord bot token (https://discord.com/developers/applications) [token]\n");
             writer.write("bot.token=" + botToken + "\n\n");
 
-            writer.write("# Web panel requires authentication [true/false]\n");
-            writer.write("web.auth.enabled=" + webAuthEnabled + "\n\n");
+            writer.write("# Guild ID [id]\n");
+            writer.write("guild.id=" + guildId + "\n\n");
 
-            writer.write("# Web panel password (requires web.auth.enabled) [string]\n");
+            writer.write("# Web panel authentication type [none/password/discord]\n");
+            writer.write("web.auth.type=" + webAuthType + "\n\n");
+
+            writer.write("# Web panel password (requires web.auth.type=password) [string]\n");
             writer.write("web.auth.password=" + webAuthPassword + "\n\n");
+
+            writer.write("# Discord OAuth2 Client ID (https://discord.com/developers/applications) (requires web.auth.type=discord) [string]\n");
+            writer.write("discord.client.id=" + discordClientId + "\n\n");
+
+            writer.write("# Discord OAuth2 Client Secret (https://discord.com/developers/applications) (requires web.auth.type=discord) [string]\n");
+            writer.write("discord.client.secret=" + discordClientSecret + "\n\n");
+
+            writer.write("# Discord OAuth2 Redirect URI (where to redirect after login) (requires web.auth.type=discord) [string]\n");
+            writer.write("discord.redirect.uri=" + discordRedirectUri + "\n\n");
 
             writer.write("# Http web panel port [int]\n");
             writer.write("web.port=" + webPort + "\n\n");
@@ -82,7 +99,7 @@ public class Config {
             writer.write("# Automatic restart hour (24-hour format, requires auto.restart.enabled) [int]h\n");
             writer.write("auto.restart.hour=" + autoRestartHour + "\n\n");
 
-            writer.write("# Automatically update config by removing and creating a new one (with current settings) [true/false]\n");
+            writer.write("# Automatically update config by removing and creating a new one (with current settings), is highly recommended [true/false]\n");
             writer.write("config.update=" + configUpdate + "\n\n");
 
             writer.write("\n\n#################################\n");
@@ -134,8 +151,12 @@ public class Config {
         writeConfig(
                 configFile,
                 "YOUR_BOT_TOKEN",
-                true,
+                "YOUR_GUILD_ID_HERE",
+                "password",
                 "YOUR_PASSWORD_HERE",
+                "YOUR_DISCORD_CLIENT_ID_HERE",
+                "YOUR_DISCORD_CLIENT_SECRET_HERE",
+                "http://localhost:21379/auth/discord/callback",
                 21379,
                 true,
                 6,
@@ -191,8 +212,12 @@ public class Config {
         writeConfig(
                 newFile,
                 getBotToken(),
-                isWebAuthEnabled(),
-                properties.getProperty("web.auth.password"),
+                properties.getProperty("guild.id", "YOUR_GUILD_ID_HERE"),
+                getWebAuthType(),
+                properties.getProperty("web.auth.password", "YOUR_PASSWORD_HERE"),
+                properties.getProperty("discord.client.id", "YOUR_DISCORD_CLIENT_ID_HERE"),
+                properties.getProperty("discord.client.secret", "YOUR_DISCORD_CLIENT_SECRET_HERE"),
+                properties.getProperty("discord.redirect.uri", "http://localhost:21379/auth/discord/callback"),
                 getWebPort(),
                 isAutoRestartEnabled(),
                 getAutoRestartHour(),
@@ -231,20 +256,70 @@ public class Config {
         return token;
     }
 
-    public static boolean isWebAuthEnabled() {
-        return Boolean.parseBoolean(properties.getProperty("web.auth.enabled", "true"));
+    public static String getGuildId() {
+        String guildId = properties.getProperty("guild.id");
+        if (guildId == null || guildId.equals("YOUR_GUILD_ID_HERE")) {
+            throw new IllegalStateException("Guild ID not configured in config.properties");
+        }
+        return guildId;
+    }
+
+    public static void validateGuildId() {
+        String guildId = getGuildId();
+        net.dv8tion.jda.api.JDA jda = BotHolder.getJDA();
+        if (jda != null) {
+            net.dv8tion.jda.api.entities.Guild guild = jda.getGuildById(guildId);
+            if (guild == null) {
+                throw new IllegalStateException("Bot is not in the guild with ID: " + guildId);
+            }
+        }
+    }
+
+    public static String getWebAuthType() {
+        String authType = properties.getProperty("web.auth.type", "password");
+        if (!authType.equals("none") && !authType.equals("password") && !authType.equals("discord")) {
+            throw new IllegalStateException("Invalid web.auth.type in config.properties. Must be 'none', 'password', or 'discord'");
+        }
+        return authType;
     }
 
     public static String getWebAuthPassword() {
         String password = properties.getProperty("web.auth.password");
-        if (password == null || password.equals("YOUR_PASSWORD_HERE")) {
-            throw new IllegalStateException("Web auth password not configured in config.properties");
+        String authType = getWebAuthType();
+        if (authType.equals("password")) {
+            if (password == null || password.equals("YOUR_PASSWORD_HERE")) {
+                throw new IllegalStateException("Web auth password not configured in config.properties");
+            }
         }
         return webPassword;
     }
 
     public static int getWebPort() {
         return Integer.parseInt(properties.getProperty("web.port", "21379"));
+    }
+
+    public static String getDiscordClientId() {
+        if (getWebAuthType().equals("discord")) {
+            String clientId = properties.getProperty("discord.client.id");
+            if (clientId == null || clientId.equals("YOUR_DISCORD_CLIENT_ID_HERE")) {
+                throw new IllegalStateException("Discord OAuth2 Client ID not configured in config.properties");
+            }
+        }
+        return properties.getProperty("discord.client.id", "YOUR_DISCORD_CLIENT_ID_HERE");
+    }
+
+    public static String getDiscordClientSecret() {
+        if (getWebAuthType().equals("discord")) {
+            String clientSecret = properties.getProperty("discord.client.secret");
+            if (clientSecret == null || clientSecret.equals("YOUR_DISCORD_CLIENT_SECRET_HERE")) {
+                throw new IllegalStateException("Discord OAuth2 Client Secret not configured in config.properties");
+            }
+        }
+        return properties.getProperty("discord.client.secret", "YOUR_DISCORD_CLIENT_SECRET_HERE");
+    }
+
+    public static String getDiscordRedirectUri() {
+        return properties.getProperty("discord.redirect.uri", "http://localhost:21379/auth/discord/callback");
     }
 
     public static String getGoogleOAuth2Token() {

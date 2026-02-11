@@ -2,23 +2,171 @@ package com.xryzo11.discordbot.core;
 
 import static spark.Spark.*;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import com.google.gson.reflect.TypeToken;
 import java.util.stream.Collectors;
 
 public class Dashboard {
+    private static final Map<String, SessionData> sessions = new ConcurrentHashMap<>();
+    private static final String SESSIONS_FILE = "data/sessions.json";
+    private static final Gson gson = new Gson();
+
+    private static class SessionData {
+        String userId;
+        long expiryTime;
+
+        SessionData(String userId, long expiryTime) {
+            this.userId = userId;
+            this.expiryTime = expiryTime;
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() > expiryTime;
+        }
+    }
+
+    private static void loadSessions() {
+        try {
+            java.io.File file = new java.io.File(SESSIONS_FILE);
+            if (file.exists()) {
+                try (FileReader reader = new FileReader(file)) {
+                    Type type = new TypeToken<ConcurrentHashMap<String, SessionData>>(){}.getType();
+                    Map<String, SessionData> loadedSessions = gson.fromJson(reader, type);
+
+                    if (loadedSessions != null) {
+                        loadedSessions.entrySet().removeIf(entry -> entry.getValue().isExpired());
+                        sessions.putAll(loadedSessions);
+                        System.out.println(DiscordBot.getTimestamp() + "[dashboard] Loaded " + sessions.size() + " active session(s) from file");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println(DiscordBot.getTimestamp() + "[dashboard] Error loading sessions: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void saveSessions() {
+        try {
+            java.io.File file = new java.io.File(SESSIONS_FILE);
+            file.getParentFile().mkdirs();
+
+            sessions.entrySet().removeIf(entry -> entry.getValue().isExpired());
+
+            try (FileWriter writer = new FileWriter(file)) {
+                gson.toJson(sessions, writer);
+            }
+        } catch (Exception e) {
+            System.err.println(DiscordBot.getTimestamp() + "[dashboard] Error saving sessions: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static boolean isAuthenticated(spark.Request req) {
+        String authType = Config.getWebAuthType();
+
+        if (authType.equals("none")) {
+            return true;
+        }
+
+        String sessionToken = req.queryParams("sessionToken");
+        if (sessionToken == null) {
+            sessionToken = req.cookie("sessionToken");
+        }
+
+        if (sessionToken == null) {
+            return false;
+        }
+
+        SessionData session = sessions.get(sessionToken);
+        if (session == null || session.isExpired()) {
+            if (session != null) {
+                sessions.remove(sessionToken);
+                saveSessions();
+            }
+            return false;
+        }
+
+        return true;
+    }
+
     public static void start() {
+        loadSessions();
+
         Gson gson = new Gson();
 
         port(Config.getWebPort());
         staticFiles.location("/public");
+
+        before("/toggle-*", (req, res) -> {
+            if (!isAuthenticated(req)) {
+                res.status(401);
+                halt(401, "{\"error\": \"Unauthorized\"}");
+            }
+        });
+
+        before("/add-*", (req, res) -> {
+            if (!isAuthenticated(req)) {
+                res.status(401);
+                halt(401, "{\"error\": \"Unauthorized\"}");
+            }
+        });
+
+        before("/remove-*", (req, res) -> {
+            if (!isAuthenticated(req)) {
+                res.status(401);
+                halt(401, "{\"error\": \"Unauthorized\"}");
+            }
+        });
+
+        before("/force-restart", (req, res) -> {
+            if (!isAuthenticated(req)) {
+                res.status(401);
+                halt(401, "{\"error\": \"Unauthorized\"}");
+            }
+        });
+
+        before("/*-status", (req, res) -> {
+            if (!isAuthenticated(req)) {
+                res.status(401);
+                halt(401, "{\"error\": \"Unauthorized\"}");
+            }
+        });
+
+        before("/*-detailed", (req, res) -> {
+            if (!isAuthenticated(req)) {
+                res.status(401);
+                halt(401, "{\"error\": \"Unauthorized\"}");
+            }
+        });
+
+        before("/music/*", (req, res) -> {
+            String authType = Config.getWebAuthType();
+        });
 
         get("/dashboard/access.html", (req, res) -> {
             res.type("text/html");
@@ -57,8 +205,16 @@ public class Dashboard {
             res.type("application/json");
 
             Map<String, Object> data = new HashMap<>();
-            data.put("enabled", Config.isWebAuthEnabled());
-            data.put("password", Config.getWebAuthPassword());
+            String authType = Config.getWebAuthType();
+            data.put("type", authType);
+
+            if (authType.equals("password")) {
+                data.put("password", Config.getWebAuthPassword());
+            } else if (authType.equals("discord")) {
+                data.put("clientId", Config.getDiscordClientId());
+                data.put("redirectUri", Config.getDiscordRedirectUri());
+                data.put("guildId", Config.getGuildId());
+            }
 
             return data;
         }, gson::toJson);
@@ -85,6 +241,180 @@ public class Dashboard {
             } catch (Exception e) {
                 result.put("logged", false);
                 result.put("error", e.getMessage());
+            }
+
+            return result;
+        }, gson::toJson);
+
+        get("/auth/discord/callback", (req, res) -> {
+            String code = req.queryParams("code");
+            String error = req.queryParams("error");
+
+            System.out.println(DiscordBot.getTimestamp() + "[discord-oauth] Callback received - code: " + (code != null ? "present" : "null") + ", err: " + error);
+
+            if (error != null) {
+                return "<html><body>" +
+                       "<h1>❌ Authentication cancelled</h1>" +
+                       "<script>" +
+                       "console.log('Discord OAuth cancelled by user');" +
+                       "if (window.opener) {" +
+                       "  window.opener.postMessage({success: false, error: 'user_cancelled'}, '*');" +
+                       "  setTimeout(function() { window.close(); }, 1000);" +
+                       "}" +
+                       "</script>" +
+                       "</body></html>";
+            }
+
+            if (code == null) {
+                res.status(400);
+                return "<html><body>" +
+                       "<h1>❌ Error: No authorization code provided</h1>" +
+                       "<script>" +
+                       "console.log('No authorization code in callback');" +
+                       "if (window.opener) {" +
+                       "  window.opener.postMessage({success: false, error: 'no_code'}, '*');" +
+                       "  setTimeout(function() { window.close(); }, 2000);" +
+                       "}" +
+                       "</script>" +
+                       "</body></html>";
+            }
+
+            try {
+                String tokenResponse = exchangeCodeForToken(code);
+                JsonObject tokenJson = JsonParser.parseString(tokenResponse).getAsJsonObject();
+                String accessToken = tokenJson.get("access_token").getAsString();
+
+                String userInfoResponse = getUserInfo(accessToken);
+                JsonObject userInfo = JsonParser.parseString(userInfoResponse).getAsJsonObject();
+                String userId = userInfo.get("id").getAsString();
+
+                if (!hasAdminPermissions(userId)) {
+                    System.err.println(DiscordBot.getTimestamp() + "[discord-oauth] WARNING: Authentication failed - User " + userId + " does not have admin permissions in guild " + Config.getGuildId());
+                    return "<html><body>" +
+                           "<h1>🔒 Access Denied</h1>" +
+                           "<p>You don't have administrator permissions in the configured server</p>" +
+                           "<script>" +
+                           "if (window.opener) {" +
+                           "  window.opener.postMessage({success: false, error: 'no_permissions'}, '*');" +
+                           "  setTimeout(function() { window.close(); }, 2000);" +
+                           "}" +
+                           "</script>" +
+                           "</body></html>";
+                }
+
+                String sessionToken = UUID.randomUUID().toString();
+                long expiryTime = System.currentTimeMillis() + (24 * 60 * 60 * 1000);
+                sessions.put(sessionToken, new SessionData(userId, expiryTime));
+                saveSessions();
+
+                System.out.println(DiscordBot.getTimestamp() + "[discord-oauth] Authentication successful for user: " + userId);
+                System.out.println(DiscordBot.getTimestamp() + "[discord-oauth] Session token created: " + sessionToken.substring(0, 8) + "...");
+
+                return "<html><head><title>Discord Auth Success</title></head><body>" +
+                       "<h1>✅ Authentication successful!</h1>" +
+                       "<p>This window will close automatically...</p>" +
+                       "<p style='color: gray; font-size: 12px;'>If the window doesn't close, you can close it manually.</p>" +
+                       "<script>" +
+                       "console.log('Discord OAuth callback page loaded');" +
+                       "console.log('Session token:', '" + sessionToken + "');" +
+                       "console.log('Window opener exists:', !!window.opener);" +
+                       "console.log('Sending success message to parent window');" +
+                       "if (window.opener) {" +
+                       "  try {" +
+                       "    window.opener.postMessage({success: true, sessionToken: '" + sessionToken + "'}, '*');" +
+                       "    console.log('Message sent successfully');" +
+                       "  } catch (e) {" +
+                       "    console.error('Error sending message:', e);" +
+                       "  }" +
+                       "  console.log('Closing window in 1 second');" +
+                       "  setTimeout(function() { " +
+                       "    console.log('Attempting to close window'); " +
+                       "    window.close(); " +
+                       "  }, 1000);" +
+                       "} else {" +
+                       "  console.error('No window.opener available');" +
+                       "  document.body.innerHTML = '<h1>Authentication successful!</h1><p>Please close this window and return to the main page.</p><p>Session token: " + sessionToken + "</p>';" +
+                       "}" +
+                       "</script>" +
+                       "</body></html>";
+            } catch (Exception e) {
+                System.err.println(DiscordBot.getTimestamp() + "[discord-oauth] Authentication error: " + e.getMessage());
+                e.printStackTrace();
+                return "<html><body>" +
+                       "<h1>❌ Authentication error</h1>" +
+                       "<p>" + e.getMessage() + "</p>" +
+                       "<script>" +
+                       "console.error('Discord OAuth error:', '" + e.getMessage() + "');" +
+                       "console.log('Sending error message to parent window');" +
+                       "if (window.opener) {" +
+                       "  window.opener.postMessage({success: false, error: 'server_error'}, '*');" +
+                       "  setTimeout(function() { window.close(); }, 2000);" +
+                       "}" +
+                       "</script>" +
+                       "</body></html>";
+            }
+        });
+
+        get("/auth/validate", (req, res) -> {
+            res.type("application/json");
+            Map<String, Object> result = new HashMap<>();
+
+            String sessionToken = req.queryParams("sessionToken");
+            if (sessionToken == null) {
+                result.put("valid", false);
+                return result;
+            }
+
+            SessionData session = sessions.get(sessionToken);
+            if (session == null || session.isExpired()) {
+                if (session != null) {
+                    sessions.remove(sessionToken);
+                    saveSessions();
+                }
+                result.put("valid", false);
+                return result;
+            }
+
+            result.put("valid", true);
+            result.put("userId", session.userId);
+            return result;
+        }, gson::toJson);
+
+        post("/auth/logout", (req, res) -> {
+            res.type("application/json");
+            Map<String, Object> result = new HashMap<>();
+
+            String sessionToken = req.queryParams("sessionToken");
+            if (sessionToken != null) {
+                sessions.remove(sessionToken);
+                saveSessions();
+            }
+
+            result.put("success", true);
+            return result;
+        }, gson::toJson);
+
+        post("/auth/password-login", (req, res) -> {
+            res.type("application/json");
+            Map<String, Object> result = new HashMap<>();
+
+            String sessionToken = req.queryParams("sessionToken");
+            String hashedPassword = req.queryParams("hashedPassword");
+
+            if (sessionToken == null || hashedPassword == null) {
+                result.put("success", false);
+                result.put("error", "Missing parameters");
+                return result;
+            }
+
+            if (hashedPassword.equals(Config.getWebAuthPassword())) {
+                long expiryTime = System.currentTimeMillis() + (24 * 60 * 60 * 1000);
+                sessions.put(sessionToken, new SessionData("password-user", expiryTime));
+                saveSessions();
+                result.put("success", true);
+            } else {
+                result.put("success", false);
+                result.put("error", "Invalid password");
             }
 
             return result;
@@ -662,4 +992,87 @@ public class Dashboard {
         public String channelId;
         public boolean enabled;
     }
+
+    private static String exchangeCodeForToken(String code) throws Exception {
+        String clientId = Config.getDiscordClientId();
+        String clientSecret = Config.getDiscordClientSecret();
+        String redirectUri = Config.getDiscordRedirectUri();
+
+        URL url = new URL("https://discord.com/api/oauth2/token");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        conn.setDoOutput(true);
+
+        String params = "client_id=" + URLEncoder.encode(clientId, StandardCharsets.UTF_8) +
+                       "&client_secret=" + URLEncoder.encode(clientSecret, StandardCharsets.UTF_8) +
+                       "&grant_type=authorization_code" +
+                       "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
+                       "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(params.getBytes(StandardCharsets.UTF_8));
+        }
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200) {
+            throw new Exception("Failed to exchange code for token. Response code: " + responseCode);
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
+        }
+    }
+
+    private static String getUserInfo(String accessToken) throws Exception {
+        URL url = new URL("https://discord.com/api/users/@me");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200) {
+            throw new Exception("Failed to get user info. Response code: " + responseCode);
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
+        }
+    }
+
+    private static boolean hasAdminPermissions(String userId) {
+        try {
+            JDA jda = BotHolder.getJDA();
+            if (jda == null) {
+                return false;
+            }
+
+            String guildId = Config.getGuildId();
+            Guild guild = jda.getGuildById(guildId);
+            if (guild == null) {
+                return false;
+            }
+
+            Member member = guild.getMemberById(userId);
+            if (member == null) {
+                return false;
+            }
+
+            return member.hasPermission(Permission.ADMINISTRATOR);
+        } catch (Exception e) {
+            System.err.println(DiscordBot.getTimestamp() + "[discord-oauth] Error checking permissions: " + e.getMessage());
+            return false;
+        }
+    }
 }
+

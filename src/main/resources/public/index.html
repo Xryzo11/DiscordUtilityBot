@@ -2,12 +2,407 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title> </title>
+    <title>Discord Bot Control Panel</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .nav-section {
+            margin: 30px 0;
+        }
+        .nav-section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .nav-button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: #f7f7f7;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .nav-button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .nav-button.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .nav-button.locked:hover {
+            background: #f7f7f7;
+            color: #333;
+            border-color: #e0e0e0;
+            transform: none;
+            box-shadow: none;
+        }
+        .nav-button-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .nav-button-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .nav-button-desc {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .nav-button:hover .nav-button-desc {
+            color: rgba(255,255,255,0.9);
+        }
+        .nav-button-icon {
+            font-size: 24px;
+        }
+        .auth-section {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .auth-status {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .auth-status.authenticated {
+            color: #4caf50;
+        }
+        .auth-status.unauthenticated {
+            color: #f44336;
+        }
+        .login-button, .logout-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-button:hover {
+            background: #5568d3;
+        }
+        .logout-button {
+            background: #f44336;
+        }
+        .logout-button:hover {
+            background: #da190b;
+        }
+        .user-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        .lock-icon {
+            color: #f44336;
+        }
+        #loading {
+            text-align: center;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
+    <div class="container" id="loading">
+        <p>Loading...</p>
+    </div>
 
+    <div class="container" id="mainContent" style="display: none;">
+        <h1>🎵 Discord Bot Control Panel</h1>
+        <p class="subtitle">Music Bot & Server Management</p>
+
+        <div class="auth-section" id="authSection">
+            <div class="auth-status" id="authStatus">Checking authentication...</div>
+            <button class="login-button" id="loginButton" style="display: none;">Login</button>
+            <button class="logout-button" id="logoutButton" style="display: none;">Logout</button>
+            <div class="user-info" id="userInfo"></div>
+        </div>
+
+        <div class="nav-section">
+            <h2>📻 Music Player</h2>
+            <div class="nav-buttons">
+                <a href="/player/browser.html" class="nav-button">
+                    <div class="nav-button-content">
+                        <div class="nav-button-title">Browser Player</div>
+                        <div class="nav-button-desc">Full-featured music player with queue management</div>
+                    </div>
+                    <div class="nav-button-icon">🎵</div>
+                </a>
+                <a href="/player/obs.html" class="nav-button">
+                    <div class="nav-button-content">
+                        <div class="nav-button-title">OBS Player</div>
+                        <div class="nav-button-desc">Minimal player for OBS overlay</div>
+                    </div>
+                    <div class="nav-button-icon">📺</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section" id="adminSection" style="display: none;">
+            <h2>⚙️ Administration</h2>
+            <div class="nav-buttons">
+                <a href="/dashboard.html" class="nav-button" id="dashboardLink">
+                    <div class="nav-button-content">
+                        <div class="nav-button-title">Dashboard</div>
+                        <div class="nav-button-desc">Server settings and bot configuration</div>
+                    </div>
+                    <div class="nav-button-icon">🛠️</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section" id="lockedSection">
+            <h2>🔒 Requires Authentication</h2>
+            <div class="nav-buttons">
+                <div class="nav-button locked">
+                    <div class="nav-button-content">
+                        <div class="nav-button-title">Dashboard</div>
+                        <div class="nav-button-desc">Login required for administrator access</div>
+                    </div>
+                    <div class="nav-button-icon lock-icon">🔒</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authType = 'none';
+        let isAuthenticated = false;
+        let sessionToken = localStorage.getItem('discordSessionToken');
+
+        fetch('/web-auth')
+            .then(res => res.json())
+            .then(data => {
+                authType = data.type || 'none';
+
+                if (authType === 'none') {
+                    showUnauthenticated();
+                    document.getElementById('adminSection').style.display = 'block';
+                    document.getElementById('lockedSection').style.display = 'none';
+                } else if (authType === 'password' && sessionToken) {
+                    validateSession();
+                } else if (authType === 'discord' && sessionToken) {
+                    validateSession();
+                } else {
+                    showUnauthenticated();
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            })
+            .catch(err => {
+                console.error('Error loading auth config:', err);
+                document.getElementById('loading').innerHTML = '<p style="color: red;">Error loading configuration</p>';
+            });
+
+        function validateSession() {
+            fetch(`/auth/validate?sessionToken=${encodeURIComponent(sessionToken)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.valid) {
+                        showAuthenticated(data.userId);
+                    } else {
+                        localStorage.removeItem('discordSessionToken');
+                        sessionToken = null;
+                        showUnauthenticated();
+                    }
+                })
+                .catch(err => {
+                    console.error('Error validating session:', err);
+                    showUnauthenticated();
+                });
+        }
+
+        function showAuthenticated(userId) {
+            isAuthenticated = true;
+            document.getElementById('authStatus').innerHTML = '✅ Authenticated';
+            document.getElementById('authStatus').className = 'auth-status authenticated';
+            document.getElementById('loginButton').style.display = 'none';
+            document.getElementById('logoutButton').style.display = 'block';
+            if (userId) {
+                document.getElementById('userInfo').innerHTML = `User ID: ${userId}`;
+            }
+            document.getElementById('adminSection').style.display = 'block';
+            document.getElementById('lockedSection').style.display = 'none';
+        }
+
+        function showUnauthenticated() {
+            isAuthenticated = false;
+            if (authType === 'none') {
+                document.getElementById('authSection').style.display = 'none';
+            } else {
+                document.getElementById('authStatus').innerHTML = '❌ Not Authenticated';
+                document.getElementById('authStatus').className = 'auth-status unauthenticated';
+                document.getElementById('loginButton').style.display = 'block';
+                document.getElementById('logoutButton').style.display = 'none';
+                document.getElementById('userInfo').innerHTML = '';
+                document.getElementById('adminSection').style.display = 'none';
+                document.getElementById('lockedSection').style.display = 'block';
+            }
+        }
+
+        document.getElementById('loginButton').addEventListener('click', () => {
+            if (authType === 'password') {
+                loginWithPassword();
+            } else if (authType === 'discord') {
+                loginWithDiscord();
+            }
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            logout();
+        });
+
+        function loginWithPassword() {
+            const password = prompt('Enter password:');
+            if (!password) return;
+
+            fetch('/web-auth')
+                .then(res => res.json())
+                .then(data => {
+                    const hashedInput = CryptoJS.SHA512(password).toString();
+                    if (hashedInput === data.password) {
+                        sessionToken = 'password-auth-' + Date.now() + '-' + Math.random();
+                        localStorage.setItem('discordSessionToken', sessionToken);
+
+                        fetch('/auth/password-login', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: `sessionToken=${encodeURIComponent(sessionToken)}&hashedPassword=${hashedInput}`
+                        })
+                        .then(res => res.json())
+                        .then(result => {
+                            if (result.success) {
+                                fetch(`/log-auth?source=main-page&success=true&page=/index.html`, { method: 'POST' });
+                                showAuthenticated();
+                            } else {
+                                alert('Authentication failed');
+                                localStorage.removeItem('discordSessionToken');
+                            }
+                        });
+                    } else {
+                        alert('Incorrect password');
+                        fetch(`/log-auth?source=main-page&success=false&page=/index.html`, { method: 'POST' });
+                    }
+                });
+        }
+
+        function loginWithDiscord() {
+            fetch('/web-auth')
+                .then(res => res.json())
+                .then(data => {
+                    const clientId = data.clientId;
+                    const redirectUri = encodeURIComponent(data.redirectUri);
+                    const scope = 'identify guilds guilds.members.read';
+
+                    console.log('Starting Discord OAuth flow...');
+                    console.log('Client ID:', clientId);
+                    console.log('Redirect URI:', data.redirectUri);
+                    console.log('Scope:', scope);
+
+                    const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${encodeURIComponent(scope)}`;
+                    console.log('Opening popup with URL:', authUrl);
+
+                    const popup = window.open(authUrl, 'Discord Auth', 'width=500,height=700');
+
+                    if (window.discordMessageHandler) {
+                        window.removeEventListener('message', window.discordMessageHandler);
+                    }
+
+                    window.discordMessageHandler = function(event) {
+                        console.log('Received Discord OAuth message:', event.data);
+
+                        if (event.data && event.data.success !== undefined) {
+                            if (popup && !popup.closed) {
+                                popup.close();
+                            }
+
+                            if (event.data.success && event.data.sessionToken) {
+                                sessionToken = event.data.sessionToken;
+                                localStorage.setItem('discordSessionToken', sessionToken);
+                                console.log('Discord authentication successful, validating session...');
+                                fetch(`/log-auth?source=main-page&success=true&page=/index.html`, { method: 'POST' });
+                                validateSession();
+                            } else {
+                                console.error('Discord authentication failed:', event.data.error);
+                                alert('Discord authentication failed: ' + (event.data.error || 'Unknown error'));
+                                fetch(`/log-auth?source=main-page&success=false&page=/index.html`, { method: 'POST' });
+                            }
+                        }
+                    };
+
+                    window.addEventListener('message', window.discordMessageHandler);
+
+                    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                        alert('Popup was blocked. Please allow popups for this site and reload.');
+                    }
+                });
+        }
+
+        function logout() {
+            if (sessionToken) {
+                fetch(`/auth/logout?sessionToken=${encodeURIComponent(sessionToken)}`, { method: 'POST' })
+                    .then(() => {
+                        localStorage.removeItem('discordSessionToken');
+                        sessionToken = null;
+                        showUnauthenticated();
+                    });
+            }
+        }
+    </script>
 </body>
 </html>
+
+

@@ -105,6 +105,36 @@ public class DiscordBot {
         jda.addEventListener(presenceManager);
         BotHolder.setJDA(jda);
         jda.awaitReady();
+
+        if (Config.getWebAuthType().equals("discord")) {
+            try {
+                Config.validateGuildId();
+                System.out.println("Guild ID validated successfully.");
+                Config.getDiscordClientId();
+                Config.getDiscordClientSecret();
+                Config.getDiscordRedirectUri();
+                System.out.println("Discord OAuth2 configuration validated successfully.");
+                if (Config.getDiscordRedirectUri().contains("localhost")) {
+                    System.out.println("[config] WARNING: Discord OAuth2 Redirect is set to " + Config.getDiscordRedirectUri() + ". Make sure this is the correct URI. If you are not running the bot locally, you should add a redirect URI that points to your server (e.g. http://yourdomain.com/auth/discord/callback) and set it in config.properties. Also make sure to add the same redirect URI in your Discord application settings.");
+                }
+            } catch (IllegalStateException e) {
+                System.err.println("\n========================================");
+                System.err.println("CONFIGURATION ERROR: " + e.getMessage());
+                System.err.println("========================================");
+                System.err.println("Please configure all required Discord OAuth2 settings in config.properties:");
+                System.err.println("  1. guild.id = Your Discord server ID");
+                System.err.println("  2. discord.client.id = From Discord Developer Portal");
+                System.err.println("  3. discord.client.secret = From Discord Developer Portal");
+                System.err.println("  4. discord.redirect.uri = OAuth2 callback URL");
+                System.err.println("\nHow to get these values:");
+                System.err.println("  - Guild ID: Enable Developer Mode in Discord, right-click your server, 'Copy Server ID'");
+                System.err.println("  - Client ID/Secret: https://discord.com/developers/applications");
+                System.err.println("  - Redirect URI: http://localhost:21379/auth/discord/callback (or your server URL)");
+                System.err.println("========================================\n");
+                throw e;
+            }
+        }
+
         jda.updateCommands().queue();
         OptionData rpsChoices = new OptionData(OptionType.STRING, "choice", "rock / paper / scissors", true)
                 .addChoice("rock", "rock")
@@ -156,10 +186,12 @@ public class DiscordBot {
                             .addOption(OptionType.USER, "user", "Show specific user rank", false)
             ).queue();
         }
+        Config.validateGuildId();
         TempRoleManager.loadTempRoles();
         WywozBindingManager.loadBindings();
         Dashboard.start();
         uiManager.startInfoUpdater();
+        System.out.println(getTimestamp() + "[DiscordBot] Bot is ready!");
     }
 
     public static void restart(Runnable task) {

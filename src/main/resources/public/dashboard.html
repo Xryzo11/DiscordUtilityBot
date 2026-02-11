@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Bot Control Panel</title>
+        <link rel="stylesheet" href="style.css">
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+        <style>
+            #authCheck {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            }
+            #dashboardContent {
+                display: none;
+            }
+            .top-bar {
+                background: #667eea;
+                color: white;
+                padding: 15px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .top-bar h1 {
+                margin: 0;
+                font-size: 24px;
+            }
+            .top-bar-actions {
+                display: flex;
+                gap: 10px;
+            }
+            .top-bar button {
+                background: rgba(255,255,255,0.2);
+                color: white;
+                border: 1px solid rgba(255,255,255,0.3);
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            .top-bar button:hover {
+                background: rgba(255,255,255,0.3);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="authCheck">
+            <p>Verifying authentication...</p>
+        </div>
+
+        <div id="dashboardContent">
+            <div class="top-bar">
+                <h1>🛠️ Bot Control Panel</h1>
+                <div class="top-bar-actions">
+                    <button onclick="window.location.href='/'">← Home</button>
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <div style="padding: 20px;">
+                <h2>Toggle Features</h2>
+
+                <form id="wywozForm">
+                    <label>
+                        <input type="checkbox" name="status" value="true" onchange="toggleWywoz(this.checked)"
+                               id="wywozSmieciToggle">
+                        Auto-Kick (join leave abuse)
+                    </label>
+                </form>
+
+                <form id="tempRoleForm">
+                    <label>
+                        <input type="checkbox" name="status" value="true" onchange="toggleTempRoleStatus(this.checked)"
+                               id="tempRoleToggle">
+                        Temporary Role
+                    </label>
+                </form>
+
+                <form id="debugForm">
+                    <label>
+                        <input type="checkbox" name="status" value="true" onchange="toggleDebug(this.checked)"
+                               id="debugToggle">
+                        Debug Mode
+                    </label>
+                </form>
+
+                <h2>Auto-Kick Manager</h2>
+                <table border="1" id="bindingsTable">
+                    <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Channel ID</th>
+                        <th>Enabled</th>
+                        <th>Remove</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h3 id="newBindingTxt">New Auto-Kick</h3>
+                <form id="addBindingForm">
+                    <input type="text" name="userId" placeholder="User ID" required>
+                    <input type="text" name="channelId" placeholder="Channel ID" required>
+                    <button type="submit">Add</button>
+                </form>
+
+                <h2>Temporary Role Manager</h2>
+                <table border="1" id="rolesTable">
+                    <thead>
+                    <tr>
+                        <th>Role ID</th>
+                        <th>Channel ID</th>
+                        <th>Enabled</th>
+                        <th>Remove</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h3 id="newRoleTxt">New Temporary Role</h3>
+                <form id="addRoleForm">
+                    <input type="text" name="roleId" placeholder="Role ID" required>
+                    <input type="text" name="channelId" placeholder="Channel ID" required>
+                    <button type="submit">Add</button>
+                </form>
+
+                <h2>Force restart bot</h2>
+                <button onclick="forceRestart()">Force Restart</button>
+
+                <h2>Bot Information</h2>
+                <form>
+                    <p><b>File name:</b> <span id="fileName"></span></p>
+                    <p><b>Last restart:</b> <span id="lastRestart"></span></p>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            let authType = 'none';
+            let sessionToken = localStorage.getItem('discordSessionToken');
+
+            fetch('/web-auth')
+                .then(res => res.json())
+                .then(data => {
+                    authType = data.type || 'none';
+
+                    if (authType === 'none') {
+                        showDashboard();
+                    } else if (sessionToken) {
+                        validateSession();
+                    } else {
+                        redirectToHome('No authentication session found');
+                    }
+                })
+                .catch(err => {
+                    console.error('Auth check error:', err);
+                    redirectToHome('Authentication check failed');
+                });
+
+            function validateSession() {
+                fetch(`/auth/validate?sessionToken=${encodeURIComponent(sessionToken)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.valid) {
+                            showDashboard();
+                        } else {
+                            localStorage.removeItem('discordSessionToken');
+                            redirectToHome('Session expired or invalid');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Session validation error:', err);
+                        redirectToHome('Session validation failed');
+                    });
+            }
+
+            function showDashboard() {
+                document.getElementById('authCheck').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+
+                loadDashboardData();
+            }
+
+            function redirectToHome(reason) {
+                alert(reason + '. Please login from the home page.');
+                window.location.href = '/';
+            }
+
+            function logout() {
+                if (sessionToken) {
+                    fetch(`/auth/logout?sessionToken=${encodeURIComponent(sessionToken)}`, { method: 'POST' })
+                        .then(() => {
+                            localStorage.removeItem('discordSessionToken');
+                            window.location.href = '/';
+                        });
+                } else {
+                    window.location.href = '/';
+                }
+            }
+
+            function loadDashboardData() {
+                console.log('Loading dashboard data with session token:', sessionToken);
+
+                window.dashboardSessionToken = sessionToken;
+
+                const script = document.createElement('script');
+                script.src = 'botSettings.js';
+                script.onerror = function() {
+                    console.error('Failed to load botSettings.js');
+                    alert('Failed to load dashboard scripts. Please refresh the page.');
+                };
+                script.onload = function() {
+                    console.log('botSettings.js loaded successfully');
+                };
+                document.body.appendChild(script);
+            }
+        </script>
+    </body>
+</html>
+
