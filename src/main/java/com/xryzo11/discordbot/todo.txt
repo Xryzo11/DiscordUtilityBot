@@ -14,3 +14,4 @@ UI - playlist info: up next, restart bot button, in vc
 Youtube/twitch notifications
 Leaderboard webpage
 Browser player available for everyone in channel
+Log dashboard access
