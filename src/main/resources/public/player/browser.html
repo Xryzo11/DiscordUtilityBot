@@ -761,6 +761,7 @@
                 }
 
                 botInVoiceChannel = statusData.inVoiceChannel;
+                console.log('Bot in voice channel:', botInVoiceChannel);
                 updateControlsAvailability();
 
             } catch (error) {
@@ -850,7 +851,7 @@
                 `;
             }
 
-            if (authEnabled && !isAuthenticated) {
+            if (authType !== 'none' && !isAuthenticated) {
                 lockControls();
             }
         }
