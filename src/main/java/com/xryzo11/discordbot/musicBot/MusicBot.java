@@ -18,7 +18,7 @@ import com.xryzo11.discordbot.utils.ConfirmationHandler;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
-import com.xryzo11.discordbot.core.BotSettings;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import com.xryzo11.discordbot.core.SlashCommands;
 import com.xryzo11.discordbot.utils.listeners.ReactionListener;
 import dev.lavalink.youtube.YoutubeSourceOptions;
@@ -26,7 +26,6 @@ import dev.lavalink.youtube.clients.*;
 import dev.lavalink.youtube.clients.skeleton.Client;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 

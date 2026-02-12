@@ -1,6 +1,7 @@
 package com.xryzo11.discordbot.core;
 
 import com.xryzo11.discordbot.DiscordBot;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import com.xryzo11.discordbot.musicBot.MusicBot;
 import com.xryzo11.discordbot.utils.enums.PresenceStatus;
 import com.xryzo11.discordbot.utils.enums.PresenceActivity;

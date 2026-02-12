@@ -1,4 +1,6 @@
-package com.xryzo11.discordbot.core;
+package com.xryzo11.discordbot.core.web;
+
+import com.xryzo11.discordbot.core.Config;
 
 public class BotSettings {
     private static boolean wywozSmieci = Config.isAutoKickEnabled();

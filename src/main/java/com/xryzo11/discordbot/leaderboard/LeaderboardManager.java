@@ -3,8 +3,7 @@ package com.xryzo11.discordbot.leaderboard;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.xryzo11.discordbot.DiscordBot;
-import com.xryzo11.discordbot.core.BotSettings;
-import com.xryzo11.discordbot.misc.WywozBindingManager;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import com.xryzo11.discordbot.utils.comparators.LeaderboardUserComparator;
 
 import net.dv8tion.jda.api.entities.Member;
@@ -16,7 +15,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

@@ -2,6 +2,7 @@ package com.xryzo11.discordbot.core;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.xryzo11.discordbot.DiscordBot;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import com.xryzo11.discordbot.leaderboard.LeaderboardManager;
 import com.xryzo11.discordbot.misc.DiceRoll;
 import com.xryzo11.discordbot.misc.RockPaperScissors;

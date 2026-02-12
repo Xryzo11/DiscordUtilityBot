@@ -2,8 +2,7 @@ package com.xryzo11.discordbot.misc;
 
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
-import com.xryzo11.discordbot.core.BotSettings;
-import com.xryzo11.discordbot.core.Config;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;

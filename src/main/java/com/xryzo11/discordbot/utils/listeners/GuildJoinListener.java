@@ -1,7 +1,7 @@
 package com.xryzo11.discordbot.utils.listeners;
 
 import com.xryzo11.discordbot.DiscordBot;
-import com.xryzo11.discordbot.core.BotSettings;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import com.xryzo11.discordbot.misc.RoleRestorer;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;

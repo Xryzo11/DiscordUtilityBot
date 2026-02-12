@@ -3,9 +3,7 @@ package com.xryzo11.discordbot.utils.listeners;
 import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
-import com.xryzo11.discordbot.core.BotSettings;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
+import com.xryzo11.discordbot.core.web.BotSettings;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
