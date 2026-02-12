@@ -13,5 +13,9 @@ Time in timezone and converter command
 UI - playlist info: up next, restart bot button, in vc
 Youtube/twitch notifications
 Leaderboard webpage
-Browser player available for everyone in channel
 Log dashboard access
+
+web player:
+Keep playhead position always on the bottom
+Resume on adding to empty queue
+Browser player available for everyone in channel
