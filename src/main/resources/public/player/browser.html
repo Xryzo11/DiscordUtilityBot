@@ -84,6 +84,7 @@
         .now-playing-card {
             grid-column: 1;
             grid-row: 1;
+            min-height: 450px;
         }
 
         .controls-card {
@@ -109,6 +110,8 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
+            height: 100%;
+            justify-content: flex-start;
         }
 
         .thumbnail {
@@ -122,6 +125,9 @@
 
         .track-info {
             width: 100%;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
         }
 
         .track-title {
@@ -597,6 +603,8 @@
         let hashedPassword = '';
         let botInVoiceChannel = false;
         let currentTrackData = null;
+        let lastBotStartTime = null;
+        let isCheckingRestart = false;
 
         fetch('/web-auth')
             .then(res => res.json())
@@ -737,15 +745,34 @@
 
         async function updatePlayer() {
             try {
-                const [trackRes, queueRes, statusRes] = await Promise.all([
+                const [trackRes, queueRes, statusRes, infoRes] = await Promise.all([
                     fetch('/current-track'),
                     fetch('/queue'),
-                    fetch('/bot-status')
+                    fetch('/bot-status'),
+                    fetch('/get-info')
                 ]);
 
                 const trackData = await trackRes.json();
                 const queueData = await queueRes.json();
                 const statusData = await statusRes.json();
+                const infoData = await infoRes.json();
+
+                // Check for bot restart
+                if (infoData.lastRestart) {
+                    if (lastBotStartTime === null) {
+                        // First time loading - store the start time
+                        lastBotStartTime = infoData.lastRestart;
+                    } else if (lastBotStartTime !== infoData.lastRestart && !isCheckingRestart) {
+                        // Bot has restarted - reload the page
+                        isCheckingRestart = true;
+                        console.log('Bot restart detected, reloading page...');
+                        showToast('Bot restarted, reloading page...', false);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                        return;
+                    }
+                }
 
                 updateCurrentTrack(trackData);
 
