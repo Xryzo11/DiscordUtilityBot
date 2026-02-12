@@ -609,6 +609,7 @@
                 if (authType === 'none') {
                     isAuthenticated = true;
                     updateAuthUI(true);
+                    unlockControls();
                 } else if (sessionToken) {
                     validateSession();
                 } else {
@@ -621,6 +622,7 @@
                 console.error('Error loading auth config:', err);
                 isAuthenticated = false;
                 updateAuthUI(false);
+                setTimeout(() => lockControls(), 100);
             });
 
         function validateSession() {
@@ -630,6 +632,7 @@
                     if (data.valid) {
                         isAuthenticated = true;
                         updateAuthUI(true);
+                        unlockControls();
                     } else {
                         localStorage.removeItem('discordSessionToken');
                         sessionToken = null;
@@ -642,6 +645,7 @@
                     console.error('Session validation error:', err);
                     isAuthenticated = false;
                     updateAuthUI(false);
+                    setTimeout(() => lockControls(), 100);
                 });
         }
 

@@ -395,14 +395,19 @@ public class MusicBot {
             @Override
             public void loadFailed(FriendlyException e) {
                 boolean isTimeout = e.getCause() instanceof java.net.SocketTimeoutException;
+                boolean isYouTubeClientFailure = e.getMessage().contains("All clients failed") ||
+                                                 e.getMessage().contains("timed out") ||
+                                                 e.getMessage().contains("Read timed out");
                 boolean isSpotify = url.contains("spotify.com");
+                boolean shouldRetry = isTimeout || (isYouTubeClientFailure && url.contains("youtube"));
 
-                if (attemptNumber < MAX_RETRIES - 1 && isTimeout) {
+                if (attemptNumber < MAX_RETRIES - 1 && shouldRetry) {
                     long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, attemptNumber));
 
                     if (BotSettings.isDebug()) {
+                        String reason = isYouTubeClientFailure ? "YouTube client failure" : "timeout";
                         System.out.println(DiscordBot.getTimestamp() + "[queue] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
-                                         " for URL: " + url + " after " + delay + "ms due to timeout");
+                                         " for URL: " + url + " after " + delay + "ms due to " + reason);
                     }
 
                     String retryMsg = isSpotify
@@ -514,13 +519,18 @@ public class MusicBot {
             @Override
             public void loadFailed(FriendlyException e) {
                 boolean isTimeout = e.getCause() instanceof java.net.SocketTimeoutException;
+                boolean isYouTubeClientFailure = e.getMessage().contains("All clients failed") ||
+                                                 e.getMessage().contains("timed out") ||
+                                                 e.getMessage().contains("Read timed out");
+                boolean shouldRetry = isTimeout || isYouTubeClientFailure;
 
-                if (attemptNumber < MAX_RETRIES - 1 && isTimeout) {
+                if (attemptNumber < MAX_RETRIES - 1 && shouldRetry) {
                     long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, attemptNumber));
 
                     if (BotSettings.isDebug()) {
+                        String reason = isYouTubeClientFailure ? "YouTube client failure" : "timeout";
                         System.out.println(DiscordBot.getTimestamp() + "[search] Retry " + (attemptNumber + 1) + "/" + MAX_RETRIES +
-                                         " for query: " + query + " after " + delay + "ms due to timeout");
+                                         " for query: " + query + " after " + delay + "ms due to " + reason);
                     }
 
                     hook.editOriginal("⏳ Retrying search... (attempt " + (attemptNumber + 2) + "/" + MAX_RETRIES + ")").queue();

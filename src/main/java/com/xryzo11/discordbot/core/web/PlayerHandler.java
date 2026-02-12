@@ -331,50 +331,7 @@ public class PlayerHandler {
 
             final String finalUrl = url;
             new Thread(() -> {
-                DiscordBot.musicBot.playerManager.loadItem(finalUrl, new com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler() {
-                    @Override
-                    public void trackLoaded(com.sedmelluq.discord.lavaplayer.track.AudioTrack track) {
-                        DiscordBot.musicBot.trackQueue.offerLast(track);
-                        if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
-                            DiscordBot.musicBot.playNextTrack();
-                        }
-                        System.out.println(DiscordBot.getTimestamp() + "[web-player] Added track: " + track.getInfo().title);
-                    }
-
-                    @Override
-                    public void playlistLoaded(com.sedmelluq.discord.lavaplayer.track.AudioPlaylist playlist) {
-                        if (finalUrl.startsWith("ytsearch:")) {
-                            if (playlist.getTracks().isEmpty()) {
-                                System.out.println(DiscordBot.getTimestamp() + "[web-player] No matches found for search: " + finalUrl);
-                                return;
-                            }
-                            com.sedmelluq.discord.lavaplayer.track.AudioTrack firstTrack = playlist.getTracks().get(0);
-                            DiscordBot.musicBot.trackQueue.offerLast(firstTrack);
-                            if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
-                                DiscordBot.musicBot.playNextTrack();
-                            }
-                            System.out.println(DiscordBot.getTimestamp() + "[web-player] Added first search result: " + firstTrack.getInfo().title);
-                        } else {
-                            for (var track : playlist.getTracks()) {
-                                DiscordBot.musicBot.trackQueue.offerLast(track);
-                            }
-                            if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
-                                DiscordBot.musicBot.playNextTrack();
-                            }
-                            System.out.println(DiscordBot.getTimestamp() + "[web-player] Added playlist: " + playlist.getName() + " (" + playlist.getTracks().size() + " tracks)");
-                        }
-                    }
-
-                    @Override
-                    public void noMatches() {
-                        System.out.println(DiscordBot.getTimestamp() + "[web-player] No matches found for: " + finalUrl);
-                    }
-
-                    @Override
-                    public void loadFailed(com.sedmelluq.discord.lavaplayer.tools.FriendlyException exception) {
-                        System.out.println(DiscordBot.getTimestamp() + "[web-player] Failed to load track: " + exception.getMessage());
-                    }
-                });
+                loadItemWithRetry(finalUrl, 0);
             }).start();
 
         } catch (Exception e) {
@@ -384,6 +341,76 @@ public class PlayerHandler {
         }
 
         return result;
+    }
+
+    private static void loadItemWithRetry(String url, int retryCount) {
+        final int maxRetries = 2;
+
+        DiscordBot.musicBot.playerManager.loadItem(url, new com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler() {
+            @Override
+            public void trackLoaded(com.sedmelluq.discord.lavaplayer.track.AudioTrack track) {
+                DiscordBot.musicBot.trackQueue.offerLast(track);
+                if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
+                    DiscordBot.musicBot.playNextTrack();
+                }
+                System.out.println(DiscordBot.getTimestamp() + "[web-player] Added track: " + track.getInfo().title);
+            }
+
+            @Override
+            public void playlistLoaded(com.sedmelluq.discord.lavaplayer.track.AudioPlaylist playlist) {
+                if (url.startsWith("ytsearch:")) {
+                    if (playlist.getTracks().isEmpty()) {
+                        System.out.println(DiscordBot.getTimestamp() + "[web-player] No matches found for search: " + url);
+                        return;
+                    }
+                    com.sedmelluq.discord.lavaplayer.track.AudioTrack firstTrack = playlist.getTracks().get(0);
+                    DiscordBot.musicBot.trackQueue.offerLast(firstTrack);
+                    if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
+                        DiscordBot.musicBot.playNextTrack();
+                    }
+                    System.out.println(DiscordBot.getTimestamp() + "[web-player] Added first search result: " + firstTrack.getInfo().title);
+                } else {
+                    for (var track : playlist.getTracks()) {
+                        DiscordBot.musicBot.trackQueue.offerLast(track);
+                    }
+                    if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
+                        DiscordBot.musicBot.playNextTrack();
+                    }
+                    System.out.println(DiscordBot.getTimestamp() + "[web-player] Added playlist: " + playlist.getName() + " (" + playlist.getTracks().size() + " tracks)");
+                }
+            }
+
+            @Override
+            public void noMatches() {
+                System.out.println(DiscordBot.getTimestamp() + "[web-player] No matches found for: " + url);
+            }
+
+            @Override
+            public void loadFailed(com.sedmelluq.discord.lavaplayer.tools.FriendlyException exception) {
+                boolean isNetworkError = exception.getMessage().contains("timed out") ||
+                                        exception.getMessage().contains("All clients failed") ||
+                                        exception.getCause() instanceof java.net.SocketTimeoutException;
+
+                if (isNetworkError && retryCount < maxRetries) {
+                    int delayMs = (int) (1000 * Math.pow(2, retryCount));
+                    System.out.println(DiscordBot.getTimestamp() + "[web-player] Load failed, retrying in " + delayMs + "ms (attempt " + (retryCount + 1) + "/" + maxRetries + "): " + exception.getMessage());
+
+                    try {
+                        Thread.sleep(delayMs);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+
+                    loadItemWithRetry(url, retryCount + 1);
+                } else {
+                    if (retryCount > 0) {
+                        System.err.println(DiscordBot.getTimestamp() + "[web-player] Failed to load track after " + retryCount + " retries: " + exception.getMessage());
+                    } else {
+                        System.err.println(DiscordBot.getTimestamp() + "[web-player] Failed to load track: " + exception.getMessage());
+                    }
+                }
+            }
+        });
     }
 
     private static Object seek(Request req, Response res) {
