@@ -44,6 +44,29 @@
             align-items: center;
         }
 
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+        }
+
         .top-bar button {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -64,16 +87,29 @@
             opacity: 0.9;
         }
 
+        /*.container {*/
+        /*    max-width: 1600px;*/
+        /*    margin: 0 auto;*/
+        /*    display: grid;*/
+        /*    grid-template-columns: 400px 1fr;*/
+        /*    grid-template-rows: auto auto auto;*/
+        /*    gap: 20px;*/
+        /*    padding: 20px;*/
+        /*    min-height: calc(100vh - 100px);*/
+        /*    align-items: start;*/
+        /*}*/
+
         .container {
             max-width: 1600px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 400px 1fr;
-            grid-template-rows: auto auto auto;
+            grid-template-rows: min-content min-content min-content;
             gap: 20px;
             padding: 20px;
+            min-height: calc(100vh - 100px);
+            align-items: stretch;
         }
-
         .player-card {
             background: white;
             border-radius: 16px;
@@ -102,7 +138,8 @@
             grid-row: 1 / 4;
             display: flex;
             flex-direction: column;
-            max-height: calc(100vh - 100px);
+            height: 800px;
+            max-height: 100vh;
         }
 
         .now-playing {
@@ -155,6 +192,38 @@
         .track-time {
             font-size: 14px;
             color: #999;
+        }
+
+        .queued-by {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .queued-by-avatar {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .queue-item-queued-by {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .queue-item-avatar {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
         .progress-container {
@@ -289,18 +358,30 @@
         }
 
         .queue-list {
-            height: calc(100% - 60px);
+            flex: 1;
             overflow-y: auto;
+            min-height: 0;
+        }
+
+        .queue-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .queue-list::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 10px;
+        }
+        .queue-list::-webkit-scrollbar-track {
+            background: transparent;
         }
 
         .queue-item {
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
             padding: 12px;
             background: #f9f9f9;
             border-radius: 8px;
             margin-bottom: 8px;
-            align-items: center;
             transition: background 0.2s;
             cursor: grab;
         }
@@ -312,6 +393,12 @@
         .queue-item.dragging {
             opacity: 0.5;
             cursor: grabbing;
+        }
+
+        .queue-item-top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
         }
 
         .queue-item-number {
@@ -350,11 +437,37 @@
             text-overflow: ellipsis;
         }
 
+        .queue-item-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+
         .queue-item-duration {
             font-size: 12px;
             color: #999;
-            min-width: 50px;
-            text-align: right;
+        }
+
+        .queue-item-queued-by {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #666;
+            padding: 4px 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+        }
+
+        .queue-item-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
         }
 
         .queue-item-actions {
@@ -483,6 +596,7 @@
             .queue-card {
                 grid-column: 1;
                 grid-row: 4;
+                height: 500px;
             }
 
             .control-btn {
@@ -496,7 +610,12 @@
     <div class="top-bar">
         <h1>🎵 Music Player</h1>
         <div class="top-bar-actions">
+            <div id="userInfo" class="user-info" style="display: none;">
+                <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
+                <span id="userName" class="user-name"></span>
+            </div>
             <span class="auth-status" id="authStatusText">Checking auth...</span>
+            <button id="joinChannelBtn" onclick="joinMyChannel()" style="display: none;">🎤 Join my channel</button>
             <button onclick="window.location.href='/'">← Home</button>
             <button id="navLoginBtn" onclick="handleNavLogin()" style="display: none;">Login</button>
             <button id="navLogoutBtn" onclick="handleLogout()" style="display: none;">Logout</button>
@@ -602,6 +721,7 @@
         let sessionToken = localStorage.getItem('discordSessionToken');
         let hashedPassword = '';
         let botInVoiceChannel = false;
+        let previousBotInVoiceChannel = null;
         let currentTrackData = null;
         let lastBotStartTime = null;
         let isCheckingRestart = false;
@@ -641,6 +761,7 @@
                         isAuthenticated = true;
                         updateAuthUI(true);
                         unlockControls();
+                        fetchUserInfo();
                     } else {
                         localStorage.removeItem('discordSessionToken');
                         sessionToken = null;
@@ -654,6 +775,27 @@
                     isAuthenticated = false;
                     updateAuthUI(false);
                     setTimeout(() => lockControls(), 100);
+                });
+        }
+
+        function fetchUserInfo() {
+            if (!sessionToken) return;
+
+            fetch(`/auth/user-info?sessionToken=${encodeURIComponent(sessionToken)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.userName) {
+                        const userInfo = document.getElementById('userInfo');
+                        const userAvatar = document.getElementById('userAvatar');
+                        const userName = document.getElementById('userName');
+
+                        userAvatar.src = data.userAvatarUrl || '';
+                        userName.textContent = data.userName;
+                        userInfo.style.display = 'flex';
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to fetch user info:', err);
                 });
         }
 
@@ -693,6 +835,39 @@
                         sessionToken = null;
                         window.location.reload();
                     });
+            }
+        }
+
+        function updateJoinButtonVisibility(statusData) {
+            const joinBtn = document.getElementById('joinChannelBtn');
+
+            if (!statusData.inVoiceChannel && statusData.userInVoiceChannel) {
+                joinBtn.style.display = 'inline-block';
+            } else {
+                joinBtn.style.display = 'none';
+            }
+        }
+
+        async function joinMyChannel() {
+            if (!sessionToken) {
+                showToast('Please login first', true);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/music/join-channel?sessionToken=${encodeURIComponent(sessionToken)}`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(`✅ Joined ${data.channelName}`);
+                    updatePlayer();
+                } else {
+                    showToast(`❌ ${data.message || 'Failed to join channel'}`, true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
             }
         }
 
@@ -745,10 +920,15 @@
 
         async function updatePlayer() {
             try {
+                let statusUrl = '/bot-status';
+                if (sessionToken) {
+                    statusUrl += `?sessionToken=${encodeURIComponent(sessionToken)}`;
+                }
+
                 const [trackRes, queueRes, statusRes, infoRes] = await Promise.all([
                     fetch('/current-track'),
                     fetch('/queue'),
-                    fetch('/bot-status'),
+                    fetch(statusUrl),
                     fetch('/get-info')
                 ]);
 
@@ -757,13 +937,10 @@
                 const statusData = await statusRes.json();
                 const infoData = await infoRes.json();
 
-                // Check for bot restart
                 if (infoData.lastRestart) {
                     if (lastBotStartTime === null) {
-                        // First time loading - store the start time
                         lastBotStartTime = infoData.lastRestart;
                     } else if (lastBotStartTime !== infoData.lastRestart && !isCheckingRestart) {
-                        // Bot has restarted - reload the page
                         isCheckingRestart = true;
                         console.log('Bot restart detected, reloading page...');
                         showToast('Bot restarted, reloading page...', false);
@@ -791,9 +968,21 @@
                     updatePlayPauseButton(queueData.isPaused, trackData.playing);
                 }
 
+                if (previousBotInVoiceChannel === false && statusData.inVoiceChannel === true) {
+                    console.log('Bot joined voice channel, reloading page...');
+                    showToast('Bot joined voice channel, refreshing...', false);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                    return;
+                }
+
+                previousBotInVoiceChannel = statusData.inVoiceChannel;
                 botInVoiceChannel = statusData.inVoiceChannel;
                 console.log('Bot in voice channel:', botInVoiceChannel);
                 updateControlsAvailability();
+
+                updateJoinButtonVisibility(statusData);
 
             } catch (error) {
                 console.error('Error updating player:', error);
@@ -811,6 +1000,16 @@
                 const currentTime = formatTime(data.position);
                 const totalTime = data.isStream ? 'LIVE' : formatTime(data.duration);
 
+                let queuedByHtml = '';
+                if (data.userName) {
+                    queuedByHtml = `
+                        <div class="queued-by">
+                            ${data.userAvatarUrl ? `<img src="${data.userAvatarUrl}" class="queued-by-avatar" alt="Avatar">` : ''}
+                            <span>Queued by ${escapeHtml(data.userName)}</span>
+                        </div>
+                    `;
+                }
+
                 nowPlaying.innerHTML = `
                     <div class="now-playing">
                         <img src="${thumbnailUrl || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'120\'%3E%3Crect fill=\'%23667eea\' width=\'120\' height=\'120\'/%3E%3C/svg%3E'}"
@@ -821,6 +1020,7 @@
                             <div class="track-title">${escapeHtml(data.title)}</div>
                             <div class="track-author">${escapeHtml(data.author)}</div>
                             <div class="track-time">${currentTime} / ${totalTime}</div>
+                            ${queuedByHtml}
                         </div>
                     </div>
                 `;
@@ -853,20 +1053,35 @@
                     const thumbnailUrl = getThumbnailUrl(track);
                     const duration = formatTime(track.duration);
 
+                    let queuedByHtml = '';
+                    if (track.userName) {
+                        queuedByHtml = `
+                            <div class="queue-item-queued-by">
+                                ${track.userAvatarUrl ? `<img src="${track.userAvatarUrl}" class="queue-item-avatar" alt="Avatar">` : ''}
+                                <span>${escapeHtml(track.userName)}</span>
+                            </div>
+                        `;
+                    }
+
                     return `
                         <div class="queue-item" draggable="true" data-index="${index}">
-                            <div class="queue-item-number">#${index + 1}</div>
-                            <img src="${thumbnailUrl || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\'%3E%3Crect fill=\'%23667eea\' width=\'50\' height=\'50\'/%3E%3C/svg%3E'}"
-                                 alt="Thumbnail"
-                                 class="queue-item-thumbnail"
-                                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'50\\' height=\\'50\\'%3E%3Crect fill=\\'%23667eea\\' width=\\'50\\' height=\\'50\\'/%3E%3C/svg%3E'">
-                            <div class="queue-item-info">
-                                <div class="queue-item-title">${escapeHtml(track.title)}</div>
-                                <div class="queue-item-author">${escapeHtml(track.author)}</div>
+                            <div class="queue-item-top">
+                                <div class="queue-item-number">#${index + 1}</div>
+                                <img src="${thumbnailUrl || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\'%3E%3Crect fill=\'%23667eea\' width=\'50\' height=\'50\'/%3E%3C/svg%3E'}"
+                                     alt="Thumbnail"
+                                     class="queue-item-thumbnail"
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'50\\' height=\\'50\\'%3E%3Crect fill=\\'%23667eea\\' width=\\'50\\' height=\\'50\\'/%3E%3C/svg%3E'">
+                                <div class="queue-item-info">
+                                    <div class="queue-item-title">${escapeHtml(track.title)}</div>
+                                    <div class="queue-item-author">${escapeHtml(track.author)}</div>
+                                </div>
+                                <div class="queue-item-actions">
+                                    <button class="queue-item-btn remove" onclick="removeTrack(${index})">Remove</button>
+                                </div>
                             </div>
-                            <div class="queue-item-duration">${duration}</div>
-                            <div class="queue-item-actions">
-                                <button class="queue-item-btn remove" onclick="removeTrack(${index})">Remove</button>
+                            <div class="queue-item-bottom">
+                                <div class="queue-item-duration">⏱️ ${duration}</div>
+                                ${queuedByHtml}
                             </div>
                         </div>
                     `;
@@ -1068,7 +1283,11 @@
                 if (!url) return;
 
                 try {
-                    const res = await fetch(`/music/add?url=${encodeURIComponent(url)}`, { method: 'POST' });
+                    let fetchUrl = `/music/add?url=${encodeURIComponent(url)}`;
+                    if (sessionToken) {
+                        fetchUrl += `&sessionToken=${encodeURIComponent(sessionToken)}`;
+                    }
+                    const res = await fetch(fetchUrl, { method: 'POST' });
                     const data = await res.json();
 
                     if (data.success) {
