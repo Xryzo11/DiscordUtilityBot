@@ -33,6 +33,7 @@ public class AuthHandler {
         post("/log-auth", AuthHandler::logAuth, gson::toJson);
         get("/auth/discord/callback", AuthHandler::discordCallback);
         get("/auth/validate", AuthHandler::validateAuth, gson::toJson);
+        get("/auth/user-info", AuthHandler::getUserInfo, gson::toJson);
         post("/auth/logout", AuthHandler::logout, gson::toJson);
         post("/auth/password-login", AuthHandler::passwordLogin, gson::toJson);
     }
@@ -217,6 +218,46 @@ public class AuthHandler {
 
         result.put("valid", true);
         result.put("userId", session.getUserId());
+        return result;
+    }
+
+    private static Object getUserInfo(Request req, Response res) {
+        res.type("application/json");
+        Map<String, Object> result = new HashMap<>();
+
+        String sessionToken = req.queryParams("sessionToken");
+        SessionManager.SessionData session = SessionManager.getSession(sessionToken);
+
+        if (session == null) {
+            result.put("success", false);
+            result.put("error", "Invalid session");
+            return result;
+        }
+
+        String userId = session.getUserId();
+        var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
+
+        if (jda != null && userId != null && !userId.equals("password-user")) {
+            try {
+                var user = jda.retrieveUserById(userId).complete();
+                if (user != null) {
+                    result.put("success", true);
+                    result.put("userId", userId);
+                    result.put("userName", user.getEffectiveName());
+                    result.put("userAvatarUrl", user.getEffectiveAvatarUrl());
+                } else {
+                    result.put("success", false);
+                    result.put("error", "User not found");
+                }
+            } catch (Exception e) {
+                result.put("success", false);
+                result.put("error", "Failed to fetch user info");
+            }
+        } else {
+            result.put("success", false);
+            result.put("error", "User info not available");
+        }
+
         return result;
     }
 
