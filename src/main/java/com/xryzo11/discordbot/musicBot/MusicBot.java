@@ -8,11 +8,10 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
-import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import com.sedmelluq.discord.lavaplayer.track.*;
 import com.xryzo11.discordbot.core.Config;
 import com.xryzo11.discordbot.utils.ConfirmationHandler;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
@@ -38,8 +37,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MusicBot {
     public final AudioPlayerManager playerManager;
     public static AudioPlayer player;
-    public static final LinkedBlockingDeque<AudioTrack> trackQueue = new LinkedBlockingDeque<>();
+    public static final LinkedBlockingDeque<QueuedTrack> trackQueue = new LinkedBlockingDeque<>();
     public AudioTrack currentTrack;
+    public String currentTrackUserId;
     private boolean loopEnabled = false;
     public AtomicBoolean dequeueTimedOut = new AtomicBoolean(false);
     private static final File SAVEDTRACKS_FILE = new File(DiscordBot.configDirectory + "saved_tracks.json");
@@ -120,11 +120,12 @@ public class MusicBot {
 
             @Override
             public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-                currentTrack = null;
                 if (endReason.mayStartNext) {
                     if (loopEnabled && track != null && endReason != AudioTrackEndReason.LOAD_FAILED) {
-                        trackQueue.offer(track.makeClone());
+                        trackQueue.offer(new QueuedTrack(track.makeClone(), currentTrackUserId));
                     }
+                    currentTrack = null;
+                    currentTrackUserId = null;
                     MusicBot.playNextTrack();
                 }
             }
@@ -132,12 +133,30 @@ public class MusicBot {
             @Override
             public void onTrackStart(AudioPlayer player, AudioTrack track) {
                 currentTrack = track;
+                Object userData = track.getUserData();
+                if (userData instanceof InteractionHook) {
+                    currentTrackUserId = ((InteractionHook) userData).getInteraction().getUser().getId();
+                } else if (userData instanceof String) {
+                    currentTrackUserId = (String) userData;
+                } else {
+                    currentTrackUserId = null;
+                }
             }
         });
     }
 
     public static void playNextTrack() {
-        AudioTrack nextTrack = trackQueue.poll();
+        QueuedTrack queuedTrack = trackQueue.poll();
+        if (queuedTrack == null) {
+            if (DiscordBot.musicBot != null) {
+                DiscordBot.musicBot.currentTrack = null;
+                DiscordBot.musicBot.currentTrackUserId = null;
+            }
+            player.stopTrack();
+            DiscordBot.presenceManager.forcedUpdatePresence();
+            return;
+        }
+        AudioTrack nextTrack = queuedTrack.getTrack();
         if (containsAsmr(nextTrack)) {
             if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Blocked ASMR track: " + nextTrack.getInfo().title + " from queue.");
             playNextTrack();
@@ -193,7 +212,8 @@ public class MusicBot {
 
     public String totalQueueDuration() {
         long totalDuration = 0;
-        for (AudioTrack track : trackQueue) {
+        for (QueuedTrack queuedTrack : trackQueue) {
+            AudioTrack track = queuedTrack.getTrack();
             long trackDuration = track.getDuration();
             if (trackDuration > 0 && trackDuration < TimeUnit.HOURS.toMillis(50)) {
                 totalDuration += trackDuration / 1000;
@@ -222,8 +242,23 @@ public class MusicBot {
                     .append(" / ")
                     .append(formatTime(currentTrack.getDuration() / 1000))
                     .append("]\n")
-                    .append(formatTrackInfo(currentTrack))
-                    .append("\n\n");
+                    .append(formatTrackInfo(currentTrack));
+            if (currentTrackUserId != null) {
+                var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
+                if (jda != null) {
+                    try {
+                        var user = jda.retrieveUserById(currentTrackUserId).complete();
+                        if (user != null) {
+                            builder.append(" (queued by ")
+                                    .append(user.getEffectiveName())
+                                    .append(")");
+                        }
+                    } catch (Exception e) {
+                        // User not found, skip
+                    }
+                }
+            }
+            builder.append("\n\n");
         }
 
         if (trackQueue.isEmpty()) {
@@ -236,11 +271,25 @@ public class MusicBot {
                     .append(totalQueueDuration())
                     .append("\n\n");
             int index = 1;
-            for (AudioTrack track : trackQueue) {
+            var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
+            for (QueuedTrack queuedTrack : trackQueue) {
+                AudioTrack track = queuedTrack.getTrack();
                 builder.append(index++)
                         .append(". ")
-                        .append(formatTrackInfo(track))
-                        .append("\n");
+                        .append(formatTrackInfo(track));
+                if (queuedTrack.getUserId() != null && jda != null) {
+                    try {
+                        var user = jda.retrieveUserById(queuedTrack.getUserId()).complete();
+                        if (user != null) {
+                            builder.append(" (queued by ")
+                                    .append(user.getEffectiveName())
+                                    .append(")");
+                        }
+                    } catch (Exception e) {
+                        // User not found, skip
+                    }
+                }
+                builder.append("\n");
 
                 if (index > 10) {
                     builder.append("\n... and ")
@@ -302,7 +351,7 @@ public class MusicBot {
     }
 
     public void shuffleQueue() {
-        List<AudioTrack> trackList = new ArrayList<>(trackQueue);
+        List<QueuedTrack> trackList = new ArrayList<>(trackQueue);
         Collections.shuffle(trackList);
         trackQueue.clear();
         trackQueue.addAll(trackList);
@@ -330,10 +379,12 @@ public class MusicBot {
                 }
                 try {
                     track.setUserData(hook);
+                    String userId = hook.getInteraction().getUser().getId();
+                    QueuedTrack queuedTrack = new QueuedTrack(track, userId);
                     if (!isPlayNext) {
-                        trackQueue.offerLast(track);
+                        trackQueue.offerLast(queuedTrack);
                     } else {
-                        trackQueue.offerFirst(track);
+                        trackQueue.offerFirst(queuedTrack);
                     }
                     String msg = player.getPlayingTrack() == null
                             ? "✅ Now playing: " + track.getInfo().title
@@ -373,9 +424,10 @@ public class MusicBot {
                     }
                 }
                 try {
+                    String userId = hook.getInteraction().getUser().getId();
                     playlist.getTracks().forEach(track -> {
                         track.setUserData(hook);
-                        trackQueue.offer(track);
+                        trackQueue.offer(new QueuedTrack(track, userId));
                     });
                     hook.editOriginal("✅ Added " + playlist.getTracks().size() + " tracks").queue();
                     if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Loaded playlist: " + playlist.getName() + " with " + playlist.getTracks().size() + " tracks from URL: " + url);
@@ -462,7 +514,8 @@ public class MusicBot {
                 }
                 try {
                     track.setUserData(hook);
-                    trackQueue.offer(track);
+                    String userId = hook.getInteraction().getUser().getId();
+                    trackQueue.offer(new QueuedTrack(track, userId));
                     String msg = player.getPlayingTrack() == null
                             ? "✅ Now playing: " + track.getInfo().title
                             : "✅ Queued: " + track.getInfo().title;
@@ -497,7 +550,8 @@ public class MusicBot {
                         return;
                     }
                     firstTrack.setUserData(hook);
-                    trackQueue.offer(firstTrack);
+                    String userId = hook.getInteraction().getUser().getId();
+                    trackQueue.offer(new QueuedTrack(firstTrack, userId));
                     String msg = player.getPlayingTrack() == null
                             ? "✅ Now playing: " + firstTrack.getInfo().title
                             : "✅ Queued: " + firstTrack.getInfo().title;
@@ -628,20 +682,20 @@ public class MusicBot {
         event.getHook().editOriginal("⏳ Finding track in queue...").queue();
         if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Attempting to dequeue track at position: " + position);
 
-        AudioTrack toRemove = null;
-        Iterator<AudioTrack> queueIterator = trackQueue.iterator();
+        QueuedTrack toRemove = null;
+        Iterator<QueuedTrack> queueIterator = trackQueue.iterator();
         for (int i = 1; queueIterator.hasNext(); i++) {
-            AudioTrack track = queueIterator.next();
+            QueuedTrack queuedTrack = queueIterator.next();
             if (i == position) {
-                toRemove = track;
-                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Found track to remove: " + formatTrackInfo(toRemove));
+                toRemove = queuedTrack;
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Found track to remove: " + formatTrackInfo(toRemove.getTrack()));
                 break;
             }
         }
 
         if (toRemove != null) {
-            AudioTrack trackToRemove = toRemove;
-            event.getHook().editOriginal("⚠️ Found track: " + formatTrackInfo(trackToRemove) + "\nReact with ✅ to confirm or ❌ to cancel.").queue(message -> {
+            QueuedTrack trackToRemove = toRemove;
+            event.getHook().editOriginal("⚠️ Found track: " + formatTrackInfo(trackToRemove.getTrack()) + "\nReact with ✅ to confirm or ❌ to cancel.").queue(message -> {
                 ConfirmationHandler confirmation = new ConfirmationHandler(message, event.getUser(), 60);
                 ReactionListener.registerConfirmation(message.getId(), confirmation);
 
@@ -656,8 +710,8 @@ public class MusicBot {
                                 return;
                             }
                             trackQueue.remove(trackToRemove);
-                            event.getHook().editOriginal("✅ Removed track from queue: " + formatTrackInfo(trackToRemove)).queue();
-                            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Successfully removed track: " + formatTrackInfo(trackToRemove));
+                            event.getHook().editOriginal("✅ Removed track from queue: " + formatTrackInfo(trackToRemove.getTrack())).queue();
+                            if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[dequeueTrack] Successfully removed track: " + formatTrackInfo(trackToRemove.getTrack()));
                             break;
                         case CANCELLED:
                             event.getHook().editOriginal("❌ Dequeue cancelled.").queue();
@@ -688,15 +742,15 @@ public class MusicBot {
             return;
         }
 
-        List<AudioTrack> trackList = new ArrayList<>(trackQueue);
+        List<QueuedTrack> trackList = new ArrayList<>(trackQueue);
         if (fromPosition < 1 || fromPosition > trackList.size() || toPosition < 1 || toPosition > trackList.size()) {
             event.getHook().editOriginal("❌ Invalid 'From' or 'To' position.").queue();
             if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Invalid 'From' or 'To' position.");
             return;
         }
 
-        AudioTrack trackToMove = trackList.get(fromPosition - 1);
-        event.getHook().editOriginal("⚠️ Move this track from position " + fromPosition + " to position " + toPosition + "?\n" + formatTrackInfo(trackToMove) + "\nReact with ✅ to confirm or ❌ to cancel.").queue(message -> {
+        QueuedTrack trackToMove = trackList.get(fromPosition - 1);
+        event.getHook().editOriginal("⚠️ Move this track from position " + fromPosition + " to position " + toPosition + "?\n" + formatTrackInfo(trackToMove.getTrack()) + "\nReact with ✅ to confirm or ❌ to cancel.").queue(message -> {
             ConfirmationHandler confirmation = new ConfirmationHandler(message, event.getUser(), 60);
             ReactionListener.registerConfirmation(message.getId(), confirmation);
 
@@ -705,21 +759,21 @@ public class MusicBot {
 
                 switch (result) {
                     case CONFIRMED:
-                        List<AudioTrack> currentTrackList = new ArrayList<>(trackQueue);
+                        List<QueuedTrack> currentTrackList = new ArrayList<>(trackQueue);
                         if (fromPosition > currentTrackList.size() || toPosition > currentTrackList.size()) {
                             event.getHook().editOriginal("❗ Queue has changed. Please try again.").queue();
                             if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Queue changed during confirmation.");
                             return;
                         }
 
-                        AudioTrack track = currentTrackList.remove(fromPosition - 1);
+                        QueuedTrack track = currentTrackList.remove(fromPosition - 1);
                         currentTrackList.add(toPosition - 1, track);
 
                         trackQueue.clear();
                         trackQueue.addAll(currentTrackList);
 
-                        event.getHook().editOriginal("✅ Moved track to position " + toPosition + ": " + formatTrackInfo(track)).queue();
-                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Successfully moved track to position " + toPosition + ": " + formatTrackInfo(track));
+                        event.getHook().editOriginal("✅ Moved track to position " + toPosition + ": " + formatTrackInfo(track.getTrack())).queue();
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[reorderTrack] Successfully moved track to position " + toPosition + ": " + formatTrackInfo(track.getTrack()));
                         break;
                     case CANCELLED:
                         event.getHook().editOriginal("❌ Reorder cancelled.").queue();
