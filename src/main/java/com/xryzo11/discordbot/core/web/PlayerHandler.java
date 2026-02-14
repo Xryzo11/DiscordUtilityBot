@@ -31,6 +31,7 @@ public class PlayerHandler {
         post("/music/add", PlayerHandler::addTrack, gson::toJson);
         post("/music/seek", PlayerHandler::seek, gson::toJson);
         post("/music/reorder", PlayerHandler::reorder, gson::toJson);
+        post("/music/join-channel", PlayerHandler::joinChannel, gson::toJson);
     }
 
     private static Object getObsHtml(Request req, Response res) {
@@ -75,6 +76,22 @@ public class PlayerHandler {
             data.put("duration", track.getDuration());
             data.put("isStream", track.getInfo().isStream);
             data.put("artworkUrl", track.getInfo().artworkUrl);
+            data.put("userId", DiscordBot.musicBot.currentTrackUserId);
+
+            if (DiscordBot.musicBot.currentTrackUserId != null) {
+                var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
+                if (jda != null) {
+                    try {
+                        var user = jda.retrieveUserById(DiscordBot.musicBot.currentTrackUserId).complete();
+                        if (user != null) {
+                            data.put("userName", user.getEffectiveName());
+                            data.put("userAvatarUrl", user.getEffectiveAvatarUrl());
+                        }
+                    } catch (Exception e) {
+                        // User not found or error, skip
+                    }
+                }
+            }
         } else {
             data.put("playing", false);
         }
@@ -89,7 +106,10 @@ public class PlayerHandler {
         if (DiscordBot.musicBot != null) {
             var queue = new java.util.ArrayList<Map<String, Object>>();
             int index = 0;
-            for (var track : DiscordBot.musicBot.trackQueue) {
+            var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
+
+            for (var queuedTrack : DiscordBot.musicBot.trackQueue) {
+                var track = queuedTrack.getTrack();
                 Map<String, Object> trackData = new HashMap<>();
                 trackData.put("index", index++);
                 trackData.put("title", track.getInfo().title);
@@ -97,6 +117,20 @@ public class PlayerHandler {
                 trackData.put("uri", track.getInfo().uri);
                 trackData.put("duration", track.getDuration());
                 trackData.put("artworkUrl", track.getInfo().artworkUrl);
+                trackData.put("userId", queuedTrack.getUserId());
+
+                if (queuedTrack.getUserId() != null && jda != null) {
+                    try {
+                        var user = jda.retrieveUserById(queuedTrack.getUserId()).complete();
+                        if (user != null) {
+                            trackData.put("userName", user.getEffectiveName());
+                            trackData.put("userAvatarUrl", user.getEffectiveAvatarUrl());
+                        }
+                    } catch (Exception e) {
+                        // User not found or error, skip
+                    }
+                }
+
                 queue.add(trackData);
             }
             data.put("queue", queue);
@@ -118,6 +152,8 @@ public class PlayerHandler {
         var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
         boolean isConnected = false;
         String channelName = null;
+        boolean userInVoiceChannel = false;
+        String userChannelId = null;
 
         if (jda != null) {
             for (var guild : jda.getGuilds()) {
@@ -130,10 +166,31 @@ public class PlayerHandler {
                     break;
                 }
             }
+
+            String sessionToken = req.queryParams("sessionToken");
+            if (sessionToken != null) {
+                var session = com.xryzo11.discordbot.core.web.SessionManager.getSession(sessionToken);
+                if (session != null && !session.getUserId().equals("password-user")) {
+                    String userId = session.getUserId();
+                    for (var guild : jda.getGuilds()) {
+                        var member = guild.getMemberById(userId);
+                        if (member != null && member.getVoiceState() != null && member.getVoiceState().inAudioChannel()) {
+                            userInVoiceChannel = true;
+                            var userChannel = member.getVoiceState().getChannel();
+                            if (userChannel != null) {
+                                userChannelId = userChannel.getId();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         data.put("inVoiceChannel", isConnected);
         data.put("channelName", channelName);
+        data.put("userInVoiceChannel", userInVoiceChannel);
+        data.put("userChannelId", userChannelId);
 
         return data;
     }
@@ -280,11 +337,11 @@ public class PlayerHandler {
                 return result;
             }
 
-            var track = queue.get(position);
-            DiscordBot.musicBot.trackQueue.remove(track);
+            var queuedTrack = queue.get(position);
+            DiscordBot.musicBot.trackQueue.remove(queuedTrack);
             result.put("success", true);
-            result.put("removed", track.getInfo().title);
-            System.out.println(DiscordBot.getTimestamp() + "[web-player] Removed track at position " + position + ": " + track.getInfo().title);
+            result.put("removed", queuedTrack.getTrack().getInfo().title);
+            System.out.println(DiscordBot.getTimestamp() + "[web-player] Removed track at position " + position + ": " + queuedTrack.getTrack().getInfo().title);
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", e.getMessage());
@@ -324,14 +381,24 @@ public class PlayerHandler {
                 url = "ytsearch:" + url;
             }
 
+            String sessionToken = req.queryParams("sessionToken");
+            String userId = null;
+            if (sessionToken != null) {
+                var session = com.xryzo11.discordbot.core.web.SessionManager.getSession(sessionToken);
+                if (session != null) {
+                    userId = session.getUserId();
+                }
+            }
+
             result.put("success", true);
             result.put("message", "Loading track...");
             result.put("url", url);
             System.out.println(DiscordBot.getTimestamp() + "[web-player] Loading track: " + url);
 
             final String finalUrl = url;
+            final String finalUserId = userId;
             new Thread(() -> {
-                loadItemWithRetry(finalUrl, 0);
+                loadItemWithRetry(finalUrl, 0, finalUserId);
             }).start();
 
         } catch (Exception e) {
@@ -343,13 +410,16 @@ public class PlayerHandler {
         return result;
     }
 
-    private static void loadItemWithRetry(String url, int retryCount) {
+    private static void loadItemWithRetry(String url, int retryCount, String userId) {
         final int maxRetries = 2;
 
         DiscordBot.musicBot.playerManager.loadItem(url, new com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler() {
             @Override
             public void trackLoaded(com.sedmelluq.discord.lavaplayer.track.AudioTrack track) {
-                DiscordBot.musicBot.trackQueue.offerLast(track);
+                if (userId != null) {
+                    track.setUserData(userId);
+                }
+                DiscordBot.musicBot.trackQueue.offerLast(new com.xryzo11.discordbot.musicBot.QueuedTrack(track, userId));
                 if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
                     DiscordBot.musicBot.playNextTrack();
                 }
@@ -364,14 +434,20 @@ public class PlayerHandler {
                         return;
                     }
                     com.sedmelluq.discord.lavaplayer.track.AudioTrack firstTrack = playlist.getTracks().get(0);
-                    DiscordBot.musicBot.trackQueue.offerLast(firstTrack);
+                    if (userId != null) {
+                        firstTrack.setUserData(userId);
+                    }
+                    DiscordBot.musicBot.trackQueue.offerLast(new com.xryzo11.discordbot.musicBot.QueuedTrack(firstTrack, userId));
                     if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
                         DiscordBot.musicBot.playNextTrack();
                     }
                     System.out.println(DiscordBot.getTimestamp() + "[web-player] Added first search result: " + firstTrack.getInfo().title);
                 } else {
                     for (var track : playlist.getTracks()) {
-                        DiscordBot.musicBot.trackQueue.offerLast(track);
+                        if (userId != null) {
+                            track.setUserData(userId);
+                        }
+                        DiscordBot.musicBot.trackQueue.offerLast(new com.xryzo11.discordbot.musicBot.QueuedTrack(track, userId));
                     }
                     if (DiscordBot.musicBot.player.getPlayingTrack() == null) {
                         DiscordBot.musicBot.playNextTrack();
@@ -401,7 +477,7 @@ public class PlayerHandler {
                         Thread.currentThread().interrupt();
                     }
 
-                    loadItemWithRetry(url, retryCount + 1);
+                    loadItemWithRetry(url, retryCount + 1, userId);
                 } else {
                     if (retryCount > 0) {
                         System.err.println(DiscordBot.getTimestamp() + "[web-player] Failed to load track after " + retryCount + " retries: " + exception.getMessage());
@@ -479,20 +555,73 @@ public class PlayerHandler {
                 return result;
             }
 
-            var track = queue.remove(from);
-            queue.add(to, track);
+            var queuedTrack = queue.remove(from);
+            queue.add(to, queuedTrack);
 
             DiscordBot.musicBot.trackQueue.clear();
             DiscordBot.musicBot.trackQueue.addAll(queue);
 
             result.put("success", true);
-            System.out.println(DiscordBot.getTimestamp() + "[web-player] Reordered track: \"" + track.getInfo().title + "\" from position " + from + " to " + to);
+            System.out.println(DiscordBot.getTimestamp() + "[web-player] Reordered track: \"" + queuedTrack.getTrack().getInfo().title + "\" from position " + from + " to " + to);
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", e.getMessage());
             System.out.println(DiscordBot.getTimestamp() + "[web-player] Reorder track exception: " + e.getMessage());
         }
 
+        return result;
+    }
+
+    private static Object joinChannel(Request req, Response res) {
+        res.type("application/json");
+        Map<String, Object> result = new HashMap<>();
+
+        String sessionToken = req.queryParams("sessionToken");
+        if (sessionToken == null) {
+            result.put("success", false);
+            result.put("message", "Not authenticated");
+            return result;
+        }
+
+        var session = com.xryzo11.discordbot.core.web.SessionManager.getSession(sessionToken);
+        if (session == null || session.getUserId().equals("password-user")) {
+            result.put("success", false);
+            result.put("message", "Invalid session");
+            return result;
+        }
+
+        String userId = session.getUserId();
+        var jda = com.xryzo11.discordbot.core.BotHolder.getJDA();
+
+        if (jda == null) {
+            result.put("success", false);
+            result.put("message", "Bot not initialized");
+            return result;
+        }
+
+        for (var guild : jda.getGuilds()) {
+            var member = guild.getMemberById(userId);
+            if (member != null && member.getVoiceState() != null && member.getVoiceState().inAudioChannel()) {
+                var voiceChannel = member.getVoiceState().getChannel();
+                if (voiceChannel != null) {
+                    try {
+                        guild.getAudioManager().openAudioConnection(voiceChannel);
+                        result.put("success", true);
+                        result.put("channelName", voiceChannel.getName());
+                        System.out.println(DiscordBot.getTimestamp() + "[web-player] Bot joined voice channel: " + voiceChannel.getName());
+                        return result;
+                    } catch (Exception e) {
+                        result.put("success", false);
+                        result.put("message", "Failed to join channel: " + e.getMessage());
+                        System.err.println(DiscordBot.getTimestamp() + "[web-player] Failed to join channel: " + e.getMessage());
+                        return result;
+                    }
+                }
+            }
+        }
+
+        result.put("success", false);
+        result.put("message", "You are not in a voice channel");
         return result;
     }
 }
