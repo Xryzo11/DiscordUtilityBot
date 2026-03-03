@@ -10,6 +10,36 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 public class VoiceUpdateListener extends ListenerAdapter {
     @Override
     public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
+        if (event.getChannelJoined() != null && event.getChannelLeft() != null) {
+            String user = event.getMember().getEffectiveName();
+            String channelLeft = event.getChannelLeft().getName();
+            String channelJoined = event.getChannelJoined().getName();
+            long channelLeftId = event.getChannelLeft().getIdLong();
+            long channelJoinedId = event.getChannelJoined().getIdLong();
+            long userId = event.getMember().getUser().getIdLong();
+
+            if (BotSettings.isDebug()) {
+                System.out.println(DiscordBot.getTimestamp() + "[VoiceUpdateListener] " + user + " moved voice channels: " + channelLeft + " -> " + channelJoined);
+            }
+
+            if (BotSettings.isWywozSmieci()) {
+                if (WywozBindingManager.isBound(userId, channelJoinedId)) {
+                    WywozBindingManager.execute(event, userId, user, channelJoined);
+                }
+            }
+
+            if (BotSettings.isTempRole()) {
+                if (TempRoleManager.isBound(channelLeftId)) {
+                    TempRoleManager.execute(event, userId, user, channelLeft, false);
+                }
+                if (TempRoleManager.isBound(channelJoinedId)) {
+                    TempRoleManager.execute(event, userId, user, channelJoined, true);
+                }
+            }
+
+            return;
+        }
+
         if (event.getChannelJoined() != null) {
             String user = event.getMember().getEffectiveName();
             String channel = event.getChannelJoined().getName();
