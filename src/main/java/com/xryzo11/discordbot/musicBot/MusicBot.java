@@ -83,7 +83,7 @@ public class MusicBot {
                 .setAllowSearch(true)
                 .setAllowDirectVideoIds(true)
                 .setAllowDirectPlaylistIds(true);
-        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Music(), new Web(), new Ios(), new TvHtml5EmbeddedWithThumbnail(), new TvHtml5Embedded(), new Tv()});
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Music(), new Web(), new Ios(), new Tv()}); //new TvHtml5EmbeddedWithThumbnail(), new TvHtml5Embedded(),
         if (Config.getGoogleOAuth2Token() != null && !Config.getGoogleOAuth2Token().isEmpty() && !Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
             yt.useOauth2(Config.getGoogleOAuth2Token(), true);
         } else {
