@@ -78,12 +78,13 @@ public class MusicBot {
             }
         }
 
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", BotSettings.isDebug() ? "debug" : "info");
         YoutubeSourceOptions options = new YoutubeSourceOptions()
                 .setRemoteCipher("https://cipher.kikkia.dev/", null, "xryzo11")
                 .setAllowSearch(true)
                 .setAllowDirectVideoIds(true)
                 .setAllowDirectPlaylistIds(true);
-        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Music(), new Web(), new Ios(), new Tv()}); //new TvHtml5EmbeddedWithThumbnail(), new TvHtml5Embedded(),
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Music(), new Web(), new WebEmbedded(), new MWeb(), new TvHtml5Simply(), new Ios(), new Tv()});
         if (Config.getGoogleOAuth2Token() != null && !Config.getGoogleOAuth2Token().isEmpty() && !Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
             yt.useOauth2(Config.getGoogleOAuth2Token(), true);
         } else {
