@@ -49,6 +49,7 @@ public class MusicBot {
     private static final int MAX_RETRIES = 3;
     private static final long INITIAL_RETRY_DELAY_MS = 1000;
     private static final double RETRY_DELAY_MULTIPLIER = 2.0;
+    private final ConcurrentHashMap<String, Integer> playbackRetryCounts = new ConcurrentHashMap<>();
 
     public MusicBot() {
         System.setProperty("http.keepAlive", "true");
@@ -87,8 +88,6 @@ public class MusicBot {
         YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, new Client[]{new Music(), new Web(), new WebEmbedded(), new MWeb(), new TvHtml5Simply(), new Ios(), new Tv()});
         if (Config.getGoogleOAuth2Token() != null && !Config.getGoogleOAuth2Token().isEmpty() && !Config.getGoogleOAuth2Token().equals("YOUR_OAUTH2_TOKEN_HERE")) {
             yt.useOauth2(Config.getGoogleOAuth2Token(), true);
-        } else {
-            yt.useOauth2(null, false);
         }
         playerManager.registerSourceManager(yt);
 
@@ -101,21 +100,33 @@ public class MusicBot {
             @Override
             public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
                 boolean isTimeout = exception.getCause() instanceof java.net.SocketTimeoutException;
+                boolean isYouTubeClientFailure = isYouTubeClientFailure(exception);
+                String trackKey = track.getIdentifier();
 
-                if (isTimeout) {
-                    Integer retryCount = (Integer) track.getUserData(Integer.class);
-                    if (retryCount == null) retryCount = 0;
+                if (isTimeout || isYouTubeClientFailure) {
+                    Integer retryCount = playbackRetryCounts.get(trackKey);
+                    if (retryCount == null) {
+                        retryCount = 0;
+                    }
 
-                    if (retryCount < 2) {
-                        track.setUserData(retryCount + 1);
-                        player.playTrack(track.makeClone());
+                    if (retryCount < MAX_RETRIES - 1) {
+                        int nextAttempt = retryCount + 1;
+                        playbackRetryCounts.put(trackKey, nextAttempt);
+                        long delay = (long) (INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_DELAY_MULTIPLIER, retryCount));
+
                         if (BotSettings.isDebug()) {
-                            System.out.println(DiscordBot.getTimestamp() + "[player] Retrying track due to timeout (attempt " + (retryCount + 1) + ")");
+                            String reason = isYouTubeClientFailure ? "YouTube client failure" : "timeout";
+                            System.out.println(DiscordBot.getTimestamp() + "[player] Retry " + nextAttempt + "/" + MAX_RETRIES +
+                                    " for track: " + track.getInfo().title + " after " + delay + "ms due to " + reason);
                         }
+
+                        CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(() ->
+                                retryFailedTrack(track, nextAttempt));
                         return;
                     }
                 }
 
+                playbackRetryCounts.remove(trackKey);
                 playNextTrack();
             }
 
@@ -134,6 +145,7 @@ public class MusicBot {
             @Override
             public void onTrackStart(AudioPlayer player, AudioTrack track) {
                 currentTrack = track;
+                playbackRetryCounts.remove(track.getIdentifier());
                 Object userData = track.getUserData();
                 if (userData instanceof InteractionHook) {
                     currentTrackUserId = ((InteractionHook) userData).getInteraction().getUser().getId();
@@ -144,6 +156,69 @@ public class MusicBot {
                 }
             }
         });
+    }
+
+    private void retryFailedTrack(AudioTrack failedTrack, int attemptNumber) {
+        String url = failedTrack.getInfo().uri;
+        if (url == null || url.isEmpty()) {
+            playNextTrack();
+            return;
+        }
+
+        playerManager.loadItem(url, new AudioLoadResultHandler() {
+            @Override
+            public void trackLoaded(AudioTrack track) {
+                try {
+                    track.setUserData(failedTrack.getUserData());
+                    player.playTrack(track);
+                    if (BotSettings.isDebug()) {
+                        System.out.println(DiscordBot.getTimestamp() + "[player] Retried track loaded successfully on attempt " + attemptNumber + ": " + track.getInfo().title);
+                    }
+                } catch (Exception e) {
+                    if (BotSettings.isDebug()) {
+                        System.out.println(DiscordBot.getTimestamp() + "[player] Retried track failed to start: " + e.getMessage());
+                    }
+                    playNextTrack();
+                }
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+                if (playlist.getTracks().isEmpty()) {
+                    playNextTrack();
+                    return;
+                }
+                trackLoaded(playlist.getTracks().get(0));
+            }
+
+            @Override
+            public void noMatches() {
+                playNextTrack();
+            }
+
+            @Override
+            public void loadFailed(FriendlyException e) {
+                if (BotSettings.isDebug()) {
+                    System.out.println(DiscordBot.getTimestamp() + "[player] Retry load failed for track: " + failedTrack.getInfo().title + " Error: " + e.getMessage());
+                }
+                playNextTrack();
+            }
+        });
+    }
+
+    private static boolean isYouTubeClientFailure(FriendlyException exception) {
+        String message = exception.getMessage();
+        if (message == null) {
+            return false;
+        }
+
+        return message.contains("All clients failed")
+                || message.contains("No supported audio streams available")
+                || message.contains("Video player configuration error")
+                || message.contains("Sign in to confirm")
+                || message.contains("The page needs to be reloaded")
+                || message.contains("403")
+                || message.contains("400");
     }
 
     public static void playNextTrack() {
