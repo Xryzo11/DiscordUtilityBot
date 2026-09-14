@@ -229,7 +229,7 @@ public class SlashCommands {
             }
 
             joinIfNeeded(event);
-            bot.search(event, track);
+            bot.search(event, track, isPlayNext);
             return;
         }
         if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[handleQueue] Link detected: " + track);

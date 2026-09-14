@@ -571,15 +571,15 @@ public class MusicBot {
     }
 
 
-    public void search(SlashCommandInteractionEvent event, String query) {
+    public void search(SlashCommandInteractionEvent event, String query, boolean isPlayNext) {
         SlashCommands.safeDefer(event);
         InteractionHook hook = event.getHook();
         hook.editOriginal("⏳ Searching for: " + query).queue();
         if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Searching for query: " + query);
-        searchWithRetry(hook, query, 0);
+        searchWithRetry(hook, query, isPlayNext, 0);
     }
 
-    private void searchWithRetry(InteractionHook hook, String query, int attemptNumber) {
+    private void searchWithRetry(InteractionHook hook, String query, boolean isPlayNext, int attemptNumber) {
         playerManager.loadItem("ytsearch:" + query, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
@@ -591,10 +591,17 @@ public class MusicBot {
                 try {
                     track.setUserData(hook);
                     String userId = hook.getInteraction().getUser().getId();
-                    trackQueue.offer(new QueuedTrack(track, userId));
+                    QueuedTrack queuedTrack = new QueuedTrack(track, userId);
+                    if (!isPlayNext) {
+                        trackQueue.offerLast(queuedTrack);
+                    } else {
+                        trackQueue.offerFirst(queuedTrack);
+                    }
                     String msg = player.getPlayingTrack() == null
                             ? "✅ Now playing: " + track.getInfo().title
-                            : "✅ Queued: " + track.getInfo().title;
+                            : (isPlayNext
+                               ? "✅ Queued next: " + track.getInfo().title
+                               : "✅ Queued: " + track.getInfo().title);
                     hook.editOriginal(msg).queue();
                     if (player.getPlayingTrack() == null) playNextTrack();
                     if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Loaded track: " + track.getInfo().title + " for query: " + query);
@@ -618,19 +625,27 @@ public class MusicBot {
                         return;
                     }
                 }
+                if (!playlist.isSearchResult() && isPlayNext) {
+                    hook.editOriginal("❌ Cannot queue a playlist to play next. Please use a single track or a YouTube search result instead.").queue();
+                    if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Attempted to queue playlist to play next for query: " + query);
+                    return;
+                }
                 try {
                     AudioTrack firstTrack = playlist.getTracks().get(0);
                     if (containsAsmr(firstTrack)) {
                         hook.editOriginal("❌ ASMR content is blocked.").queue();
-                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[queue] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
+                        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Blocked ASMR track: " + firstTrack.getInfo().title + " from search playlist.");
                         return;
                     }
                     firstTrack.setUserData(hook);
                     String userId = hook.getInteraction().getUser().getId();
-                    trackQueue.offer(new QueuedTrack(firstTrack, userId));
+                    QueuedTrack queuedTrack = new QueuedTrack(firstTrack, userId);
+                    trackQueue.offerLast(queuedTrack);
                     String msg = player.getPlayingTrack() == null
                             ? "✅ Now playing: " + firstTrack.getInfo().title
-                            : "✅ Queued: " + firstTrack.getInfo().title;
+                            : (isPlayNext
+                               ? "✅ Queued next: " + firstTrack.getInfo().title
+                               : "✅ Queued: " + firstTrack.getInfo().title);
                     hook.editOriginal(msg).queue();
                     if (player.getPlayingTrack() == null) playNextTrack();
                     if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[search] Loaded first track from playlist: " + playlist.getName() + " for query: " + query);
@@ -666,7 +681,7 @@ public class MusicBot {
                     hook.editOriginal("⏳ Retrying search... (attempt " + (attemptNumber + 2) + "/" + MAX_RETRIES + ")").queue();
 
                     CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(() -> {
-                        searchWithRetry(hook, query, attemptNumber + 1);
+                        searchWithRetry(hook, query, isPlayNext, attemptNumber + 1);
                     });
                 } else {
                     String errorMsg = attemptNumber > 0
