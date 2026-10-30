@@ -772,6 +772,18 @@ public class MusicBot {
         }
     }
 
+    public void removeSaved(String url, String name) {
+        for (SavedTrack track : savedTracks) {
+            if (track.getUrl().equals(url) && track.getName().equals(name)) {
+                savedTracks.remove(track);
+                saveToFile();
+                if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[removeSaved] Removed saved track: " + name + " with URL: " + url);
+                return;
+            }
+        }
+        if (BotSettings.isDebug()) System.out.println(DiscordBot.getTimestamp() + "[removeSaved] Saved track not found for removal: " + name + " with URL: " + url);
+    }
+
     public void dequeueTrack(SlashCommandInteractionEvent event, int position) {
         event.deferReply().queue();
         event.getHook().editOriginal("⏳ Finding track in queue...").queue();

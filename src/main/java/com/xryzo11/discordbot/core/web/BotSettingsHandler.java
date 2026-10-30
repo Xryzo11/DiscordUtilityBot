@@ -5,6 +5,7 @@ import com.xryzo11.discordbot.DiscordBot;
 import com.xryzo11.discordbot.core.BotHolder;
 import com.xryzo11.discordbot.misc.TempRoleManager;
 import com.xryzo11.discordbot.misc.WywozBindingManager;
+import com.xryzo11.discordbot.musicBot.MusicBot;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Role;
 import spark.Request;
@@ -35,6 +36,11 @@ public class BotSettingsHandler {
         public boolean enabled;
     }
 
+    public static class SavedTrackDetailed {
+        public String name;
+        public String url;
+    }
+
     public static void registerRoutes() {
         get("/get-info", BotSettingsHandler::getInfo, gson::toJson);
 
@@ -57,6 +63,9 @@ public class BotSettingsHandler {
         post("/remove-binding", BotSettingsHandler::removeBinding);
         get("/bindings-detailed", BotSettingsHandler::getBindingsDetailed);
         post("/toggle-binding", BotSettingsHandler::toggleBinding);
+
+        get("/saved-tracks", BotSettingsHandler::getSavedTracks);
+        post("/remove-saved-track", BotSettingsHandler::removeSavedTrack);
 
         post("/force-restart", BotSettingsHandler::forceRestart);
     }
@@ -201,6 +210,30 @@ public class BotSettingsHandler {
         long userId = Long.parseUnsignedLong(userIdStr);
         long channelId = Long.parseUnsignedLong(channelIdStr);
         WywozBindingManager.setBindingEnabled(userId, channelId, enabled);
+        return "OK";
+    }
+
+    private static Object getSavedTracks(Request req, Response res) {
+        res.type("application/json");
+        var detailed = MusicBot.savedTracks.stream().map(track -> {
+            SavedTrackDetailed d = new SavedTrackDetailed();
+            d.name = track.getName();
+            d.url = track.getUrl();
+            return d;
+        }).collect(Collectors.toList());
+        return gson.toJson(detailed);
+    }
+
+    private static Object removeSavedTrack(Request req, Response res) {
+        String name = req.queryParams("name");
+        String url = req.queryParams("url");
+        if (name == null || url == null) {
+            res.status(400);
+            return "Missing name or url";
+        }
+        if (DiscordBot.musicBot != null) {
+            DiscordBot.musicBot.removeSaved(url, name);
+        }
         return "OK";
     }
 

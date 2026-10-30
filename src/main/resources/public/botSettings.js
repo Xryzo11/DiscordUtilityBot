@@ -381,4 +381,60 @@ function forceRestart() {
     });
 }
 
+function loadSavedTracks() {
+    console.log('Loading saved tracks...');
+    fetch('/saved-tracks' + authParam)
+        .then(res => {
+            if (!res.ok) {
+                console.error('Failed to fetch saved-tracks:', res.status, res.statusText);
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(tracks => {
+            console.log('Saved tracks loaded:', tracks.length);
+            const tbody = document.getElementById('savedTracksTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            tracks.forEach(track => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${track.name}</td>
+                    <td><a href="${track.url}" target="_blank" rel="noopener noreferrer">${track.url}</a></td>
+                    <td><button onclick="removeSavedTrack('${track.name.replace(/'/g, "\\'")}', '${track.url.replace(/'/g, "\\'")}')">Remove</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error('Error loading saved tracks:', err);
+        });
+}
+
+function removeSavedTrack(name, url) {
+    if (!confirm(`Remove saved track "${name}"?`)) {
+        return;
+    }
+    fetch('/remove-saved-track' + authParam, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `name=${encodeURIComponent(name)}&url=${encodeURIComponent(url)}`
+    })
+        .then(res => {
+            if (!res.ok) {
+                console.error('Failed to remove saved track:', res.status, res.statusText);
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            return res.text();
+        })
+        .then(() => {
+            loadSavedTracks();
+        })
+        .catch(err => {
+            console.error('Error removing saved track:', err);
+            alert('Error removing saved track: ' + err.message);
+        });
+}
+
+loadSavedTracks();
+
 console.log('botSettings.js execution complete');
