@@ -640,7 +640,11 @@ public class MusicBot {
                     firstTrack.setUserData(hook);
                     String userId = hook.getInteraction().getUser().getId();
                     QueuedTrack queuedTrack = new QueuedTrack(firstTrack, userId);
-                    trackQueue.offerLast(queuedTrack);
+                    if (!isPlayNext) {
+                        trackQueue.offerLast(queuedTrack);
+                    } else {
+                        trackQueue.offerFirst(queuedTrack);
+                    }
                     String msg = player.getPlayingTrack() == null
                             ? "✅ Now playing: " + firstTrack.getInfo().title
                             : (isPlayNext
